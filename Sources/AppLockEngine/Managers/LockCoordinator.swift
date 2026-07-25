@@ -56,6 +56,8 @@ final class LockCoordinator {
     /// are locked and in the background. Tracked so we only ever reveal apps we
     /// hid, never ones the user hid themselves.
     private var hiddenByUs: Set<String> = []
+    /// Active only while apps are hidden; re-hides any that reveal themselves.
+    private var rehideTimer: Timer?
 
     func start() {
         monitor.events
@@ -101,6 +103,24 @@ final class LockCoordinator {
                 // Locked and in the background: hide so it can't be previewed.
                 if !running.isHidden { running.hide() }
                 hiddenByUs.insert(bundleID)
+            }
+        }
+        updateRehideTimer()
+    }
+
+    /// While any app is hidden, re-run reconciliation on a short interval. A
+    /// background app can *reveal itself* when it finishes creating its first
+    /// window (e.g. shortly after a background launch), and that doesn't fire any
+    /// app-activation event we could react to — so this safety net re-hides it
+    /// promptly. The timer stops as soon as nothing is hidden, keeping idle CPU
+    /// at zero.
+    private func updateRehideTimer() {
+        if hiddenByUs.isEmpty {
+            rehideTimer?.invalidate()
+            rehideTimer = nil
+        } else if rehideTimer == nil {
+            rehideTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.reconcileHiddenApps() }
             }
         }
     }
@@ -188,7 +208,14 @@ final class LockCoordinator {
         }
     }
 
-    /// Present the overlay + auth if the app is currently locked.
+    /// Present the overlay + auth if the app is currently locked *and* frontmost.
+    ///
+    /// A locked app that is **not** frontmost (e.g. it launched in the
+    /// background, on another Space, or on another display) is protected by
+    /// hiding it (`reconcileHiddenApps`) rather than prompting — so it can never
+    /// be seen or previewed unauthenticated, and we don't pop a Touch ID sheet
+    /// for an app the user hasn't opened. The overlay + prompt appear the moment
+    /// they focus it, which fires another activation event.
     private func lockIfNeeded(_ app: ProtectedApp, config: Configuration) {
         let bundleID = app.bundleIdentifier
         let policy = app.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
@@ -197,6 +224,7 @@ final class LockCoordinator {
         if !mustAlwaysAuth && store.isUnlocked(bundleID) { return }
         guard !overlay.isShowingOverlay(for: bundleID) else { return }
         guard !authInFlight.contains(bundleID) else { return }
+        guard NSWorkspace.shared.frontmostApplication?.bundleIdentifier == bundleID else { return }
 
         presentLock(for: app, config: config)
     }

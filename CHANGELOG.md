@@ -6,6 +6,18 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Changing the overlay style (or any preference) no longer turns off unrelated
+  settings such as "Launch at Login". `SettingsViewModel` kept a separate working
+  copy that round-tripped through the store and read it back inside
+  `objectWillChange` (which fires *before* the new value lands), reading a stale
+  value and clobbering other fields. Each control now binds directly to a single
+  store field, and launch-at-login reflects the real login-item state.
+- A protected app that launches in the **background** is now hidden (protected)
+  immediately, instead of remaining visible until first focused. The overlay +
+  Touch ID prompt appear when you focus it; a background launch no longer pops an
+  unexpected prompt either.
+
 ### Changed
 - Locked, backgrounded protected apps are now **hidden** so their contents no
   longer appear in Mission Control, the Spaces switcher, App Exposé or Stage

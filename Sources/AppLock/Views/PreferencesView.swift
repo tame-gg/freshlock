@@ -51,7 +51,7 @@ struct PreferencesView: View {
     private var generalSection: some View {
         SettingsSection("General") {
             SettingsRow("Launch at login") {
-                toggle($viewModel.settings.launchAtLogin)
+                toggle(viewModel.launchAtLogin)
             }
             if let error = viewModel.loginItemError {
                 note(error, error: true)
@@ -63,11 +63,11 @@ struct PreferencesView: View {
             }
             Divider().overlay(Theme.stroke)
             SettingsRow("Notify when a protected app launches") {
-                toggle($viewModel.settings.notifyOnProtectedLaunch)
+                toggle(viewModel.binding(\.notifyOnProtectedLaunch))
             }
             Divider().overlay(Theme.stroke)
             SettingsRow("Overlay style") {
-                Picker("", selection: $viewModel.settings.overlayStyle) {
+                Picker("", selection: viewModel.binding(\.overlayStyle)) {
                     ForEach(OverlayStyle.allCases, id: \.self) { Text($0.displayName).tag($0) }
                 }
                 .labelsHidden().fixedSize().tint(Theme.textSecondary)
@@ -94,12 +94,12 @@ struct PreferencesView: View {
             Divider().overlay(Theme.stroke)
             SettingsRow("Require authentication on every launch",
                         subtitle: "Prompt on every activation, ignoring the relock policy.") {
-                toggle($viewModel.settings.requireEveryLaunch)
+                toggle(viewModel.binding(\.requireEveryLaunch))
             }
             Divider().overlay(Theme.stroke)
             SettingsRow("Grace period") {
                 Stepper("\(viewModel.settings.gracePeriodSeconds)s",
-                        value: $viewModel.settings.gracePeriodSeconds, in: 0...60).fixedSize()
+                        value: viewModel.binding(\.gracePeriodSeconds), in: 0...60).fixedSize()
             }
         }
     }
@@ -107,11 +107,11 @@ struct PreferencesView: View {
     private var shortcutsSection: some View {
         SettingsSection("Global Shortcuts") {
             SettingsRow("Lock All") {
-                ShortcutRecorderView(shortcut: $viewModel.settings.lockAllShortcut).frame(width: 150, height: 26)
+                ShortcutRecorderView(shortcut: viewModel.binding(\.lockAllShortcut)).frame(width: 150, height: 26)
             }
             Divider().overlay(Theme.stroke)
             SettingsRow("Unlock All") {
-                ShortcutRecorderView(shortcut: $viewModel.settings.unlockAllShortcut).frame(width: 150, height: 26)
+                ShortcutRecorderView(shortcut: viewModel.binding(\.unlockAllShortcut)).frame(width: 150, height: 26)
             }
             note("Each shortcut needs at least one of ⌘/⌥/⌃. Press ⌫ while recording to clear.")
         }
@@ -135,7 +135,7 @@ struct PreferencesView: View {
 
     private var advancedSection: some View {
         SettingsSection("Advanced") {
-            SettingsRow("Developer mode") { toggle($viewModel.settings.developerMode) }
+            SettingsRow("Developer mode") { toggle(viewModel.binding(\.developerMode)) }
             Divider().overlay(Theme.stroke)
             SettingsRow("Setup guide") {
                 accentButton("Replay…") {
@@ -168,19 +168,19 @@ struct PreferencesView: View {
 
     // MARK: Bindings
 
+    private var relockPolicy: Binding<RelockPolicy> { viewModel.binding(\.defaultRelockPolicy) }
+
     private var defaultRelockKind: Binding<PolicyKind> {
         .init(
-            get: { PolicyKind(from: viewModel.settings.defaultRelockPolicy) },
-            set: { viewModel.settings.defaultRelockPolicy =
-                $0.makePolicy(minutes: defaultRelockMinutes.wrappedValue) ?? .everyLaunch }
+            get: { PolicyKind(from: relockPolicy.wrappedValue) },
+            set: { relockPolicy.wrappedValue = $0.makePolicy(minutes: defaultRelockMinutes.wrappedValue) ?? .everyLaunch }
         )
     }
 
     private var defaultRelockMinutes: Binding<Int> {
         .init(
-            get: { viewModel.settings.defaultRelockPolicy.minutes ?? 15 },
-            set: { viewModel.settings.defaultRelockPolicy =
-                PolicyKind(from: viewModel.settings.defaultRelockPolicy).makePolicy(minutes: $0) ?? .everyLaunch }
+            get: { relockPolicy.wrappedValue.minutes ?? 15 },
+            set: { relockPolicy.wrappedValue = PolicyKind(from: relockPolicy.wrappedValue).makePolicy(minutes: $0) ?? .everyLaunch }
         )
     }
 
