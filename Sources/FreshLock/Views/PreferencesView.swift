@@ -204,7 +204,8 @@ struct PreferencesView: View {
             if let backupStatus = viewModel.backupStatus {
                 Text(backupStatus)
                     .font(.caption)
-                    .foregroundStyle(viewModel.backupIsError ? AnyShapeStyle(Color.red) : AnyShapeStyle(HierarchicalShapeStyle.secondary))
+                    .foregroundStyle(viewModel
+                        .backupIsError ? AnyShapeStyle(Color.red) : AnyShapeStyle(HierarchicalShapeStyle.secondary))
             }
         } header: {
             Text("Configuration File")
@@ -218,99 +219,99 @@ struct PreferencesView: View {
     @ViewBuilder
     private var advancedSection: some View {
         Section("Permissions") {
-                LabeledContent {
-                    if AccessibilityPermission.isTrusted {
-                        Text("Granted")
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Button("Open Settings…") {
-                            AccessibilityPermission.requestTrust()
-                            AccessibilityPermission.openSystemSettings()
-                        }
-                    }
-                } label: {
-                    SettingsRowLabel(
-                        symbol: "accessibility",
-                        title: "Accessibility",
-                        subtitle: "Required for reliable locking. Enable FreshLock under Privacy & Security → Accessibility."
-                    )
-                }
-                if !AccessibilityPermission.isTrusted {
-                    SettingsRowNote(text: "If a FreshLock toggle is already on, it may be a different build. Remove old entries and enable:")
-                    Text(AccessibilityPermission.runningBundlePathDisplay)
-                        .font(.system(.caption2, design: .monospaced))
-                        .textSelection(.enabled)
+            LabeledContent {
+                if AccessibilityPermission.isTrusted {
+                    Text("Granted")
                         .foregroundStyle(.secondary)
-                        .padding(.leading, Theme.settingsIconColumn + 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Button("Open Settings…") {
+                        AccessibilityPermission.requestTrust()
+                        AccessibilityPermission.openSystemSettings()
+                    }
                 }
+            } label: {
+                SettingsRowLabel(
+                    symbol: "accessibility",
+                    title: "Accessibility",
+                    subtitle: "Required for reliable locking. Enable FreshLock under Privacy & Security → Accessibility."
+                )
             }
+            if !AccessibilityPermission.isTrusted {
+                SettingsRowNote(
+                    text: "If a FreshLock toggle is already on, it may be a different build. Remove old entries and enable:"
+                )
+                Text(AccessibilityPermission.runningBundlePathDisplay)
+                    .font(.system(.caption2, design: .monospaced))
+                    .textSelection(.enabled)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, Theme.settingsIconColumn + 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
 
-            Section("Developer") {
-                Toggle(isOn: viewModel.binding(\.developerMode)) {
-                    SettingsRowLabel(
-                        symbol: "hammer",
-                        title: "Developer mode",
-                        subtitle: "Show the Endpoint Security enforcement controls."
-                    )
-                }
-                if viewModel.settings.developerMode {
-                    enforcementSection
-                }
-                Button {
-                    NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
-                } label: {
-                    Label("Replay setup guide…", systemImage: "arrow.counterclockwise")
-                }
+        Section("Developer") {
+            Toggle(isOn: viewModel.binding(\.developerMode)) {
+                SettingsRowLabel(
+                    symbol: "hammer",
+                    title: "Developer mode",
+                    subtitle: "Show the Endpoint Security enforcement controls."
+                )
+            }
+            if viewModel.settings.developerMode {
+                enforcementSection
+            }
+            Button {
+                NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
+            } label: {
+                Label("Replay setup guide…", systemImage: "arrow.counterclockwise")
             }
         }
     }
 
+    @ViewBuilder
     private var enforcementSection: some View {
-        Group {
-            Divider()
-            Text("Endpoint Security (Phase 1)")
-                .font(.caption)
+        Divider()
+        Text("Endpoint Security (Phase 1)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        Text(
+            """
+            System Extensions (Endpoint Security AUTH_EXEC) are the supported \
+            path for kernel-held launch denial. Classic kernel extensions (kexts) \
+            are deprecated and not used. Shipping builds still use overlays unless \
+            Apple grants the ES entitlement and the extension is embedded.
+            """
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        LabeledContent("Extension embedded") {
+            Text(systemExtensionRegistrar.isExtensionEmbedded ? "Yes" : "No")
                 .foregroundStyle(.secondary)
-            Text(
-                """
-                System Extensions (Endpoint Security AUTH_EXEC) are the supported \
-                path for kernel-held launch denial. Classic kernel extensions (kexts) \
-                are deprecated and not used. Shipping builds still use overlays unless \
-                Apple grants the ES entitlement and the extension is embedded.
-                """
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            LabeledContent("Extension embedded") {
-                Text(systemExtensionRegistrar.isExtensionEmbedded ? "Yes" : "No")
-                    .foregroundStyle(.secondary)
-            }
-            LabeledContent("Registration") {
-                Text(systemExtensionRegistrar.status.displayText)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-            }
-            HStack {
-                Button("Activate system extension…") {
-                    systemExtensionRegistrar.activate()
-                }
-                .disabled(systemExtensionRegistrar.status == .submitting)
-                Button("Deactivate") {
-                    systemExtensionRegistrar.deactivate()
-                }
-                .disabled(systemExtensionRegistrar.status == .submitting)
-            }
-            Text(
-                """
-                Build with EMBED_SYSTEM_EXTENSION=1 Scripts/build-app.sh, sign with \
-                host + ES entitlements, grant Full Disk Access, then activate. Admins \
-                can still uninstall. See docs/ENFORCEMENT.md.
-                """
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
+        LabeledContent("Registration") {
+            Text(systemExtensionRegistrar.status.displayText)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+        }
+        HStack {
+            Button("Activate system extension…") {
+                systemExtensionRegistrar.activate()
+            }
+            .disabled(systemExtensionRegistrar.status == .submitting)
+            Button("Deactivate") {
+                systemExtensionRegistrar.deactivate()
+            }
+            .disabled(systemExtensionRegistrar.status == .submitting)
+        }
+        Text(
+            """
+            Build with EMBED_SYSTEM_EXTENSION=1 Scripts/build-app.sh, sign with \
+            host + ES entitlements, grant Full Disk Access, then activate. Admins \
+            can still uninstall. See docs/ENFORCEMENT.md.
+            """
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 
     // MARK: About
