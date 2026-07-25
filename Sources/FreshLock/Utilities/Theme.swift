@@ -38,31 +38,58 @@ enum Theme {
     /// Sidebar column ideal width (BetterDisplay-style utility).
     static let sidebarWidth: CGFloat = 180
 
-    // MARK: Settings icon tiles
+    // MARK: Icon wells
     //
-    // Tinted rounded squares, as System Settings uses. One tint per destination
-    // so a page is recognisable by colour before the label is read.
+    // Every navigable destination gets the same soft brand-tinted well with a
+    // dark glyph. One tone across the whole column reads as a considered set;
+    // a different hue per row reads as noise.
 
-    static let tileGray = Color(nsColor: .systemGray)
-    static let tileBlue = Color(nsColor: .systemBlue)
-    static let tileGreen = Color(nsColor: .systemGreen)
-    static let tileYellow = Color(nsColor: .systemYellow)
-    static let tileOrange = Color(nsColor: .systemOrange)
-    static let tileTeal = Color(nsColor: .systemTeal)
-    static let tileIndigo = Color(nsColor: .systemIndigo)
-    static let tilePink = Color(nsColor: .systemPink)
-    static let tilePurple = Color(nsColor: .systemPurple)
+    static let wellFill = dynamic(
+        light: NSColor(srgbRed: 0.725, green: 0.847, blue: 0.808, alpha: 1),
+        dark: NSColor(srgbRed: 0.784, green: 0.886, blue: 0.851, alpha: 1)
+    )
 
-    /// Tile side in the sidebar, in a settings row, and in a page header.
-    static let tileSideSidebar: CGFloat = 18
-    static let tileSideRow: CGFloat = 22
-    static let tileSideHeader: CGFloat = 26
+    static let wellGlyph = Color(hex: 0x13332B)
+
+    /// Well side in the sidebar and at the head of a page.
+    static let wellSideSidebar: CGFloat = 24
+    static let wellSidePage: CGFloat = 30
+
+    // MARK: Grouped cards
+    //
+    // Settings rows live on soft raised islands rather than one merged table,
+    // so a page can be scanned by shape before it is read.
+
+    static let cardFill = dynamic(
+        light: NSColor(white: 1, alpha: 0.92),
+        dark: NSColor(white: 1, alpha: 0.055)
+    )
+
+    static let cardStroke = dynamic(
+        light: NSColor(white: 0, alpha: 0.07),
+        dark: NSColor(white: 1, alpha: 0.07)
+    )
+
+    /// Quiet neutral selection, so the wells stay the only colour in the sidebar.
+    static let sidebarSelection = dynamic(
+        light: NSColor(white: 0, alpha: 0.10),
+        dark: NSColor(white: 1, alpha: 0.14)
+    )
+
+    static let cardCornerRadius: CGFloat = 12
 
     /// Point size for app icons in the menu-bar menu (matches the menu text).
     static let menuAppIconSize: CGFloat = 16
 
     /// Point size for SF Symbols used as menu-item images.
     static let menuSymbolSize: CGFloat = 13
+
+    /// A colour that resolves per appearance, so one constant covers both modes.
+    private static func dynamic(light: NSColor, dark: NSColor) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+        })
+    }
 }
 
 private enum PreferLiquidGlassKey: EnvironmentKey {
