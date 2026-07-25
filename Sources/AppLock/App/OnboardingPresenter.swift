@@ -22,17 +22,11 @@ final class OnboardingPresenter {
     /// Posted (e.g. from Preferences) to replay the setup guide on demand.
     static let replayNotification = Notification.Name("gg.tame.applock.replayOnboarding")
 
-    private let accessibility: AccessibilityServiceProtocol
     private let loginItem: LoginItemServiceProtocol
     private let defaults: UserDefaults
     private var windowController: NSWindowController?
 
-    init(
-        accessibility: AccessibilityServiceProtocol,
-        loginItem: LoginItemServiceProtocol,
-        defaults: UserDefaults = .standard
-    ) {
-        self.accessibility = accessibility
+    init(loginItem: LoginItemServiceProtocol, defaults: UserDefaults = .standard) {
         self.loginItem = loginItem
         self.defaults = defaults
     }
@@ -56,7 +50,6 @@ final class OnboardingPresenter {
         }
 
         let viewModel = OnboardingViewModel(
-            accessibility: accessibility,
             loginItem: loginItem,
             onFinish: { [weak self] in self?.complete() }
         )

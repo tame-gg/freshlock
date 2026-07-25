@@ -10,7 +10,6 @@
 import AppKit
 import AppLockCore
 import AppLockEngine
-import ApplicationServices
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -137,12 +136,6 @@ struct PreferencesView: View {
     private var advancedSection: some View {
         SettingsSection("Advanced") {
             SettingsRow("Developer mode") { toggle($viewModel.settings.developerMode) }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Accessibility") {
-                Text(AccessibilityStatusText.current)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(AXIsProcessTrusted() ? Theme.green : .orange)
-            }
             Divider().overlay(Theme.stroke)
             SettingsRow("Setup guide") {
                 accentButton("Replay…") {
@@ -276,9 +269,4 @@ private struct SettingsRow<Control: View>: View {
         }
         .padding(.vertical, 11)
     }
-}
-
-/// Reports the current Accessibility trust state as text.
-private enum AccessibilityStatusText {
-    static var current: String { AXIsProcessTrusted() ? "Granted" : "Not granted" }
 }

@@ -52,12 +52,57 @@ final class LockCoordinator {
         self.configProvider = configProvider
     }
 
+    /// Protected apps we have hidden (`NSRunningApplication.hide`) because they
+    /// are locked and in the background. Tracked so we only ever reveal apps we
+    /// hid, never ones the user hid themselves.
+    private var hiddenByUs: Set<String> = []
+
     func start() {
         monitor.events
             .sink { [weak self] event in self?.handle(event) }
             .store(in: &cancellables)
+        // Relocks that don't come from app switching (sleep, screen lock, timer
+        // expiry, Lock All) change the store directly — reconcile hidden state
+        // when it does, so backgrounded apps that just locked get hidden.
+        store.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in MainActor.assumeIsolated { self?.reconcileHiddenApps() } }
+            .store(in: &cancellables)
         monitor.start()
         Log.lifecycle.info("Lock coordinator started")
+    }
+
+    /// Hide protected apps that are locked and backgrounded, and reveal ones we
+    /// hid once they're unlocked. This is what keeps a locked app's content out
+    /// of Mission Control, Spaces, App Exposé and Stage Manager — macOS offers
+    /// no public way to exclude another app's window from those snapshots, so
+    /// the only option is to hide the app's windows entirely while it's locked.
+    private func reconcileHiddenApps() {
+        let config = configProvider()
+        let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+
+        for app in config.protectedApps where app.isEnabled {
+            let bundleID = app.bundleIdentifier
+            guard let running = NSRunningApplication
+                .runningApplications(withBundleIdentifier: bundleID).first else {
+                hiddenByUs.remove(bundleID)
+                continue
+            }
+            let isFrontmost = running.processIdentifier == frontPID
+
+            if store.isUnlocked(bundleID) {
+                // Unlocked: reveal it if we were the ones who hid it.
+                if hiddenByUs.remove(bundleID) != nil { running.unhide() }
+            } else if isFrontmost || closing.contains(bundleID) {
+                // Locked but currently the active app (the overlay covers it) or
+                // being closed after a cancel: don't hide.
+                hiddenByUs.remove(bundleID)
+            } else {
+                // Locked and in the background: hide so it can't be previewed.
+                if !running.isHidden { running.hide() }
+                hiddenByUs.insert(bundleID)
+            }
+        }
     }
 
     // MARK: - Global-shortcut actions
@@ -114,11 +159,15 @@ final class LockCoordinator {
             overlay.dismissOverlay(for: bundleID)
             authInFlight.remove(bundleID)
             closing.remove(bundleID)
+            hiddenByUs.remove(bundleID)
             failureCounts[bundleID] = nil
             // Relock on quit so the next launch always re-authenticates. This is
             // what makes `.everyLaunch` mean "once per launch".
             store.lock(bundleID)
         }
+        // After any app event, re-hide backgrounded locked apps / reveal unlocked
+        // ones so previews never show protected content.
+        reconcileHiddenApps()
     }
 
     /// If the newly-frontmost app differs from a protected app that used the
@@ -249,6 +298,12 @@ final class LockCoordinator {
         }
         store.grantUnlock(bundleID, scope: scope)
         overlay.dismissOverlay(for: bundleID)
+        // Reveal and bring the app forward (it may have been hidden while locked).
+        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first {
+            running.unhide()
+            running.activate()
+        }
+        hiddenByUs.remove(bundleID)
     }
 
     private func handleFailure(app: ProtectedApp, config: Configuration) {

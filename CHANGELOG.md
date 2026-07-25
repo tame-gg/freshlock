@@ -6,6 +6,18 @@ to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Locked, backgrounded protected apps are now **hidden** so their contents no
+  longer appear in Mission Control, the Spaces switcher, App Exposé or Stage
+  Manager. macOS has no public API to exclude another app's window from those
+  previews, so hiding is the strongest available mitigation.
+- Removed the **Accessibility** permission requirement entirely — AppLock only
+  uses public APIs that don't need it. This also fixes false "not granted"
+  reports (the grant is tied to a binary's code signature and doesn't survive
+  ad-hoc rebuilds).
+- Removed the **Minimal** overlay style; only the polished Blurred/Solid styles
+  remain. Old configurations referencing it fall back to Blurred.
+
 ### Added
 - Initial AppLock implementation.
 - Testable `AppLockCore` library: models, discovery, authentication, settings

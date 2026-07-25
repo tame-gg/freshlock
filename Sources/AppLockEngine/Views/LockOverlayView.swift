@@ -43,8 +43,6 @@ struct LockOverlayView: View {
             VisualEffectBlur(material: .fullScreenUI, blendingMode: .behindWindow)
         case .solid:
             Color(nsColor: .windowBackgroundColor)
-        case .minimal:
-            Color.black.opacity(0.25)
         }
     }
 

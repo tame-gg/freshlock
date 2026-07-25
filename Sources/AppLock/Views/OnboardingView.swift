@@ -38,7 +38,6 @@ struct OnboardingView: View {
     @ViewBuilder private var content: some View {
         switch viewModel.step {
         case .welcome: welcomePage
-        case .accessibility: accessibilityPage
         case .launchAtLogin: launchAtLoginPage
         case .done: donePage
         }
@@ -59,30 +58,6 @@ struct OnboardingView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .padding(.top, 4)
-            }
-        }
-    }
-
-    private var accessibilityPage: some View {
-        pageScaffold(
-            icon: "hand.raised.fill",
-            title: "Grant Accessibility",
-            subtitle: "AppLock needs Accessibility permission to place its lock overlay above other apps."
-        ) {
-            VStack(spacing: 16) {
-                statusRow(
-                    granted: viewModel.isAccessibilityTrusted,
-                    grantedText: "Accessibility granted",
-                    pendingText: "Accessibility not granted yet"
-                )
-                Button(viewModel.isAccessibilityTrusted ? "Open Accessibility Settings" : "Grant Accessibility…") {
-                    viewModel.grantAccessibility()
-                }
-                .controlSize(.large)
-                Text("You can change this any time in System Settings → Privacy & Security → Accessibility.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
             }
         }
     }
@@ -164,15 +139,6 @@ struct OnboardingView: View {
             Text(text)
             Spacer(minLength: 0)
         }
-    }
-
-    private func statusRow(granted: Bool, grantedText: String, pendingText: String) -> some View {
-        Label(
-            granted ? grantedText : pendingText,
-            systemImage: granted ? "checkmark.circle.fill" : "exclamationmark.circle"
-        )
-        .foregroundStyle(granted ? .green : .orange)
-        .font(.headline)
     }
 }
 

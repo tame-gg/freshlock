@@ -27,10 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             env.startServices()
             statusBar = StatusBarController(environment: env)
 
-            let presenter = OnboardingPresenter(
-                accessibility: env.accessibility,
-                loginItem: env.helperLoginItem
-            )
+            let presenter = OnboardingPresenter(loginItem: env.helperLoginItem)
             onboarding = presenter
             presenter.presentIfNeeded()
 

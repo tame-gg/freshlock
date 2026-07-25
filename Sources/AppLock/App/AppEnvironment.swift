@@ -21,7 +21,6 @@ final class AppEnvironment {
     let authService: AuthenticationServiceProtocol
     let discoveryService: AppDiscoveryServiceProtocol
     let unlockStore: UnlockStateStore
-    let accessibility: AccessibilityServiceProtocol
     let helperLoginItem: LoginItemServiceProtocol
     /// The single source of truth for the configuration in this GUI process.
     let configurationStore: ConfigurationStore
@@ -47,7 +46,6 @@ final class AppEnvironment {
         authService: AuthenticationServiceProtocol = LocalAuthenticationService(),
         discoveryService: AppDiscoveryServiceProtocol = AppDiscoveryService(),
         unlockStore: UnlockStateStore = UnlockStateStore(),
-        accessibility: AccessibilityServiceProtocol = AccessibilityService(),
         helperLoginItem: LoginItemServiceProtocol = LoginItemService(service: .agent(plistName: "gg.tame.applock.helper.plist")),
         runEngineInProcess: Bool = true
     ) {
@@ -55,7 +53,6 @@ final class AppEnvironment {
         self.authService = authService
         self.discoveryService = discoveryService
         self.unlockStore = unlockStore
-        self.accessibility = accessibility
         self.helperLoginItem = helperLoginItem
         self.runEngineInProcess = runEngineInProcess
         let store = ConfigurationStore(settingsService: settingsService)

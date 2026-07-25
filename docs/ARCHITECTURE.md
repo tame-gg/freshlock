@@ -13,7 +13,7 @@ Sources/
     Utilities/            # os.Logger wrapper
   AppLockEngine/          # Shared AppKit locking engine (GUI + helper link it)
     LockEngine.swift      # Public composition root
-    Services/             # AppMonitor, Overlay, Accessibility, LoginItem, …
+    Services/             # AppMonitor, Overlay, LoginItem, Notifications, …
     Managers/             # LockCoordinator, RelockManager
     Views/                # LockOverlayView + NSVisualEffect bridge
   AppLock/                # GUI executable (SwiftUI settings + menu bar)
@@ -95,11 +95,31 @@ kernel enforcement layer. Concretely:
 
 | Goal | What macOS allows publicly | AppLock's approach |
 |------|----------------------------|--------------------|
-| Detect a launch | `NSWorkspace` notifications *after* launch begins | React on the notification, immediately overlay |
+| Detect a launch | `NSWorkspace` notifications *after* launch begins | React on the notification, immediately cover/hide |
 | Prevent a launch | ❌ No public pre-launch veto | Not possible; we cover + require auth instead |
 | Freeze another app's UI | ❌ Not permitted | Top-most overlay intercepts interaction |
 | Read another app's password | ❌ Never; nor do we want to | Use LocalAuthentication only |
-| Guarantee no frame is drawn | ❌ Race between OS draw and our overlay | Overlay appears within a frame or two |
+| Hide content from Mission Control / Spaces / Exposé | ❌ No public API to exclude another app's window from previews | **Hide the app** (`NSRunningApplication.hide`) while it's locked and backgrounded |
+| Guarantee no frame is drawn | ❌ Race between OS draw and our overlay | Cover/hide within a frame or two |
+
+### Preview privacy (Mission Control, Spaces, Exposé, Stage Manager)
+
+A covering overlay is a *separate* window, so system previews that snapshot the
+protected app's own window would still show its contents. macOS exposes no public
+way to mark another app's window as non-capturable. AppLock's strongest available
+mitigation is therefore to **hide the app's windows entirely while it is locked
+and in the background** — a hidden app does not appear in Mission Control, the
+Spaces switcher, App Exposé or the Stage Manager strip. It is revealed the instant
+you authenticate. The only residual gap is a possible sub-second flash while the
+app is being *actively* unlocked (frontmost, overlay covering) if you open Mission
+Control at that exact moment.
+
+### No Accessibility permission
+
+AppLock does not use the Accessibility (AX) API — the top-most overlay relies on
+window *levels*, launch detection on `NSWorkspace`, and hide/reveal on
+`NSRunningApplication`, none of which need it. Earlier builds requested it
+speculatively; it has been removed.
 
 A sufficiently determined local user with admin rights can bypass any userland
 app-locker (kill the process, boot to recovery, etc.). AppLock defends against

@@ -20,10 +20,19 @@ opening an app on your unlocked Mac — but it is a userland app, not an OS
 feature. A determined admin user can bypass it. Use FileVault / separate accounts
 for stronger guarantees.
 
-### Why does it need Accessibility permission?
+### Does it need Accessibility permission?
 
-To position the lock overlay above other applications' windows. Without it, the
-overlay may not reliably stay on top.
+No. Earlier versions asked for it, but AppLock uses only public APIs that don't
+require it (top-most overlay via window levels, `NSWorkspace` launch monitoring,
+`NSRunningApplication` to hide/reveal apps, and LocalAuthentication).
+
+### Why does a protected app disappear when I switch away from it?
+
+To keep its contents out of Mission Control, Spaces, App Exposé and Stage
+Manager. macOS gives no public way to exclude *another* app's window from those
+previews, so while a protected app is locked and in the background AppLock hides
+it (like ⌘H). It comes back the moment you unlock it. Apps set to "Once per
+launch" stay unlocked (and visible) until they quit.
 
 ### Does it phone home?
 

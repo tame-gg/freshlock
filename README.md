@@ -77,8 +77,11 @@ We will never pretend a limitation doesn't exist.
 
 On first launch AppLock will ask for:
 
-- **Accessibility** — to position overlays above other apps.
 - **Notifications** *(optional)* — to alert you when a protected app launches.
+
+AppLock does **not** require Accessibility permission — it uses only public APIs
+(window levels, `NSWorkspace`, `NSRunningApplication`, LocalAuthentication) that
+don't need it.
 
 ## Contributing
 
