@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# build-app.sh — assemble FreshLock.app from the SwiftPM release build.
+# build-app.sh - assemble FreshLock.app from the SwiftPM release build.
 #
 # SwiftPM produces a bare executable; macOS needs a bundle. This script builds
 # in release configuration and lays out a proper .app directory with Info.plist
@@ -13,7 +13,7 @@
 # Environment:
 #   CONFIGURATION            debug|release (default: release)
 #   ARCH                     arm64|x86_64|universal (default: universal)
-#   EMBED_SYSTEM_EXTENSION   0|1 (default: 0) — embed Phase 1 .systemextension
+#   EMBED_SYSTEM_EXTENSION   0|1 (default: 0) - embed Phase 1 .systemextension
 #                            Requires Apple ES entitlement to *activate* on SIP-on.
 #                            Off by default so Phase 0 shipping stays entitlement-free.
 #
@@ -27,6 +27,7 @@ EMBED_SYSTEM_EXTENSION="${EMBED_SYSTEM_EXTENSION:-0}"
 
 APP_NAME="FreshLock"
 BUNDLE="$OUTPUT_DIR/$APP_NAME.app"
+ENTITLEMENTS="$ROOT/Packaging/FreshLock.entitlements"
 
 echo "▶ Building $APP_NAME ($CONFIGURATION, $ARCH)…"
 
@@ -37,7 +38,11 @@ case "$ARCH" in
   *) echo "Unknown ARCH: $ARCH" >&2; exit 1 ;;
 esac
 
-swift build "${BUILD_FLAGS[@]}"
+# Phase 0 default: only GUI + helper. Endpoint Security is built separately
+# (Scripts/build-systemextension.sh) or when EMBED_SYSTEM_EXTENSION=1.
+echo "   Products: FreshLock, FreshLockHelper"
+swift build "${BUILD_FLAGS[@]}" --product FreshLock
+swift build "${BUILD_FLAGS[@]}" --product FreshLockHelper
 BIN_PATH="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
 
 echo "▶ Assembling bundle at $BUNDLE"
@@ -50,7 +55,7 @@ cp "$ROOT/Packaging/Info.plist" "$BUNDLE/Contents/Info.plist"
 
 # --- Localizations: copy .lproj catalogs into the main bundle. SwiftUI's
 # LocalizedStringKey resolves literals against the main bundle at runtime, so
-# no code changes are needed — only these resources. ---
+# no code changes are needed - only these resources. ---
 copy_localizations() {
   local resources_dir="$1"
   for lproj in "$ROOT"/Localization/*.lproj; do
@@ -90,11 +95,27 @@ else
   echo "▶ Skipping system extension embed (set EMBED_SYSTEM_EXTENSION=1 to include)"
 fi
 
-# Copy an app icon if present (Scripts/generate-icon.sh produces AppIcon.icns).
+# Copy an app icon if present (Scripts/generate-icon.swift produces AppIcon.icns).
 if [[ -f "$ROOT/Packaging/AppIcon.icns" ]]; then
   cp "$ROOT/Packaging/AppIcon.icns" "$BUNDLE/Contents/Resources/AppIcon.icns"
-  /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string AppIcon" \
-    "$BUNDLE/Contents/Info.plist" 2>/dev/null || true
+fi
+
+# --- Ad-hoc sign so Info.plist is bound and Accessibility identity is stable.
+# Developer ID / notarization is handled separately by sign-and-notarize.sh when
+# SIGNING_IDENTITY is set. ---
+if [[ -z "${SIGNING_IDENTITY:-}" ]]; then
+  echo "▶ Ad-hoc signing bundle (stable local identity)…"
+  # Innermost first, then host. --deep covers nested LoginItems helper.
+  codesign --force --sign - \
+    --entitlements "$ENTITLEMENTS" \
+    "$HELPER" 2>/dev/null || codesign --force --sign - "$HELPER"
+  codesign --force --deep --sign - \
+    --entitlements "$ENTITLEMENTS" \
+    "$BUNDLE"
+  codesign --verify --verbose=1 "$BUNDLE" 2>&1 | sed 's/^/   /' || true
+else
+  echo "▶ SIGNING_IDENTITY set - leaving signing to Scripts/sign-and-notarize.sh"
 fi
 
 echo "✅ Built $BUNDLE"
+echo "   Run: open \"$BUNDLE\""
