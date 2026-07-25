@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Entitlements for the Endpoint Security enforce extension.
+
+  com.apple.developer.endpoint-security.client is a *managed* entitlement:
+  Apple must whitelist it on your Developer Team before SIP-on machines will
+  load this client. Until then, keep this file as documentation / future use
+  and do not claim Phase 1 is shipping.
+
+  See docs/ENFORCEMENT.md.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+    <key>com.apple.developer.endpoint-security.client</key>
+    <true/>
+</dict>
+</plist>
