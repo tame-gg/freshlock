@@ -38,9 +38,25 @@ enum Theme {
     /// Sidebar column ideal width (BetterDisplay-style utility).
     static let sidebarWidth: CGFloat = 180
 
-    /// Width reserved for the leading symbol in a settings row, so icons and the
-    /// notes underneath them share one alignment column.
-    static let settingsIconColumn: CGFloat = 18
+    // MARK: Settings icon tiles
+    //
+    // Tinted rounded squares, as System Settings uses. One tint per destination
+    // so a page is recognisable by colour before the label is read.
+
+    static let tileGray = Color(nsColor: .systemGray)
+    static let tileBlue = Color(nsColor: .systemBlue)
+    static let tileGreen = Color(nsColor: .systemGreen)
+    static let tileYellow = Color(nsColor: .systemYellow)
+    static let tileOrange = Color(nsColor: .systemOrange)
+    static let tileTeal = Color(nsColor: .systemTeal)
+    static let tileIndigo = Color(nsColor: .systemIndigo)
+    static let tilePink = Color(nsColor: .systemPink)
+    static let tilePurple = Color(nsColor: .systemPurple)
+
+    /// Tile side in the sidebar, in a settings row, and in a page header.
+    static let tileSideSidebar: CGFloat = 18
+    static let tileSideRow: CGFloat = 22
+    static let tileSideHeader: CGFloat = 26
 
     /// Point size for app icons in the menu-bar menu (matches the menu text).
     static let menuAppIconSize: CGFloat = 16

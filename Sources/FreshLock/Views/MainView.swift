@@ -45,14 +45,22 @@ struct MainView: View {
         List(selection: $viewModel.sidebarSelection) {
             Section("Library") {
                 ForEach(SidebarItem.primaryCases, id: \.self) { item in
-                    Label(item.title, systemImage: item.symbolName)
-                        .tag(item)
+                    Label {
+                        Text(item.title)
+                    } icon: {
+                        IconTile(symbol: item.symbolName, tint: item.tint)
+                    }
+                    .tag(item)
                 }
             }
             Section("Settings") {
                 ForEach(SettingsPane.allCases) { pane in
-                    Label(pane.title, systemImage: pane.symbolName)
-                        .tag(SidebarItem.settings(pane))
+                    Label {
+                        Text(pane.title)
+                    } icon: {
+                        IconTile(symbol: pane.symbolName, tint: pane.tint)
+                    }
+                    .tag(SidebarItem.settings(pane))
                 }
             }
         }

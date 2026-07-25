@@ -3,12 +3,12 @@
 //  FreshLock
 //
 //  Settings is split into pages instead of one long scrolling Form. Each page is
-//  a sidebar row (icon + name) and a detail pane introduced by a one-line
-//  summary, the way System Settings organises preferences.
+//  a sidebar row and a detail pane, the way System Settings organises
+//  preferences on modern macOS.
 //
-//  Iconography is SF Symbols, bare - no tinted tiles behind them. Symbols are
-//  drawn hierarchically in the secondary label colour so they read as a quiet
-//  aligned column rather than a row of saturated badges.
+//  Iconography follows the current system look: an SF Symbol in a tinted,
+//  gradient-filled rounded square. The same tile is reused in the sidebar and at
+//  the head of each settings row so the two read as one system.
 //
 
 import SwiftUI
@@ -22,9 +22,7 @@ enum SettingsPane: String, CaseIterable, Hashable, Identifiable {
     case advanced
     case about
 
-    var id: String {
-        rawValue
-    }
+    var id: String { rawValue }
 
     var title: String {
         switch self {
@@ -39,16 +37,27 @@ enum SettingsPane: String, CaseIterable, Hashable, Identifiable {
 
     var symbolName: String {
         switch self {
-        case .general: "gearshape"
+        case .general: "gearshape.fill"
         case .locking: "lock.rotation"
         case .shortcuts: "command"
         case .backup: "arrow.up.arrow.down"
-        case .advanced: "wrench.and.screwdriver"
-        case .about: "info.circle"
+        case .advanced: "wrench.and.screwdriver.fill"
+        case .about: "info"
         }
     }
 
-    /// Plain-language line shown above the page. It replaces the preamble
+    var tint: Color {
+        switch self {
+        case .general: Theme.tileGray
+        case .locking: Theme.tileBlue
+        case .shortcuts: Theme.tileIndigo
+        case .backup: Theme.tileTeal
+        case .advanced: Theme.tileOrange
+        case .about: Theme.tilePink
+        }
+    }
+
+    /// Plain-language line under the page title. Replaces the preamble
     /// paragraphs that used to sit inside the form itself.
     var summary: String {
         switch self {
@@ -62,21 +71,50 @@ enum SettingsPane: String, CaseIterable, Hashable, Identifiable {
     }
 }
 
+// MARK: - Icon tile
+
+/// The system-style settings glyph: a white SF Symbol on a tinted, softly
+/// graded rounded square.
+struct IconTile: View {
+    let symbol: String
+    let tint: Color
+    var side: CGFloat = Theme.tileSideSidebar
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: side * 0.28, style: .continuous)
+            .fill(tint.gradient)
+            .frame(width: side, height: side)
+            .overlay {
+                Image(systemName: symbol)
+                    .font(.system(size: side * 0.56, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .accessibilityHidden(true)
+    }
+}
+
 // MARK: - Page chrome
 
-/// The summary strip above a settings page. Uses the same `.bar` material and
-/// divider as the sidebar footer so window chrome stays one system.
+/// Bold page title and summary above a settings page, matching the weight of
+/// the toolbar title on the library pages and closing with the same hairline.
 struct SettingsPageHeader: View {
     let pane: SettingsPane
 
     var body: some View {
         VStack(spacing: 0) {
-            Text(pane.summary)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
+            HStack(spacing: 10) {
+                IconTile(symbol: pane.symbolName, tint: pane.tint, side: Theme.tileSideHeader)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(pane.title)
+                        .font(.headline)
+                    Text(pane.summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
             Divider()
         }
         .background(.bar)
@@ -85,23 +123,17 @@ struct SettingsPageHeader: View {
 
 // MARK: - Row label
 
-/// Icon + title + optional explanatory line, for the primary control of a
-/// settings group. Secondary controls stay as plain text rows so the icon
-/// column marks what matters instead of decorating every line.
+/// Tile + title + optional explanatory line, for the primary control of a
+/// settings group.
 struct SettingsRowLabel: View {
     let symbol: String
+    let tint: Color
     let title: LocalizedStringKey
     var subtitle: LocalizedStringKey?
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: symbol)
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.secondary)
-                .font(.system(size: 14))
-                .frame(width: Theme.settingsIconColumn, alignment: .center)
-                .accessibilityHidden(true)
-
+        HStack(spacing: 10) {
+            IconTile(symbol: symbol, tint: tint, side: Theme.tileSideRow)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                 if let subtitle {
@@ -115,8 +147,8 @@ struct SettingsRowLabel: View {
     }
 }
 
-/// A caption that lines up with `SettingsRowLabel` text rather than the icon,
-/// for the follow-up notes that only appear in certain states.
+/// A caption aligned to `SettingsRowLabel` text rather than its tile, for the
+/// follow-up notes that only appear in certain states.
 struct SettingsRowNote: View {
     let text: LocalizedStringKey
     var isError = false
@@ -126,7 +158,7 @@ struct SettingsRowNote: View {
             .font(.caption)
             .foregroundStyle(isError ? AnyShapeStyle(Color.red) : AnyShapeStyle(HierarchicalShapeStyle.secondary))
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.leading, Theme.settingsIconColumn + 10)
+            .padding(.leading, Theme.tileSideRow + 10)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
