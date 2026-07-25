@@ -11,7 +11,6 @@ no native equivalent. **FreshLock** is the closest, honest implementation built
 entirely on **public Apple APIs** - no private frameworks, no kernel extensions,
 no Electron.
 
-[![CI](https://github.com/tame-gg/freshlock/actions/workflows/ci.yml/badge.svg)](https://github.com/tame-gg/freshlock/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-6-orange?logo=swift)
