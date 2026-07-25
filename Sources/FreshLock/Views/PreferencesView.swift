@@ -63,17 +63,16 @@ struct PreferencesView: View {
             // Remains enabled on older OS so the preference persists; glass is a
             // no-op until macOS 26+ (see LiquidGlass.swift).
             Toggle("Use Liquid Glass", isOn: viewModel.binding(\.preferLiquidGlass))
-            Text(LiquidGlassSupport.availabilityNote)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if !LiquidGlassSupport.isAvailable {
+                Text(LiquidGlassSupport.unavailableNote)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         } header: {
             Text("Appearance")
         } footer: {
             Text(
-                """
-                Controls FreshLock surfaces only. System chrome still follows macOS; \
-                on macOS 27 use System Settings > Appearance to adjust glass tint.
-                """
+                "Applies Liquid Glass to FreshLock chrome when available (macOS 26+). System windows still follow macOS Appearance."
             )
         }
     }

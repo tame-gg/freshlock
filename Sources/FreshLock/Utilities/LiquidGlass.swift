@@ -38,13 +38,9 @@ enum LiquidGlassSupport {
         }
     }
 
-    /// Short footnote for Preferences.
-    static var availabilityNote: String {
-        if isAvailable {
-            "Glass surfaces follow System Settings > Appearance on macOS 27."
-        } else {
-            "Requires macOS 26 or later. Your preference is saved for when you upgrade."
-        }
+    /// Caption under the toggle when glass APIs are not on this OS.
+    static var unavailableNote: LocalizedStringKey {
+        "Requires macOS 26 or later. Your preference is saved for when you upgrade."
     }
 }
 

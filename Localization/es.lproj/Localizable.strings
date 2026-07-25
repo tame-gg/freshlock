@@ -57,6 +57,10 @@
 // MARK: Preferencias — controles
 "Launch at Login" = "Abrir al iniciar sesión";
 "Notify when a protected app launches" = "Avisar cuando se abra una app protegida";
+"Appearance" = "Apariencia";
+"Use Liquid Glass" = "Usar Liquid Glass";
+"Applies Liquid Glass to FreshLock chrome when available (macOS 26+). System windows still follow macOS Appearance." = "Aplica Liquid Glass al chrome de FreshLock cuando está disponible (macOS 26+). Las ventanas del sistema siguen la Apariencia de macOS.";
+"Requires macOS 26 or later. Your preference is saved for when you upgrade." = "Requiere macOS 26 o posterior. Tu preferencia se guarda para cuando actualices.";
 "Overlay Style" = "Estilo de superposición";
 "Require authentication on every launch" = "Requerir autenticación en cada apertura";
 "Prompt authentication automatically" = "Pedir autenticación automáticamente";
