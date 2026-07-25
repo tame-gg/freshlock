@@ -50,13 +50,17 @@ enum ProtectedAppProcess {
     }
 
     /// Map of bundleID → live PID set for every enabled protected app.
+    ///
+    /// Uses a single `runningApplications` snapshot instead of one Launch
+    /// Services query per bundle — this runs on the liveness poll, so its cost
+    /// must not scale with the size of the protected list.
     static func livePIDSets(forBundleIDs bundleIDs: [String]) -> [String: Set<pid_t>] {
+        guard !bundleIDs.isEmpty else { return [:] }
+        let wanted = Set(bundleIDs)
         var result: [String: Set<pid_t>] = [:]
-        for id in bundleIDs {
-            let pids = allPIDs(forBundleID: id)
-            if !pids.isEmpty {
-                result[id] = pids
-            }
+        for app in NSWorkspace.shared.runningApplications where !app.isTerminated {
+            guard let id = app.bundleIdentifier, wanted.contains(id) else { continue }
+            result[id, default: []].insert(app.processIdentifier)
         }
         return result
     }

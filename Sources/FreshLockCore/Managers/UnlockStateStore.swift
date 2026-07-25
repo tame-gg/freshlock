@@ -68,22 +68,33 @@ public final class UnlockStateStore: ObservableObject {
     }
 
     public func lock(_ bundleID: String) {
+        guard grants[bundleID] != nil else { return }
         grants[bundleID] = nil
     }
 
     public func lockAll() {
+        guard !grants.isEmpty else { return }
         grants.removeAll()
     }
 
+    /// Revoke every grant whose scope matches. Applied as a single mutation so
+    /// observers see one change rather than one per revoked grant.
     public func revokeGrants(matching predicate: (UnlockScope) -> Bool) {
-        for (bundleID, grant) in grants where predicate(grant.scope) {
-            grants[bundleID] = nil
-        }
+        let survivors = grants.filter { !predicate($0.value.scope) }
+        guard survivors.count != grants.count else { return }
+        grants = survivors
     }
 
+    /// Drop grants past their time limit.
+    ///
+    /// Only assigns when something actually expired. The unconditional
+    /// reassignment this replaces fired `@Published` on every liveness poll,
+    /// which drove a downstream disk write several times a second.
     public func purgeTimeExpired() {
         let current = now()
-        grants = grants.filter { !$0.value.isTimeExpired(asOf: current) }
+        let survivors = grants.filter { !$0.value.isTimeExpired(asOf: current) }
+        guard survivors.count != grants.count else { return }
+        grants = survivors
     }
 
     /// Drop grants whose `sessionPID` is not among the live processes for that
@@ -93,13 +104,17 @@ public final class UnlockStateStore: ObservableObject {
     public func revokeDeadSessions(livePIDsByBundle: [String: Set<pid_t>]) -> [String] {
         purgeTimeExpired()
         var revoked: [String] = []
+        var survivors: [String: UnlockGrant] = [:]
+        survivors.reserveCapacity(grants.count)
         for (bundleID, grant) in grants {
-            let live = livePIDsByBundle[bundleID] ?? []
-            if !live.contains(grant.sessionPID) {
-                grants[bundleID] = nil
+            if livePIDsByBundle[bundleID]?.contains(grant.sessionPID) == true {
+                survivors[bundleID] = grant
+            } else {
                 revoked.append(bundleID)
             }
         }
+        guard !revoked.isEmpty else { return [] }
+        grants = survivors
         return revoked
     }
 }

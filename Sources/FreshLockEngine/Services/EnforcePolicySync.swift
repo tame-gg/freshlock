@@ -24,6 +24,12 @@ public final class EnforcePolicySync {
     private let lockedStore: EnforceLockedSetStore
     private var cancellables = Set<AnyCancellable>()
     private var started = false
+    /// Last state actually written to disk. Publishing is idempotent: identical
+    /// state is never rewritten, which keeps grant churn off the filesystem.
+    private var publishedLocked: Set<String>?
+    private var publishedAllowed: Set<String>?
+    /// Set while a coalesced publish is already queued for this runloop turn.
+    private var publishQueued = false
 
     public init(
         unlockStore: UnlockStateStore,
@@ -47,18 +53,42 @@ public final class EnforcePolicySync {
                 self?.publish()
             }
             .store(in: &cancellables)
-        publish()
+        publishNow()
         log.info("Enforce policy sync started (writes allowlist/locked set for Phase 1)")
     }
 
     /// Push current locked set + unlock allowlist to disk.
+    ///
+    /// Coalesced: a burst of grant mutations (lock-all, dead-session sweeps)
+    /// collapses into a single write at the end of the runloop turn.
     public func publish() {
+        guard !publishQueued else { return }
+        publishQueued = true
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                publishQueued = false
+                publishNow()
+            }
+        }
+    }
+
+    /// Write the current state immediately, skipping files whose content is
+    /// already up to date.
+    public func publishNow() {
         let config = configProvider()
         let locked = Set(config.enabledProtectedApps.map(\.bundleIdentifier))
         let allowed = unlockStore.unlockedBundleIDs
+        guard locked != publishedLocked || allowed != publishedAllowed else { return }
         do {
-            try lockedStore.save(locked)
-            try allowlistStore.save(UnlockAllowlist(allowedSigningIDs: allowed))
+            if locked != publishedLocked {
+                try lockedStore.save(locked)
+                publishedLocked = locked
+            }
+            if allowed != publishedAllowed {
+                try allowlistStore.save(UnlockAllowlist(allowedSigningIDs: allowed))
+                publishedAllowed = allowed
+            }
         } catch {
             log.error("Failed to publish enforce gate state: \(String(describing: error), privacy: .public)")
         }

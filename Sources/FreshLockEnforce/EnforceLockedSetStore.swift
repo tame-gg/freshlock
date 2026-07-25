@@ -37,16 +37,19 @@ public struct EnforceLockedSetStore: Sendable {
         return Set(decoded.lockedSigningIDs)
     }
 
+    /// Write the locked set, skipping the write entirely when the on-disk bytes
+    /// already match. `.atomic` performs the temp-file + rename itself, so this
+    /// is one filesystem mutation rather than write/remove/move.
     public func save(_ lockedSigningIDs: Set<String>) throws {
         let fm = FileManager.default
         let dir = fileURL.deletingLastPathComponent()
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         let payload = LockedSetPayload(lockedSigningIDs: lockedSigningIDs.sorted())
         let data = try JSONEncoder().encode(payload)
-        let temp = fileURL.appendingPathExtension("tmp")
-        try data.write(to: temp, options: .atomic)
-        _ = try? fm.removeItem(at: fileURL)
-        try fm.moveItem(at: temp, to: fileURL)
+        if let existing = try? Data(contentsOf: fileURL), existing == data {
+            return
+        }
+        try data.write(to: fileURL, options: .atomic)
     }
 
     private struct LockedSetPayload: Codable {

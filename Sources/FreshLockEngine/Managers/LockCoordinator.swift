@@ -42,8 +42,20 @@ final class LockCoordinator {
     /// Bundle IDs where the user cancelled the LA sheet; keep the overlay up
     /// without auto-reprompting until they tap Unlock or Quit.
     private var awaitingManualUnlock: Set<String> = []
-    private var visibilityKeepers: [String: Timer] = [:]
+    /// Bundles whose app must not stay hidden while we are securing it. Driven
+    /// by `didHideApplicationNotification`; the timer is only a backstop.
+    private var visibilityKeepers: Set<String> = []
+    private var visibilityTimer: Timer?
+    private var hideObserver: NSObjectProtocol?
     private var processPollTimer: Timer?
+
+    /// Liveness poll cadence. Workspace launch/activate/terminate notifications
+    /// are the fast path; this only has to catch what they miss, so it runs at a
+    /// power-friendly interval and stops entirely when nothing is at stake.
+    private static let processPollInterval: TimeInterval = 1.5
+    /// Backstop for un-hiding a secured app. The hide notification handles the
+    /// real case immediately.
+    private static let visibilityBackstopInterval: TimeInterval = 1.0
 
     init(
         monitor: AppMonitorServiceProtocol,
@@ -66,7 +78,6 @@ final class LockCoordinator {
             .sink { [weak self] event in self?.handle(event) }
             .store(in: &cancellables)
         monitor.start()
-        startProcessPolling()
         reconcileDeadSessions()
         if !accessibility.isTrusted {
             Log.accessibility.notice("Accessibility not trusted — overlay uses CGWindowList fallback")
@@ -77,9 +88,36 @@ final class LockCoordinator {
     // MARK: - Dead-session reconciliation (root of quit→reauth)
 
     private func startProcessPolling() {
-        processPollTimer?.invalidate()
-        processPollTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+        guard processPollTimer == nil else { return }
+        let timer = Timer.scheduledTimer(
+            withTimeInterval: Self.processPollInterval, repeats: true
+        ) { [weak self] _ in
             MainActor.assumeIsolated { self?.reconcileDeadSessions() }
+        }
+        // Generous tolerance lets the OS coalesce this with other wakeups.
+        timer.tolerance = Self.processPollInterval * 0.5
+        processPollTimer = timer
+    }
+
+    private func stopProcessPolling() {
+        processPollTimer?.invalidate()
+        processPollTimer = nil
+    }
+
+    /// Run the liveness poll only when something is actually at stake. With no
+    /// protected app running and no lock UI in flight there is nothing for the
+    /// poll to discover, and workspace notifications will restart it.
+    private func updateProcessPolling(liveByBundle: [String: Set<pid_t>]) {
+        let needed = !liveByBundle.isEmpty
+            || !store.grants.isEmpty
+            || !securing.isEmpty
+            || !authInFlight.isEmpty
+            || !awaitingManualUnlock.isEmpty
+            || !closing.isEmpty
+        if needed {
+            startProcessPolling()
+        } else {
+            stopProcessPolling()
         }
     }
 
@@ -89,6 +127,7 @@ final class LockCoordinator {
         let liveByBundle = ProtectedAppProcess.livePIDSets(
             forBundleIDs: config.enabledProtectedApps.map(\.bundleIdentifier)
         )
+        defer { updateProcessPolling(liveByBundle: liveByBundle) }
 
         let revoked = store.revokeDeadSessions(livePIDsByBundle: liveByBundle)
         for bundleID in revoked {
@@ -96,24 +135,23 @@ final class LockCoordinator {
             Log.lifecycle.info("Revoked dead unlock session for \(bundleID, privacy: .public)")
         }
 
+        // Nothing protected is running: no securing work is possible.
+        guard !liveByBundle.isEmpty else { return }
+
         let frontID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         for app in config.enabledProtectedApps {
             let bundleID = app.bundleIdentifier
-            let livePIDs = liveByBundle[bundleID] ?? []
+            guard let livePIDs = liveByBundle[bundleID], !livePIDs.isEmpty else { continue }
             // Honor a grant bound to any still-live process for this bundle
             // (helpers share the bundle ID on Electron apps).
             if store.isUnlockedWhileAlive(bundleID, livePIDs: livePIDs) {
                 continue
             }
-            guard let running = ProtectedAppProcess.running(bundleID: bundleID) else {
-                continue
-            }
-            let pid = running.processIdentifier
             let isFront = frontID == bundleID
             let covering = overlay.isShowingOverlay(for: bundleID)
-            if isFront || covering {
-                beginSecuring(app, config: config, pid: pid)
-            }
+            guard isFront || covering else { continue }
+            guard let running = ProtectedAppProcess.running(bundleID: bundleID) else { continue }
+            beginSecuring(app, config: config, pid: running.processIdentifier)
         }
     }
 
@@ -414,18 +452,60 @@ extension LockCoordinator {
 
     // MARK: - Visibility / LA
 
+    /// Ensure `bundleID` cannot sit hidden while we hold it locked.
+    ///
+    /// The hide notification does the real work the instant the app hides; the
+    /// slow timer only covers paths that never post one (this replaced a 20 Hz
+    /// per-app poll that ran for as long as an overlay was up).
     private func startKeepingVisible(_ bundleID: String) {
-        if visibilityKeepers[bundleID] == nil {
-            visibilityKeepers[bundleID] = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.keepVisible(bundleID) }
-            }
-        }
+        visibilityKeepers.insert(bundleID)
+        installHideObserverIfNeeded()
+        startVisibilityBackstopIfNeeded()
         keepVisible(bundleID)
     }
 
     private func stopKeepingVisible(_ bundleID: String) {
-        visibilityKeepers[bundleID]?.invalidate()
-        visibilityKeepers[bundleID] = nil
+        visibilityKeepers.remove(bundleID)
+        guard visibilityKeepers.isEmpty else { return }
+        visibilityTimer?.invalidate()
+        visibilityTimer = nil
+        if let hideObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(hideObserver)
+            self.hideObserver = nil
+        }
+    }
+
+    private func installHideObserverIfNeeded() {
+        guard hideObserver == nil else { return }
+        hideObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didHideApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] note in
+            guard
+                let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                let bundleID = app.bundleIdentifier
+            else { return }
+            MainActor.assumeIsolated {
+                guard let self, visibilityKeepers.contains(bundleID) else { return }
+                keepVisible(bundleID)
+            }
+        }
+    }
+
+    private func startVisibilityBackstopIfNeeded() {
+        guard visibilityTimer == nil else { return }
+        let timer = Timer.scheduledTimer(
+            withTimeInterval: Self.visibilityBackstopInterval, repeats: true
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                for bundleID in visibilityKeepers {
+                    keepVisible(bundleID)
+                }
+            }
+        }
+        timer.tolerance = Self.visibilityBackstopInterval * 0.5
+        visibilityTimer = timer
     }
 
     private func keepVisible(_ bundleID: String) {
