@@ -3,6 +3,7 @@
 # 🔒 FreshLock, a tame.gg project
 
 **Protect any macOS app behind Touch ID, Apple Watch, or your Mac password.**
+**MacOS App Locker | App Authenticator**
 
 iOS and iPadOS let you lock individual apps behind Face ID / Touch ID. macOS has
 no native equivalent. **FreshLock** is the closest, honest implementation built
