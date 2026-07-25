@@ -2,9 +2,9 @@
 //  AppRowView.swift
 //  FreshLock
 //
-//  A single app row: icon, name, favourite, options popover, protection switch.
-//  Local presentation state lives on ProtectionViewModel so the view avoids
-//  @State (CLT builds lack SwiftUIMacros).
+//  A single app row for an inset grouped list: icon, name, caption, favourite,
+//  options, protection switch. No per-row card borders - the list group
+//  provides the surface (BetterDisplay / System Settings style).
 //
 
 import FreshLockCore
@@ -44,19 +44,7 @@ struct AppRowView: View {
             Spacer(minLength: 8)
             controls
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            .quaternary.opacity(0.35),
-            in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
-                .strokeBorder(
-                    isProtected ? Theme.protected.opacity(0.45) : Theme.separator.opacity(0.35),
-                    lineWidth: 1
-                )
-        }
+        .padding(.vertical, 4)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(app.name)\(isProtected ? ", protected" : "")")
     }
@@ -64,22 +52,22 @@ struct AppRowView: View {
     private var icon: some View {
         app.iconImage
             .resizable()
-            .frame(width: 36, height: 36)
+            .frame(width: 32, height: 32)
             .overlay(alignment: .bottomTrailing) {
                 if isProtected {
                     Image(systemName: "lock.fill")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 7, weight: .bold))
                         .foregroundStyle(.white)
-                        .padding(3)
+                        .padding(2.5)
                         .background(Theme.protected, in: Circle())
-                        .offset(x: 3, y: 3)
+                        .offset(x: 2, y: 2)
                 }
             }
             .accessibilityHidden(true)
     }
 
     private var controls: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             Button {
                 viewModel.toggleFavorite(for: app)
             } label: {

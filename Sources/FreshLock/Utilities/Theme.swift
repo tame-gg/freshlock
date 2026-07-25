@@ -2,17 +2,20 @@
 //  Theme.swift
 //  FreshLock
 //
-//  Fluent native macOS visual language: system materials, semantic label colors,
-//  and a quiet brand accent. Avoids custom navy canvases and cyan→green
-//  marketing gradients so Liquid Glass / system chrome can read correctly.
+//  Native macOS utility chrome: system materials, semantic colors, and a quiet
+//  system accent for controls. Brand teal is reserved for the FreshLock mark
+//  only - never loud segmented fills or row outlines.
 //
 
 import AppKit
 import SwiftUI
 
 enum Theme {
-    /// Quiet lock-adjacent accent; desaturated enough to sit with system chrome.
-    static let accent = Color(nsColor: .systemTeal)
+    /// System control accent (typically restrained blue) for toggles, selection, icons.
+    static let accent = Color.accentColor
+
+    /// Subtle lock-adjacent brand teal for the app mark fallback only.
+    static let brand = Color(nsColor: .systemTeal)
 
     /// Protected / success emphasis (tonal, not neon).
     static let protected = Color(nsColor: .systemGreen)
@@ -29,8 +32,11 @@ enum Theme {
         Color(nsColor: .separatorColor)
     }
 
-    /// Standard continuous corner used for inset surfaces.
+    /// Continuous corner used for inset grouped surfaces.
     static let cornerRadius: CGFloat = 10
+
+    /// Sidebar column ideal width (BetterDisplay-style utility).
+    static let sidebarWidth: CGFloat = 180
 }
 
 private enum PreferLiquidGlassKey: EnvironmentKey {

@@ -2,8 +2,9 @@
 //  MainView.swift
 //  FreshLock
 //
-//  Main window: native macOS materials, segmented filter, inset list. Chrome
-//  optionally uses Liquid Glass when preferred and the OS supports it.
+//  Main window: BetterDisplay-style sidebar + detail. Filters live in a
+//  translucent sidebar; the catalogue is an inset grouped list with quiet
+//  hierarchy - no loud segmented tabs or per-row card chrome.
 //
 
 import FreshLockCore
@@ -17,95 +18,79 @@ struct MainView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 12)
-
-            Divider()
-
-            list
+        NavigationSplitView {
+            sidebar
+        } detail: {
+            detail
         }
-        .background(Theme.windowBackground)
+        .navigationSplitViewStyle(.balanced)
         .tint(Theme.accent)
         .environment(\.preferLiquidGlass, preferGlass)
-        .frame(minWidth: 560, minHeight: 520)
+        .frame(minWidth: 720, minHeight: 520)
         .task { await viewModel.refreshInstalledApps() }
         .onAppear {
             Task { await viewModel.refreshInstalledApps() }
         }
     }
 
-    // MARK: Header
+    // MARK: Sidebar
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
-                HStack(spacing: 8) {
-                    AppBrandIcon(size: 28)
-                    Text("FreshLock")
-                        .font(.title2.weight(.semibold))
+    private var sidebar: some View {
+        List(selection: $viewModel.sidebarSelection) {
+            Section {
+                ForEach(SidebarItem.primaryCases, id: \.self) { item in
+                    Label(item.title, systemImage: item.symbolName)
+                        .tag(item)
                 }
-                .accessibilityElement(children: .combine)
-                .accessibilityAddTraits(.isHeader)
-                Spacer(minLength: 8)
-                Text("\(viewModel.protectedCount) protected")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .accessibilityLabel("\(viewModel.protectedCount) apps protected")
+            }
+        }
+        .listStyle(.sidebar)
+        .navigationSplitViewColumnWidth(
+            min: 150,
+            ideal: Theme.sidebarWidth,
+            max: 240
+        )
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            sidebarFooter
+        }
+    }
 
+    private var sidebarFooter: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 8) {
+                AppBrandIcon(size: 18)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("FreshLock")
+                        .font(.caption.weight(.semibold))
+                    Text("\(viewModel.protectedCount) protected")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Spacer(minLength: 4)
                 Button {
                     WindowManager.shared.showPreferences()
                 } label: {
                     Image(systemName: "gearshape")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
                 .help("Preferences")
                 .accessibilityLabel("Preferences")
             }
-
-            searchField
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Search apps")
-
-            Picker("Filter", selection: $viewModel.sidebarSelection) {
-                Text("All").tag(SidebarItem.all)
-                Text("Protected").tag(SidebarItem.protected)
-                Text("Favorites").tag(SidebarItem.favorites)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .accessibilityLabel("Filter apps")
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
         }
+        .background(.bar)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(viewModel.protectedCount) apps protected")
     }
 
-    private var searchField: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Search apps", text: $viewModel.searchText)
-                .textFieldStyle(.plain)
-            if !viewModel.searchText.isEmpty {
-                Button {
-                    viewModel.searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .freshLockGlass(enabled: preferGlass, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
+    // MARK: Detail
 
-    // MARK: List
-
-    private var list: some View {
+    private var detail: some View {
         Group {
             if viewModel.isLoadingCatalogue, viewModel.installedApps.isEmpty {
                 ProgressView("Scanning applications…")
@@ -113,17 +98,53 @@ struct MainView: View {
             } else if viewModel.visibleApps.isEmpty {
                 emptyState
             } else {
-                List(viewModel.visibleApps) { app in
-                    AppRowView(viewModel: viewModel, app: app)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                appList
             }
         }
-        .frame(maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.windowBackground)
+        .navigationTitle(viewModel.sidebarSelection.title)
+        .searchable(
+            text: $viewModel.searchText,
+            placement: .toolbar,
+            prompt: "Search apps"
+        )
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Text("\(viewModel.visibleApps.count)")
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("\(viewModel.visibleApps.count) apps shown")
+            }
+        }
+    }
+
+    private var appList: some View {
+        List {
+            Section {
+                ForEach(viewModel.visibleApps) { app in
+                    AppRowView(viewModel: viewModel, app: app)
+                }
+            } header: {
+                Text(sectionHeader)
+                    .textCase(nil)
+            }
+        }
+        .listStyle(.inset)
+        .scrollContentBackground(.hidden)
+    }
+
+    private var sectionHeader: String {
+        switch viewModel.sidebarSelection {
+        case .all:
+            return viewModel.searchText.isEmpty ? "Applications" : "Results"
+        case .protected:
+            return "Protected apps"
+        case .favorites:
+            return "Favorites"
+        case .category(let category):
+            return category.displayName
+        }
     }
 
     private var emptyState: some View {
@@ -181,6 +202,33 @@ struct MainView: View {
             return "Star apps you use often so they float to the top of All."
         default:
             return "Try clearing search or switching to All."
+        }
+    }
+}
+
+// MARK: - SidebarItem presentation
+
+extension SidebarItem {
+    /// Primary filter rows shown in the main sidebar.
+    static var primaryCases: [SidebarItem] {
+        [.all, .protected, .favorites]
+    }
+
+    var title: String {
+        switch self {
+        case .all: "All"
+        case .protected: "Protected"
+        case .favorites: "Favorites"
+        case .category(let category): category.displayName
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .all: "square.grid.2x2"
+        case .protected: "lock.fill"
+        case .favorites: "star.fill"
+        case .category(let category): category.symbolName
         }
     }
 }
