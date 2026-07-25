@@ -68,7 +68,7 @@ struct PreferencesView: View {
         } header: {
             Text("Appearance")
         } footer: {
-            Text("Controls FreshLock surfaces only. System chrome still follows macOS; on macOS 27 use System Settings → Appearance to adjust glass tint.")
+            Text("Controls FreshLock surfaces only. System chrome still follows macOS; on macOS 27 use System Settings > Appearance to adjust glass tint.")
         }
     }
 
@@ -77,7 +77,7 @@ struct PreferencesView: View {
             Picker("Default relock", selection: defaultRelockKind) {
                 ForEach(PolicyKind.explicitCases, id: \.self) { Text($0.displayName).tag($0) }
             }
-            Text("“When switching away” matches iOS — re-asks each time you return.")
+            Text("\"When switching away\" matches iOS - re-asks each time you return.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if defaultRelockKind.wrappedValue.needsMinutes {
