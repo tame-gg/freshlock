@@ -18,6 +18,7 @@
 
 import AppKit
 import FreshLockCore
+import FreshLockEngine
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -56,6 +57,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onboarding = presenter
             presenter.presentIfNeeded()
 
+            // Onboarding asks for Accessibility, but a user who finished setup
+            // before granting it — or whose grant was invalidated by an app
+            // update changing the code signature — would otherwise get silently
+            // degraded protection: without AX the overlay cannot resolve window
+            // frames and covers nothing at all. Surface it instead of hiding it.
+            if presenter.hasCompletedOnboarding {
+                Self.requestAccessibilityIfNeeded()
+            }
+
             // Allow Preferences to replay the setup guide.
             NotificationCenter.default.addObserver(
                 forName: OnboardingPresenter.replayNotification,
@@ -65,6 +75,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 MainActor.assumeIsolated { presenter.present() }
             }
         }
+    }
+
+    /// Ask for Accessibility when it is missing. Protection depends on it, so a
+    /// missing grant is a broken app, not a nice-to-have.
+    private static func requestAccessibilityIfNeeded() {
+        guard !AccessibilityPermission.isTrusted else { return }
+        Log.accessibility.notice(
+            "Accessibility not granted for \(AccessibilityPermission.runningBundlePath, privacy: .public) — protection overlay cannot cover windows"
+        )
+        AccessibilityPermission.requestTrust()
     }
 
     /// If another FreshLock process is already running, activate it and signal

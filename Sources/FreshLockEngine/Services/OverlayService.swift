@@ -211,9 +211,21 @@ final class OverlayService: OverlayServiceProtocol {
         if !frames.isEmpty {
             lastFramesByBundleID[bundleID] = frames
         } else if covering, pinnedBundleIDs.contains(bundleID) {
-            // Prefer last known app frames. Never fall back to full-screen —
-            // that blanketed FreshLock / other apps and made the picker look empty.
+            // Prefer last known app frames over blanketing a display.
             frames = lastFramesByBundleID[bundleID] ?? []
+        }
+
+        // Last resort: the protected app owns the screen but exposes no
+        // enumerable windows. That happens with no Accessibility trust, or when
+        // its windows live on another Space (CGWindowList only reports the
+        // active one). Leaving it uncovered means no protection at all, so cover
+        // the displays — gated on the protected app actually being frontmost,
+        // which is what previously made a blanket cover blank FreshLock's own UI.
+        if frames.isEmpty, covering, let frontmost, frontmost.processIdentifier == pid {
+            frames = NSScreen.screens.map(\.frame)
+            Log.overlay.notice(
+                "No window frames for \(bundleID, privacy: .public) — covering displays"
+            )
         }
 
         guard !frames.isEmpty else {

@@ -31,7 +31,7 @@ struct AboutView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
-            Link("FreshLock Project, destination: URL(string: "https://tame.gg/projects/freshlock")!)
+            Link("FreshLock Project", destination: URL(string: "https://tame.gg/projects/freshlock")!)
                 .font(.callout)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)

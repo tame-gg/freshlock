@@ -93,9 +93,15 @@ final class WindowManager {
         resizable: Bool = true,
         showsToolbarTitle: Bool = false
     ) -> NSWindow {
-        var style: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
+        var style: NSWindow.StyleMask = [.titled, .closable, .miniaturizable]
         if resizable {
             style.insert(.resizable)
+        }
+        // `.fullSizeContentView` only belongs with a transparent titlebar. Paired
+        // with the unified toolbar it pushes the content up behind an opaque
+        // titlebar, which draws a hard seam straight across the toolbar row.
+        if !showsToolbarTitle {
+            style.insert(.fullSizeContentView)
         }
         let window = NSWindow(contentViewController: contentViewController)
         window.styleMask = style
