@@ -33,8 +33,15 @@ enum Theme {
     static let cornerRadius: CGFloat = 10
 }
 
+private enum PreferLiquidGlassKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
 extension EnvironmentValues {
-    @Entry var preferLiquidGlass: Bool = true
+    var preferLiquidGlass: Bool {
+        get { self[PreferLiquidGlassKey.self] }
+        set { self[PreferLiquidGlassKey.self] = newValue }
+    }
 }
 
 extension Color {
