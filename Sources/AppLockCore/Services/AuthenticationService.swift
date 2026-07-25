@@ -18,8 +18,10 @@ import Foundation
 import LocalAuthentication
 
 /// Abstraction over biometric authentication, so views/managers can be tested
-/// against a stub.
-public protocol AuthenticationServiceProtocol: Sendable {
+/// against a stub. `@MainActor` because it holds the active `LAContext` for
+/// cancellation and is only ever driven from the main actor.
+@MainActor
+public protocol AuthenticationServiceProtocol {
     /// The biometry available on this device, for UI copy ("Unlock with …").
     func availableMethod() -> AuthMethod
 
@@ -28,17 +30,30 @@ public protocol AuthenticationServiceProtocol: Sendable {
     /// - Returns: the result of the attempt. Never throws for "wrong finger" —
     ///   that is surfaced as `.failure`.
     func authenticate(reason: String) async -> AuthResult
+
+    /// Cancel any in-flight authentication, dismissing Apple's system sheet.
+    /// The pending `authenticate(reason:)` then resolves to `.cancelled`.
+    func cancel()
 }
 
 /// Production implementation backed by `LAContext`.
-public struct LocalAuthenticationService: AuthenticationServiceProtocol {
+@MainActor
+public final class LocalAuthenticationService: AuthenticationServiceProtocol {
     /// The policy to evaluate. `deviceOwnerAuthentication` includes the password
     /// fallback (and Apple Watch), which is exactly what we want — the user can
     /// always fall back to their Mac password.
     private let policy: LAPolicy
+    /// The context for the in-flight evaluation, retained so `cancel()` can
+    /// invalidate it and tear down the system sheet.
+    private var activeContext: LAContext?
 
     public init(policy: LAPolicy = .deviceOwnerAuthentication) {
         self.policy = policy
+    }
+
+    public func cancel() {
+        activeContext?.invalidate()
+        activeContext = nil
     }
 
     public func availableMethod() -> AuthMethod {
@@ -63,6 +78,9 @@ public struct LocalAuthenticationService: AuthenticationServiceProtocol {
         // each lock prompt to be a genuine, independent challenge.
         let context = LAContext()
         context.localizedCancelTitle = "Cancel"
+        // Retain it so an overlay "Cancel" tap can invalidate the sheet.
+        activeContext = context
+        defer { if activeContext === context { activeContext = nil } }
 
         var canEvalError: NSError?
         guard context.canEvaluatePolicy(policy, error: &canEvalError) else {

@@ -199,6 +199,9 @@ final class LockCoordinator {
     /// shortly after.
     private func cancelAndClose(app: ProtectedApp) {
         let bundleID = app.bundleIdentifier
+        // Dismiss Apple's Touch ID sheet if it's still up (e.g. the user tapped
+        // the overlay's Cancel button rather than the sheet's).
+        auth.cancel()
         store.lock(bundleID)
         overlay.dismissOverlay(for: bundleID)
         authInFlight.remove(bundleID)
