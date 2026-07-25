@@ -8,7 +8,7 @@
 //  scope or policy says they should end.
 //
 //  Idle (``.untilInactivity``) grants are checked on a light timer using
-//  `CGEventSource` — real keyboard/mouse idle, not wall-clock time since unlock.
+//  `CGEventSource` - real keyboard/mouse idle, not wall-clock time since unlock.
 //
 
 import AppKit
@@ -82,9 +82,16 @@ final class RelockManager {
     }
 
     private func handleScreenLock() {
-        // Screen lock is a strong signal the user stepped away — clear
-        // everything to be safe.
-        store.lockAll()
+        // Walk-away signal: clear time-bounded and until-sleep grants. Keep
+        // untilLogout (every-launch / manual-only) so those policies mean what
+        // they say - only Lock All or process exit clears them.
+        store.revokeGrants { scope in
+            if case .untilLogout = scope {
+                return false
+            }
+            return true
+        }
+        Log.lifecycle.debug("Revoked non-logout grants on screen lock")
     }
 
     private func handleSessionInactive() {
@@ -117,7 +124,7 @@ final class RelockManager {
 
 /// System-wide seconds since the last keyboard or mouse event.
 enum SystemIdle {
-    /// `kCGAnyInputEventType` — any input in the combined session.
+    /// `kCGAnyInputEventType` - any input in the combined session.
     private static let anyInput = CGEventType(rawValue: ~UInt32(0))!
 
     static func secondsSinceLastInput() -> CFTimeInterval {

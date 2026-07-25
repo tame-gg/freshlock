@@ -24,12 +24,13 @@ Scripts/package-release.sh
 open dist/FreshLock.app
 ```
 
-`Scripts/build-app.sh` accepts an output directory and honours two environment
+`Scripts/build-app.sh` accepts an output directory and honours these environment
 variables:
 
-| Variable        | Values                     | Default     |
-|-----------------|----------------------------|-------------|
-| `CONFIGURATION` | `debug`, `release`         | `release`   |
+| Variable | Values | Default |
+|----------|--------|---------|
+| `CONFIGURATION` | `debug`, `release` | `release` |
+| `ARCH` | `arm64`, `x86_64`, `universal` | `universal` |
 | `EMBED_SYSTEM_EXTENSION` | `0`, `1` | `0` |
 
 ```bash
@@ -87,10 +88,6 @@ users without Apple's ES entitlement keep a normal shipping build.
 `FreshLockEnforceExtension` exits 0 when entitlement / privilege / FDA are unmet.
 Host registration UI: Preferences → Advanced → Developer mode → Activate system
 extension. See [ENFORCEMENT.md](ENFORCEMENT.md) and [THREAT_MODEL.md](THREAT_MODEL.md).
-
-| Variable | Values | Default |
-|----------|--------|---------|
-| `EMBED_SYSTEM_EXTENSION` | `0`, `1` | `0` |
 
 ## Why a script instead of an `.xcodeproj`?
 

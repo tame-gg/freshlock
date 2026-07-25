@@ -512,7 +512,7 @@ extension LockCoordinator {
         let scope: UnlockScope = switch policy {
         case let .afterMinutes(m): .forDuration(TimeInterval(m * 60))
         case let .afterInactivity(m): .untilInactivity(TimeInterval(m * 60))
-        case .everyLaunch: .untilLogout
+        case .everyLaunch, .manualOnly: .untilLogout
         default: .untilSleep
         }
 
