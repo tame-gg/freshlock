@@ -21,6 +21,9 @@ struct AppLockApp: App {
     /// The DI container for the whole process.
     private let environment = AppEnvironment.shared
 
+    /// Bootstraps the locking engine and accessory activation policy.
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     @StateObject private var protectionViewModel: ProtectionViewModel
 
     init() {
