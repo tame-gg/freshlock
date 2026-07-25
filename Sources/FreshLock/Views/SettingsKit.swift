@@ -165,7 +165,9 @@ enum SettingsRowMetrics {
     static let spacing: CGFloat = 12
     static let horizontalPadding: CGFloat = 14
     /// Left edge of a row's text, for aligning dividers and continuation content.
-    static var textInset: CGFloat { horizontalPadding + glyphColumn + spacing }
+    static var textInset: CGFloat {
+        horizontalPadding + glyphColumn + spacing
+    }
 }
 
 // MARK: - Row

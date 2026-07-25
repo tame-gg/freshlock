@@ -39,6 +39,7 @@ enum Theme {
     static let sidebarWidth: CGFloat = 180
 
     // MARK: Icon wells
+
     //
     // Every navigable destination gets the same soft brand-tinted well with a
     // dark glyph. One tone across the whole column reads as a considered set;
@@ -56,6 +57,7 @@ enum Theme {
     static let wellSidePage: CGFloat = 30
 
     // MARK: Grouped cards
+
     //
     // Settings rows live on soft raised islands rather than one merged table,
     // so a page can be scanned by shape before it is read.

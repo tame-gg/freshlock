@@ -38,9 +38,20 @@ final class HelperAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Start the engine when the GUI isn't running; stop it when the GUI appears.
+    ///
+    /// Any FreshLock-family GUI counts, not just the shipping bundle ID. Two
+    /// engines enforcing the same app is catastrophic rather than merely
+    /// redundant: each holds its own unlock state, each covers the app, and each
+    /// activates itself to raise a Touch ID sheet - which the other reads as the
+    /// user switching apps, so both cancel and re-prompt in a loop that leaves
+    /// nothing on screen clickable. A dev or preview build with a suffixed
+    /// identifier used to slip past an exact-match check.
     private func reconcile() {
-        let guiRunning = !NSRunningApplication
-            .runningApplications(withBundleIdentifier: Self.mainAppBundleID).isEmpty
+        let ownID = Bundle.main.bundleIdentifier
+        let guiRunning = NSWorkspace.shared.runningApplications.contains { app in
+            guard let id = app.bundleIdentifier, id != ownID, !id.hasSuffix(".helper") else { return false }
+            return id == Self.mainAppBundleID || id.hasPrefix(Self.mainAppBundleID + ".")
+        }
 
         if guiRunning {
             if engine != nil {

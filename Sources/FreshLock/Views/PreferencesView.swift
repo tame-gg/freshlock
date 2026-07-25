@@ -193,7 +193,6 @@ struct PreferencesView: View {
 
     // MARK: Shortcuts
 
-    @ViewBuilder
     private var shortcutsPage: some View {
         SettingsSection(title: "Global Shortcuts") {
             SettingsCard {
@@ -213,7 +212,6 @@ struct PreferencesView: View {
 
     // MARK: Backup
 
-    @ViewBuilder
     private var backupPage: some View {
         SettingsSection(title: "Configuration File") {
             SettingsCard {
@@ -307,7 +305,6 @@ struct PreferencesView: View {
         }
     }
 
-    @ViewBuilder
     private var enforcementSection: some View {
         SettingsSection(title: "Endpoint Security (Phase 1)") {
             SettingsCard {

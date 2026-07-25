@@ -17,7 +17,9 @@ enum SettingsPane: String, CaseIterable, Hashable, Identifiable {
     case advanced
     case about
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var title: String {
         switch self {

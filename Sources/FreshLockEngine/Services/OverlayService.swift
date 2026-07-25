@@ -93,9 +93,34 @@ final class OverlayService: OverlayServiceProtocol {
     /// has no enumerable windows, instead of blanketing every display (which
     /// covered FreshLock's own picker UI).
     private var lastFramesByBundleID: [String: [NSRect]] = [:]
+    /// Watches app switches so covers appear and disappear with the switch
+    /// itself. Waiting for the backstop timer left a cover on screen for up to a
+    /// second after the user moved to another app.
+    private var activationObserver: NSObjectProtocol?
 
     init(accessibility: AccessibilityServiceProtocol) {
         self.accessibility = accessibility
+    }
+
+    private func installActivationObserverIfNeeded() {
+        guard activationObserver == nil else { return }
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                for bundleID in contentByBundleID.keys {
+                    placeOrUpdate(bundleID)
+                }
+            }
+        }
+    }
+
+    private func removeActivationObserverIfIdle() {
+        guard contentByBundleID.isEmpty, let activationObserver else { return }
+        NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+        self.activationObserver = nil
     }
 
     func isShowingOverlay(for bundleID: String) -> Bool {
@@ -311,29 +336,37 @@ final class OverlayService: OverlayServiceProtocol {
         settleDeadlines[bundleID] = nil
     }
 
-    /// Cover when pinned (launch→auth), when the protected app is frontmost /
-    /// active, or when LocalAuthentication is frontmost.
-    /// When *FreshLock itself* is frontmost, never cover — full-screen / pinned
-    /// covers were blanking the application picker.
+    /// Whether the cover for `bundleID` belongs on screen right now.
+    ///
+    /// The panel sits at `.floating`, above every ordinary window, so it is only
+    /// ever safe while the app it is sized to owns the screen. Being pinned used
+    /// to force covering regardless of who was frontmost, which meant a locked
+    /// app's blur hung over whatever the user switched to - a Discord-shaped
+    /// panel floating on top of the editor they had tabbed into. Pinning now
+    /// only decides what to do when there is no frontmost app to consult.
     private func shouldCover(bundleID: String, pid: pid_t, frontmost: NSRunningApplication?) -> Bool {
-        if let id = frontmost?.bundleIdentifier {
-            if id == FreshLockIdentity.mainBundleID || id == FreshLockIdentity.helperBundleID {
+        guard let frontmost else { return pinnedBundleIDs.contains(bundleID) }
+
+        if let id = frontmost.bundleIdentifier {
+            // FreshLock's own windows must never end up underneath a cover.
+            if FreshLockIdentity.hostBundleIDs.contains(id) {
                 return false
             }
-            if id == FreshLockIdentity.localAuthUIAgent {
+            // Our Touch ID sheet is up: hold the app covered behind it.
+            if FreshLockIdentity.authUIBundleIDs.contains(id) {
                 return contentByBundleID[bundleID] != nil
             }
         }
-        if pinnedBundleIDs.contains(bundleID) {
-            return true
-        }
-        guard let frontmost else { return true }
+
         if frontmost.processIdentifier == pid {
             return true
         }
         if let app = NSRunningApplication(processIdentifier: pid), app.isActive {
             return true
         }
+        // Someone else's work is in front. Whatever the protected app is
+        // showing is behind their windows; floating a cover over it would put
+        // the blur on top of them instead.
         return false
     }
 

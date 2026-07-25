@@ -341,10 +341,12 @@ extension LockCoordinator {
             // always relock on switch-away (same as `.afterSwitchingAway`).
             let relockOnSwitchAway =
                 config.settings.requireEveryLaunch
-                || {
-                    if case .afterSwitchingAway = policy { return true }
-                    return false
-                }()
+                    || {
+                        if case .afterSwitchingAway = policy {
+                            return true
+                        }
+                        return false
+                    }()
             if relockOnSwitchAway, !isWithinGracePeriod(previous, config: config) {
                 store.lock(previous)
             }
@@ -685,11 +687,10 @@ extension LockCoordinator {
             let livePIDs = ProtectedAppProcess.allPIDs(forBundleID: bundleID)
             // Prefer the PID we authenticated against if it is still alive;
             // otherwise fall back to any current live process for the bundle.
-            let grantPID: pid_t?
-            if livePIDs.contains(pid) {
-                grantPID = pid
+            let grantPID: pid_t? = if livePIDs.contains(pid) {
+                pid
             } else {
-                grantPID = livePID(for: bundleID)
+                livePID(for: bundleID)
             }
             guard let still = grantPID else {
                 store.lock(bundleID)

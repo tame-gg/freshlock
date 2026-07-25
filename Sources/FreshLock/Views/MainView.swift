@@ -322,5 +322,4 @@ extension SidebarItem {
         case let .category(category): category.symbolName
         }
     }
-
 }

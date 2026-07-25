@@ -30,6 +30,20 @@ enum FreshLockIdentity {
     static let localAuthUIAgent = "com.apple.LocalAuthentication.UIAgent"
     static let securityAgent = "com.apple.SecurityAgent"
 
+    /// FreshLock's own processes. A cover must never be raised while one of
+    /// these owns the screen - the panel floats above ordinary windows, so a
+    /// cover sized to the protected app would land on top of FreshLock's UI.
+    static let hostBundleIDs: Set<String> = {
+        var ids: Set<String> = [mainBundleID, helperBundleID]
+        if let own = Bundle.main.bundleIdentifier {
+            ids.insert(own)
+        }
+        return ids
+    }()
+
+    /// Bundle IDs that mean "our own Touch ID sheet is on screen".
+    static let authUIBundleIDs: Set<String> = [localAuthUIAgent, securityAgent]
+
     /// Bundle IDs whose activation is a transient side effect of locking /
     /// authenticating, not a real user app switch.
     ///
