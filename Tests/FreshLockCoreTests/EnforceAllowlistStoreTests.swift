@@ -1,16 +1,9 @@
-//
-//  EnforceAllowlistStoreTests.swift
-//  FreshLockCoreTests
-//
-
 import Foundation
 import FreshLockEnforce
 import Testing
 
-@Suite("EnforceAllowlistStore")
 struct EnforceAllowlistStoreTests {
-    @Test("round-trips allowlist JSON atomically")
-    func roundTrip() throws {
+    @Test func roundTripsAllowlistJSONAtomically() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("FreshLockEnforceTests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -23,8 +16,7 @@ struct EnforceAllowlistStoreTests {
         #expect(loaded.allowedSigningIDs == original.allowedSigningIDs)
     }
 
-    @Test("missing file yields empty allowlist")
-    func missingFile() throws {
+    @Test func missingFileYieldsEmptyAllowlist() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("missing-allowlist-\(UUID().uuidString).json")
         let store = EnforceAllowlistStore(fileURL: url)

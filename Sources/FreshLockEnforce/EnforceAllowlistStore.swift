@@ -21,12 +21,11 @@ public struct EnforceAllowlistStore: Sendable {
 
     /// Default location beside FreshLock's configuration.
     public static func defaultURL(
-        applicationSupport: URL = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first!
+        fileManager: FileManager = .default
     ) -> EnforceAllowlistStore {
-        let dir = applicationSupport.appendingPathComponent("FreshLock", isDirectory: true)
+        let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let dir = support.appendingPathComponent("FreshLock", isDirectory: true)
         return EnforceAllowlistStore(
             fileURL: dir.appendingPathComponent("enforce-allowlist.json", isDirectory: false)
         )
