@@ -37,6 +37,16 @@ enum Theme {
 
     /// Sidebar column ideal width (BetterDisplay-style utility).
     static let sidebarWidth: CGFloat = 180
+
+    /// Width reserved for the leading symbol in a settings row, so icons and the
+    /// notes underneath them share one alignment column.
+    static let settingsIconColumn: CGFloat = 18
+
+    /// Point size for app icons in the menu-bar menu (matches the menu text).
+    static let menuAppIconSize: CGFloat = 16
+
+    /// Point size for SF Symbols used as menu-item images.
+    static let menuSymbolSize: CGFloat = 13
 }
 
 private enum PreferLiquidGlassKey: EnvironmentKey {

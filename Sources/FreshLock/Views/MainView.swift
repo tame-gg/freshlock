@@ -19,8 +19,8 @@ struct MainView: View {
         viewModel.configuration.settings.preferLiquidGlass
     }
 
-    private var showingSettings: Bool {
-        viewModel.sidebarSelection == .settings
+    private var settingsPane: SettingsPane? {
+        viewModel.sidebarSelection.settingsPane
     }
 
     var body: some View {
@@ -43,15 +43,17 @@ struct MainView: View {
 
     private var sidebar: some View {
         List(selection: $viewModel.sidebarSelection) {
-            Section {
+            Section("Library") {
                 ForEach(SidebarItem.primaryCases, id: \.self) { item in
                     Label(item.title, systemImage: item.symbolName)
                         .tag(item)
                 }
             }
-            Section {
-                Label(SidebarItem.settings.title, systemImage: SidebarItem.settings.symbolName)
-                    .tag(SidebarItem.settings)
+            Section("Settings") {
+                ForEach(SettingsPane.allCases) { pane in
+                    Label(pane.title, systemImage: pane.symbolName)
+                        .tag(SidebarItem.settings(pane))
+                }
             }
         }
         .listStyle(.sidebar)
@@ -79,16 +81,6 @@ struct MainView: View {
                         .monospacedDigit()
                 }
                 Spacer(minLength: 4)
-                Button {
-                    viewModel.sidebarSelection = .settings
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.body)
-                        .foregroundStyle(showingSettings ? Theme.accent : .secondary)
-                }
-                .buttonStyle(.borderless)
-                .help("Settings")
-                .accessibilityLabel("Settings")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -102,18 +94,21 @@ struct MainView: View {
 
     @ViewBuilder
     private var detail: some View {
-        if showingSettings {
-            settingsDetail
+        if let settingsPane {
+            settingsDetail(settingsPane)
         } else {
             catalogueDetail
         }
     }
 
-    private var settingsDetail: some View {
-        PreferencesView(viewModel: settingsViewModel)
+    private func settingsDetail(_ pane: SettingsPane) -> some View {
+        PreferencesView(viewModel: settingsViewModel, pane: pane)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.windowBackground)
-            .navigationTitle(SidebarItem.settings.title)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                SettingsPageHeader(pane: pane)
+            }
+            .navigationTitle(pane.title)
     }
 
     private var catalogueDetail: some View {
@@ -247,7 +242,7 @@ extension SidebarItem {
         case .all: "All"
         case .protected: "Protected"
         case .favorites: "Favorites"
-        case .settings: "Settings"
+        case .settings(let pane): pane.title
         case .category(let category): category.displayName
         }
     }
@@ -257,7 +252,7 @@ extension SidebarItem {
         case .all: "square.grid.2x2"
         case .protected: "lock.fill"
         case .favorites: "star.fill"
-        case .settings: "gearshape"
+        case .settings(let pane): pane.symbolName
         case .category(let category): category.symbolName
         }
     }

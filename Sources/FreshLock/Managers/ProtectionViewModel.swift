@@ -14,13 +14,20 @@ import Foundation
 import FreshLockCore
 import SwiftUI
 
-/// Sidebar selection identifying which slice of apps to show, or Settings.
+/// Sidebar selection identifying which slice of apps to show, or which
+/// Settings page to open in the detail pane.
 enum SidebarItem: Hashable {
     case all
     case protected
     case favorites
-    case settings
+    case settings(SettingsPane)
     case category(AppCategory)
+
+    /// The settings page this selection shows, or `nil` for a library filter.
+    var settingsPane: SettingsPane? {
+        if case let .settings(pane) = self { return pane }
+        return nil
+    }
 }
 
 @MainActor

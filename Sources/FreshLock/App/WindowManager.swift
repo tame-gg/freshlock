@@ -79,7 +79,7 @@ final class WindowManager {
 
     /// Focus the main window and select the Settings sidebar item.
     func showPreferences() {
-        environment.protectionViewModel.sidebarSelection = .settings
+        environment.protectionViewModel.sidebarSelection = .settings(.general)
         showMain()
     }
 

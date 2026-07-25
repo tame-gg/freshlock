@@ -328,7 +328,13 @@ extension LockCoordinator {
                 }
                 awaitingManualUnlock.remove(previous)
                 stopKeepingVisible(previous)
-                overlay.dismissOverlay(for: previous)
+                // Unpin rather than dismiss. Tearing the overlay down here left
+                // a still-locked app permanently uncovered: any focus bounce
+                // during the launch→auth handoff destroyed the cover, and the
+                // in-flight guard in `beginSecuring` then refused to rebuild it.
+                // Unpinned panels order out on their own while another app is
+                // frontmost and come straight back when the user returns.
+                overlay.unpinCover(for: previous)
                 securing.remove(previous)
             }
         }
