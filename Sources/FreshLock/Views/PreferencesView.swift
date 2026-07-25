@@ -13,14 +13,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct PreferencesView: View {
-    @StateObject private var viewModel: SettingsViewModel
-    @AppStorage(MenuBarPreference.key) private var showMenuBarIcon = true
-    @State private var backupStatus: String?
-    @State private var backupIsError = false
-
-    init(store: ConfigurationStore, loginItem: LoginItemServiceProtocol) {
-        _viewModel = StateObject(wrappedValue: SettingsViewModel(store: store, loginItem: loginItem))
-    }
+    @ObservedObject var viewModel: SettingsViewModel
 
     private var preferGlass: Bool {
         viewModel.settings.preferLiquidGlass
@@ -51,8 +44,8 @@ struct PreferencesView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
-            Toggle("Show icon in menu bar", isOn: $showMenuBarIcon)
-            if !showMenuBarIcon {
+            Toggle("Show icon in menu bar", isOn: viewModel.showMenuBarIcon)
+            if !viewModel.showMenuBarIcon.wrappedValue {
                 Text("Reopen FreshLock from Finder or Spotlight to bring back its window.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -75,12 +68,7 @@ struct PreferencesView: View {
         } header: {
             Text("Appearance")
         } footer: {
-            Text(
-                """
-                Controls FreshLock surfaces only. System chrome still follows macOS; \
-                on macOS 27 use System Settings → Appearance to adjust glass tint.
-                """
-            )
+            Text("Controls FreshLock surfaces only. System chrome still follows macOS; on macOS 27 use System Settings → Appearance to adjust glass tint.")
         }
     }
 
@@ -96,12 +84,7 @@ struct PreferencesView: View {
                 Stepper("Minutes: \(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1...240)
             }
             Toggle("Require authentication on every launch", isOn: viewModel.binding(\.requireEveryLaunch))
-            Text(
-                """
-                Prompt on every activation, even if this process was already unlocked. \
-                Quitting always clears unlock regardless of this setting.
-                """
-            )
+            Text("Prompt on every activation, even if this process was already unlocked. Quitting always clears unlock regardless of this setting.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Stepper(
@@ -133,10 +116,10 @@ struct PreferencesView: View {
         Section {
             Button("Export configuration…", action: exportConfiguration)
             Button("Import configuration…", action: importConfiguration)
-            if let backupStatus {
+            if let backupStatus = viewModel.backupStatus {
                 Text(backupStatus)
                     .font(.caption)
-                    .foregroundStyle(backupIsError ? .red : .secondary)
+                    .foregroundStyle(viewModel.backupIsError ? .red : .secondary)
             }
         } header: {
             Text("Backup")
@@ -177,20 +160,14 @@ struct PreferencesView: View {
     private var defaultRelockKind: Binding<PolicyKind> {
         .init(
             get: { PolicyKind(from: relockPolicy.wrappedValue) },
-            set: { kind in
-                let minutes = defaultRelockMinutes.wrappedValue
-                relockPolicy.wrappedValue = kind.makePolicy(minutes: minutes) ?? .everyLaunch
-            }
+            set: { relockPolicy.wrappedValue = $0.makePolicy(minutes: defaultRelockMinutes.wrappedValue) ?? .everyLaunch }
         )
     }
 
     private var defaultRelockMinutes: Binding<Int> {
         .init(
             get: { relockPolicy.wrappedValue.minutes ?? 15 },
-            set: { minutes in
-                let kind = PolicyKind(from: relockPolicy.wrappedValue)
-                relockPolicy.wrappedValue = kind.makePolicy(minutes: minutes) ?? .everyLaunch
-            }
+            set: { relockPolicy.wrappedValue = PolicyKind(from: relockPolicy.wrappedValue).makePolicy(minutes: $0) ?? .everyLaunch }
         )
     }
 
@@ -204,9 +181,9 @@ struct PreferencesView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try viewModel.exportConfiguration(to: url)
-            setStatus("Exported to \(url.lastPathComponent).", isError: false)
+            viewModel.setBackupStatus("Exported to \(url.lastPathComponent).", isError: false)
         } catch {
-            setStatus("Export failed: \(error.localizedDescription)", isError: true)
+            viewModel.setBackupStatus("Export failed: \(error.localizedDescription)", isError: true)
         }
     }
 
@@ -217,14 +194,9 @@ struct PreferencesView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
             try viewModel.importConfiguration(from: url)
-            setStatus("Imported from \(url.lastPathComponent).", isError: false)
+            viewModel.setBackupStatus("Imported from \(url.lastPathComponent).", isError: false)
         } catch {
-            setStatus("Import failed: \(error.localizedDescription)", isError: true)
+            viewModel.setBackupStatus("Import failed: \(error.localizedDescription)", isError: true)
         }
-    }
-
-    private func setStatus(_ message: String, isError: Bool) {
-        backupStatus = message
-        backupIsError = isError
     }
 }

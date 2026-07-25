@@ -26,6 +26,7 @@ final class WindowManager {
     private var mainController: NSWindowController?
     private var aboutController: NSWindowController?
     private var prefsController: NSWindowController?
+    private var settingsViewModel: SettingsViewModel?
 
     /// Show (creating if needed) the main window and bring it to the front.
     func showMain() {
@@ -81,11 +82,12 @@ final class WindowManager {
             controller.window?.makeKeyAndOrderFront(nil)
             return
         }
-        let view = PreferencesView(
+        let viewModel = settingsViewModel ?? SettingsViewModel(
             store: environment.configurationStore,
             loginItem: environment.helperLoginItem
         )
-        let hosting = NSHostingController(rootView: view)
+        settingsViewModel = viewModel
+        let hosting = NSHostingController(rootView: PreferencesView(viewModel: viewModel))
         let window = Self.makeWindow(
             title: "Preferences",
             contentViewController: hosting,
