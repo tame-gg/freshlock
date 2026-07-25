@@ -21,6 +21,9 @@ import SwiftUI
 final class SettingsViewModel: ObservableObject {
     /// Surfaced to the UI when registering the login item fails.
     @Published var loginItemError: String?
+    /// Last import/export status line for the Backup section.
+    @Published var backupStatus: String?
+    @Published var backupIsError = false
 
     let store: ConfigurationStore
     private let loginItem: LoginItemServiceProtocol
@@ -39,6 +42,27 @@ final class SettingsViewModel: ObservableObject {
     /// Read-only snapshot for display-only values.
     var settings: AppSettings {
         store.configuration.settings
+    }
+
+    /// Menu-bar icon visibility (UserDefaults), exposed as a binding for Form.
+    var showMenuBarIcon: Binding<Bool> {
+        Binding(
+            get: {
+                if UserDefaults.standard.object(forKey: MenuBarPreference.key) == nil {
+                    return true
+                }
+                return UserDefaults.standard.bool(forKey: MenuBarPreference.key)
+            },
+            set: {
+                UserDefaults.standard.set($0, forKey: MenuBarPreference.key)
+                self.objectWillChange.send()
+            }
+        )
+    }
+
+    func setBackupStatus(_ message: String, isError: Bool) {
+        backupStatus = message
+        backupIsError = isError
     }
 
     /// A binding to a single settings field. The setter writes **only** that

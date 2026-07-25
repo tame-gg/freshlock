@@ -256,6 +256,7 @@ extension LockCoordinator {
         if lock {
             store.lock(bundleID)
         }
+        awaitingManualUnlock.remove(bundleID)
         overlay.dismissOverlay(for: bundleID)
         stopKeepingVisible(bundleID)
     }

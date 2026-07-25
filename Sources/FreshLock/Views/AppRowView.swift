@@ -3,7 +3,8 @@
 //  FreshLock
 //
 //  A single app row: icon, name, favourite, options popover, protection switch.
-//  Surfaces use system materials or Liquid Glass based on preference.
+//  Local presentation state lives on ProtectionViewModel so the view avoids
+//  @State (CLT builds lack SwiftUIMacros).
 //
 
 import FreshLockCore
@@ -13,15 +14,19 @@ struct AppRowView: View {
     @ObservedObject var viewModel: ProtectionViewModel
     let app: InstalledApp
 
-    @State private var hovering = false
-    @State private var showOptions = false
-
     private var isProtected: Bool {
         viewModel.isProtected(app.bundleIdentifier)
     }
 
     private var isFavorite: Bool {
         viewModel.isFavorite(app.bundleIdentifier)
+    }
+
+    private var showOptions: Binding<Bool> {
+        Binding(
+            get: { viewModel.optionsPresentedFor == app.bundleIdentifier },
+            set: { viewModel.optionsPresentedFor = $0 ? app.bundleIdentifier : nil }
+        )
     }
 
     var body: some View {
@@ -41,17 +46,17 @@ struct AppRowView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.quaternary.opacity(hovering ? 0.55 : 0.35), in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
+        .background(
+            .quaternary.opacity(0.35),
+            in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+        )
         .overlay {
             RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
                 .strokeBorder(
-                    isProtected
-                        ? Theme.protected.opacity(0.45)
-                        : Theme.separator.opacity(hovering ? 0.7 : 0.35),
+                    isProtected ? Theme.protected.opacity(0.45) : Theme.separator.opacity(0.35),
                     lineWidth: 1
                 )
         }
-        .onHover { hovering = $0 }
     }
 
     private var icon: some View {
@@ -83,14 +88,14 @@ struct AppRowView: View {
             .help(isFavorite ? "Remove from favorites" : "Add to favorites")
 
             Button {
-                showOptions = true
+                showOptions.wrappedValue = true
             } label: {
                 Image(systemName: "ellipsis.circle")
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
             .help("Options")
-            .popover(isPresented: $showOptions, arrowEdge: .bottom) {
+            .popover(isPresented: showOptions, arrowEdge: .bottom) {
                 AppOptionsPopover(viewModel: viewModel, app: app)
             }
 

@@ -33,6 +33,8 @@ final class ProtectionViewModel: ObservableObject {
     @Published var sidebarSelection: SidebarItem = .all
     /// Bundle id of the app shown in the detail inspector, if any.
     @Published var selectedAppID: String?
+    /// Bundle id whose per-app options popover is open, if any.
+    @Published var optionsPresentedFor: String?
 
     // MARK: Dependencies
 

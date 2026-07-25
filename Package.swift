@@ -82,7 +82,7 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ],
             linkerSettings: [
-                .linkedFramework("EndpointSecurity")
+                .linkedLibrary("EndpointSecurity")
             ]
         ),
         .testTarget(
