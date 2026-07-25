@@ -21,26 +21,13 @@ jobs:
       - name: Test
         run: swift test
 
-      - name: Build app bundle
-        run: CONFIGURATION=release ARCH=universal Scripts/build-app.sh
-
-      - name: Sign & notarize (skips gracefully without secrets)
+      - name: Build, sign, zip & checksum
         env:
           SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-        run: Scripts/sign-and-notarize.sh dist/AppLock.app
-
-      - name: Zip app
-        run: |
-          cd dist
-          ditto -c -k --keepParent AppLock.app AppLock.zip
-
-      - name: Generate checksum
-        run: |
-          cd dist
-          shasum -a 256 AppLock.zip | tee AppLock.zip.sha256
+        run: Scripts/package-release.sh dist
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

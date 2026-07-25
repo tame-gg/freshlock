@@ -13,18 +13,28 @@ AppLock releases are fully automated from an annotated git tag.
    git push origin main --tags
    ```
 
+## Build a release locally
+
+```bash
+Scripts/package-release.sh          # → dist/AppLock.app, AppLock.zip, .sha256
+```
+
+Without `SIGNING_IDENTITY` this applies an **ad-hoc** signature: the app runs on
+your own machine, but other users get a Gatekeeper warning (they can right-click
+→ Open, or you can distribute a properly signed + notarized build by exporting
+the signing variables below first). The script stages in a clean temp directory
+so it works even when the repo lives in an iCloud/file-provider folder.
+
 ## What the release workflow does
 
 On a `v*.*.*` tag, `.github/workflows/release.yml`:
 
 1. Runs the test suite.
-2. Builds a universal `AppLock.app` (`Scripts/build-app.sh`).
-3. Signs, notarizes and staples it — **skipping gracefully if signing secrets
-   are absent** (`Scripts/sign-and-notarize.sh`).
-4. Zips the app and generates a `SHA256` checksum.
-5. Creates a GitHub Release with auto-generated notes and uploads the zip +
+2. Builds, signs (Developer ID + notarize if secrets exist, else ad-hoc), zips
+   and checksums via `Scripts/package-release.sh`.
+3. Creates a GitHub Release with auto-generated notes and uploads the zip +
    checksum.
-6. Bumps the Homebrew cask (`Scripts/update-cask.sh`) and pushes to
+4. Bumps the Homebrew cask (`Scripts/update-cask.sh`) and pushes to
    `tame-gg/homebrew-tap` (if `HOMEBREW_TAP_TOKEN` is configured).
 
 ## Required repository secrets (all optional)

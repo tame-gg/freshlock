@@ -18,6 +18,10 @@ swift test
 # Assemble a runnable AppLock.app (release, universal by default)
 Scripts/build-app.sh
 open dist/AppLock.app
+
+# Or produce a full release artifact (signed .app + zip + SHA256)
+Scripts/package-release.sh
+open dist/AppLock.app
 ```
 
 `Scripts/build-app.sh` accepts an output directory and honours two environment
