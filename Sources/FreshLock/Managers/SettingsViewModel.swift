@@ -2,13 +2,14 @@
 //  SettingsViewModel.swift
 //  FreshLock
 //
-//  Backs the Preferences window. Every control binds *directly* to a single
-//  field of the shared `ConfigurationStore` via `binding(_:)`, which writes only
-//  that one field. There is deliberately no separate `settings` working copy and
-//  no "adopt from store" round-trip: the previous design read the store back
-//  inside its own `objectWillChange` (which fires in `willSet`, before the new
-//  value lands), so it read a *stale* value and clobbered unrelated preferences
-//  — most visibly, changing the overlay style turned "Launch at Login" off.
+//  Backs the in-window Settings detail. Every control binds *directly* to a
+//  single field of the shared `ConfigurationStore` via `binding(_:)`, which
+//  writes only that one field. There is deliberately no separate `settings`
+//  working copy and no "adopt from store" round-trip: the previous design read
+//  the store back inside its own `objectWillChange` (which fires in `willSet`,
+//  before the new value lands), so it read a *stale* value and clobbered
+//  unrelated preferences - most visibly, changing the overlay style turned
+//  "Launch at Login" off.
 //
 
 import Combine

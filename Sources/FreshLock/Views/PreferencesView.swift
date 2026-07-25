@@ -2,8 +2,9 @@
 //  PreferencesView.swift
 //  FreshLock
 //
-//  Preferences as a native grouped Form. Includes the Liquid Glass preference
-//  (applied to FreshLock chrome when macOS 26+ APIs are available).
+//  Embeddable Settings content: a native grouped Form for the main window
+//  detail pane. Includes the Liquid Glass preference (applied to FreshLock
+//  chrome when macOS 26+ APIs are available).
 //
 
 import AppKit
@@ -32,7 +33,7 @@ struct PreferencesView: View {
         .formStyle(.grouped)
         .tint(Theme.accent)
         .environment(\.preferLiquidGlass, preferGlass)
-        .frame(minWidth: 520, idealWidth: 560, minHeight: 560, idealHeight: 660)
+        .scrollContentBackground(.hidden)
     }
 
     // MARK: Sections

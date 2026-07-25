@@ -77,7 +77,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         add(menu, "Open FreshLock…", #selector(openMain))
-        add(menu, "Preferences…", #selector(openPreferences), key: ",")
+        add(menu, "Settings…", #selector(openPreferences), key: ",")
         add(menu, "About FreshLock", #selector(openAbout))
         menu.addItem(.separator())
         add(menu, "Quit FreshLock", #selector(quit), key: "q")

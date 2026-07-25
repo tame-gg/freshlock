@@ -27,6 +27,8 @@ final class AppEnvironment {
     /// The view model backing the main window (owned here so the AppKit-hosted
     /// window and any SwiftUI scene share one instance).
     let protectionViewModel: ProtectionViewModel
+    /// Shared settings view model for the in-window Settings detail.
+    let settingsViewModel: SettingsViewModel
 
     /// Present only when the GUI runs the engine itself (dev / no-helper mode).
     private(set) var engine: LockEngine?
@@ -59,6 +61,7 @@ final class AppEnvironment {
         let store = ConfigurationStore(settingsService: settingsService)
         configurationStore = store
         protectionViewModel = ProtectionViewModel(store: store, discoveryService: discoveryService)
+        settingsViewModel = SettingsViewModel(store: store, loginItem: helperLoginItem)
     }
 
     /// Boot whatever this process is responsible for.

@@ -26,7 +26,7 @@ struct AboutView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
-            Text("Made with ❤️ by tame.gg | andrew & kyle .")
+            Text("Made with ❤️ by tame.gg | andrew & kyle.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

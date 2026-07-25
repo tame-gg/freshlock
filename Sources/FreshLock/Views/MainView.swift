@@ -4,7 +4,8 @@
 //
 //  Main window: BetterDisplay-style sidebar + detail. Filters live in a
 //  translucent sidebar; the catalogue is an inset grouped list with quiet
-//  hierarchy - no loud segmented tabs or per-row card chrome.
+//  hierarchy - no loud segmented tabs or per-row card chrome. Settings is a
+//  sibling sidebar item that fills the same detail pane.
 //
 
 import FreshLockCore
@@ -12,9 +13,14 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var viewModel: ProtectionViewModel
+    @ObservedObject var settingsViewModel: SettingsViewModel
 
     private var preferGlass: Bool {
         viewModel.configuration.settings.preferLiquidGlass
+    }
+
+    private var showingSettings: Bool {
+        viewModel.sidebarSelection == .settings
     }
 
     var body: some View {
@@ -43,6 +49,10 @@ struct MainView: View {
                         .tag(item)
                 }
             }
+            Section {
+                Label(SidebarItem.settings.title, systemImage: SidebarItem.settings.symbolName)
+                    .tag(SidebarItem.settings)
+            }
         }
         .listStyle(.sidebar)
         .navigationSplitViewColumnWidth(
@@ -70,15 +80,15 @@ struct MainView: View {
                 }
                 Spacer(minLength: 4)
                 Button {
-                    WindowManager.shared.showPreferences()
+                    viewModel.sidebarSelection = .settings
                 } label: {
                     Image(systemName: "gearshape")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(showingSettings ? Theme.accent : .secondary)
                 }
                 .buttonStyle(.borderless)
-                .help("Preferences")
-                .accessibilityLabel("Preferences")
+                .help("Settings")
+                .accessibilityLabel("Settings")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -90,7 +100,23 @@ struct MainView: View {
 
     // MARK: Detail
 
+    @ViewBuilder
     private var detail: some View {
+        if showingSettings {
+            settingsDetail
+        } else {
+            catalogueDetail
+        }
+    }
+
+    private var settingsDetail: some View {
+        PreferencesView(viewModel: settingsViewModel)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.windowBackground)
+            .navigationTitle(SidebarItem.settings.title)
+    }
+
+    private var catalogueDetail: some View {
         Group {
             if viewModel.isLoadingCatalogue, viewModel.installedApps.isEmpty {
                 ProgressView("Scanning applications…")
@@ -142,6 +168,8 @@ struct MainView: View {
             return "Protected apps"
         case .favorites:
             return "Favorites"
+        case .settings:
+            return "Settings"
         case .category(let category):
             return category.displayName
         }
@@ -209,7 +237,7 @@ struct MainView: View {
 // MARK: - SidebarItem presentation
 
 extension SidebarItem {
-    /// Primary filter rows shown in the main sidebar.
+    /// Primary filter rows shown in the main sidebar (above Settings).
     static var primaryCases: [SidebarItem] {
         [.all, .protected, .favorites]
     }
@@ -219,6 +247,7 @@ extension SidebarItem {
         case .all: "All"
         case .protected: "Protected"
         case .favorites: "Favorites"
+        case .settings: "Settings"
         case .category(let category): category.displayName
         }
     }
@@ -228,6 +257,7 @@ extension SidebarItem {
         case .all: "square.grid.2x2"
         case .protected: "lock.fill"
         case .favorites: "star.fill"
+        case .settings: "gearshape"
         case .category(let category): category.symbolName
         }
     }

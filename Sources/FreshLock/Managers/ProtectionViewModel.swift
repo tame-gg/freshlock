@@ -14,11 +14,12 @@ import Foundation
 import FreshLockCore
 import SwiftUI
 
-/// Sidebar selection identifying which slice of apps to show.
+/// Sidebar selection identifying which slice of apps to show, or Settings.
 enum SidebarItem: Hashable {
     case all
     case protected
     case favorites
+    case settings
     case category(AppCategory)
 }
 
@@ -92,6 +93,8 @@ final class ProtectionViewModel: ObservableObject {
             installedApps.filter { isProtected($0.bundleIdentifier) }
         case .favorites:
             installedApps.filter { isFavorite($0.bundleIdentifier) }
+        case .settings:
+            []
         case let .category(category):
             installedApps.filter { protectedApp(for: $0.bundleIdentifier)?.category == category }
         }
