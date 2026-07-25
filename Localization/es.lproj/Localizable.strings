@@ -13,7 +13,7 @@
 // MARK: Barra lateral y lista
 "All Apps" = "Todas las apps";
 "Protected" = "Protegidas";
-"Favourites" = "Favoritas";
+"Favorites" = "Favoritas";
 "Categories" = "Categorías";
 "Apps" = "Apps";
 "Search apps" = "Buscar apps";
@@ -23,8 +23,8 @@
 "Choose an app to configure its protection and auto-relock." = "Elige una app para configurar su protección y bloqueo automático.";
 
 // MARK: Fila e inspector
-"Add %@ to favourites" = "Añadir %@ a favoritas";
-"Remove %@ from favourites" = "Quitar %@ de favoritas";
+"Add %@ to favorites" = "Añadir %@ a favoritas";
+"Remove %@ from favorites" = "Quitar %@ de favoritas";
 "Protect %@ with Touch ID" = "Proteger %@ con Touch ID";
 "Protect %@" = "Proteger %@";
 "Protect this app" = "Proteger esta app";

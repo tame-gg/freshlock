@@ -64,7 +64,7 @@ struct AppRowView: View {
             iconButton(isFavorite ? "star.fill" : "star", tint: isFavorite ? Theme.cyan : Theme.textMuted) {
                 viewModel.toggleFavorite(for: app)
             }
-            .help(isFavorite ? "Remove from favourites" : "Add to favourites")
+            .help(isFavorite ? "Remove from favorites" : "Add to favorites")
 
             iconButton("slider.horizontal.3", tint: Theme.textMuted) { showOptions = true }
                 .help("Options")

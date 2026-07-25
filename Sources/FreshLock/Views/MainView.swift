@@ -166,7 +166,7 @@ private struct FilterBar: View {
         HStack(spacing: 8) {
             pill("All Apps", tag: .all, count: nil)
             pill("Protected", tag: .protected, count: protectedCount)
-            pill("Favourites", tag: .favorites, count: favoritesCount)
+            pill("Favorites", tag: .favorites, count: favoritesCount)
             Spacer()
         }
     }

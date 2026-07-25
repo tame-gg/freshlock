@@ -5,7 +5,7 @@ This is a living document; priorities may shift with community feedback.
 ## v0.1 — Foundations (current)
 
 - [x] Testable core (models, services, unlock state machine)
-- [x] Menu-bar app, catalogue, search, favourites, categories
+- [x] Menu-bar app, catalogue, search, favorites, categories
 - [x] Launch detection + overlay + native authentication
 - [x] Auto-relock policies
 - [x] Preferences, import/export, launch-at-login

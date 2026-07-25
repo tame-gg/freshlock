@@ -39,7 +39,7 @@ to [Semantic Versioning](https://semver.org/).
   frame queries, with CGWindowList fallback when untrusted.
 - Testable `FreshLockCore` library: models, discovery, authentication, settings
   persistence and the pure `UnlockStateStore`.
-- Menu-bar app with `NavigationSplitView` catalogue, search, favourites and
+- Menu-bar app with `NavigationSplitView` catalogue, search, favorites and
   categories.
 - Locking engine: `NSWorkspace`-driven launch detection, full-screen blur
   overlay, native LocalAuthentication, and configurable auto-relock.

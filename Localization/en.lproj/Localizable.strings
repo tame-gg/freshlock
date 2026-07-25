@@ -17,7 +17,7 @@
 // MARK: Sidebar & app list
 "All Apps" = "All Apps";
 "Protected" = "Protected";
-"Favourites" = "Favourites";
+"Favorites" = "Favorites";
 "Categories" = "Categories";
 "Apps" = "Apps";
 "Search apps" = "Search apps";
@@ -27,8 +27,8 @@
 "Choose an app to configure its protection and auto-relock." = "Choose an app to configure its protection and auto-relock.";
 
 // MARK: App row & detail inspector
-"Add %@ to favourites" = "Add %@ to favourites";
-"Remove %@ from favourites" = "Remove %@ from favourites";
+"Add %@ to favorites" = "Add %@ to favorites";
+"Remove %@ from favorites" = "Remove %@ from favorites";
 "Protect %@ with Touch ID" = "Protect %@ with Touch ID";
 "Protect %@" = "Protect %@";
 "Protect this app" = "Protect this app";

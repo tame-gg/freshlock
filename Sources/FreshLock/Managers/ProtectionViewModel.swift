@@ -94,7 +94,7 @@ final class ProtectionViewModel: ObservableObject {
                 || $0.bundleIdentifier.localizedCaseInsensitiveContains(searchText)
         }
 
-        // Favourites float to the top, then alphabetical.
+        // Favorites float to the top, then alphabetical.
         return filtered.sorted {
             let lf = isFavorite($0.bundleIdentifier)
             let rf = isFavorite($1.bundleIdentifier)
@@ -115,7 +115,7 @@ final class ProtectionViewModel: ObservableObject {
     /// Number of favourited apps (for the sidebar badge).
     var favoritesCount: Int { configuration.protectedApps.filter(\.isFavorite).count }
 
-    /// Visible apps split into favourites and the rest, for sectioned display.
+    /// Visible apps split into favorites and the rest, for sectioned display.
     var favoriteVisibleApps: [InstalledApp] {
         visibleApps.filter { isFavorite($0.bundleIdentifier) }
     }

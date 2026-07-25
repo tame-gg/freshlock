@@ -32,7 +32,7 @@ no Electron.
 - 🧭 **Menu-bar first** — Lock All, Unlock Until Sleep, preferences, and more from
   the menu bar. No Dock clutter (`LSUIElement`).
 - 🚀 **Launch at login** via `SMAppService`.
-- 🔍 **Searchable catalogue** with favourites and categories.
+- 🔍 **Searchable catalogue** with favorites and categories.
 - 📤 **Import / export / backup** your configuration as JSON (iCloud-sync ready).
 - ♿ **Accessible** — VoiceOver labels, keyboard navigation, reduced motion.
 - 🌍 **Localized** — English, Spanish and French (easy to add more).
