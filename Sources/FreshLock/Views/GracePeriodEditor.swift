@@ -6,6 +6,7 @@
 //  fixed second counts; Custom converts a value + unit into `gracePeriodSeconds`.
 //
 
+import Combine
 import FreshLockCore
 import SwiftUI
 
@@ -15,15 +16,90 @@ enum GracePeriodChoice: Hashable {
     case custom
 }
 
+/// Holds Custom-mode drafting state so the view can avoid `@State` (CLT builds
+/// here sometimes fail to load SwiftUIMacros).
+@MainActor
+final class GracePeriodEditorModel: ObservableObject {
+    @Published var choice: GracePeriodChoice
+    @Published var customValue: Int
+    @Published var customUnit: GracePeriodUnit
+
+    init(seconds: Int) {
+        if let preset = GracePeriodPreset.matching(seconds) {
+            choice = .preset(preset)
+            let display = GracePeriodUnit.preferredDisplay(forSeconds: seconds)
+            customValue = display.value
+            customUnit = display.unit
+        } else {
+            choice = .custom
+            let display = GracePeriodUnit.preferredDisplay(forSeconds: seconds)
+            customValue = display.value
+            customUnit = display.unit
+        }
+    }
+
+    func syncFromSeconds(_ value: Int) {
+        if let preset = GracePeriodPreset.matching(value) {
+            // Don't yank the user out of Custom if they typed a preset-equal value.
+            if case .custom = choice { return }
+            choice = .preset(preset)
+            return
+        }
+        choice = .custom
+        let display = GracePeriodUnit.preferredDisplay(forSeconds: value)
+        customValue = display.value
+        customUnit = display.unit
+    }
+
+    /// Apply a preset or enter Custom, returning the seconds to persist.
+    func applyChoice(_ newChoice: GracePeriodChoice, currentSeconds: Int) -> Int {
+        switch newChoice {
+        case let .preset(preset):
+            choice = .preset(preset)
+            return preset.seconds
+        case .custom:
+            choice = .custom
+            let display = GracePeriodUnit.preferredDisplay(forSeconds: currentSeconds)
+            customValue = display.value
+            customUnit = display.unit
+            return customUnit.toSeconds(customValue)
+        }
+    }
+
+    func setCustomValue(_ newValue: Int) -> Int {
+        customValue = min(max(0, newValue), customUnit.maxValue)
+        choice = .custom
+        return customUnit.toSeconds(customValue)
+    }
+
+    func setCustomUnit(_ newUnit: GracePeriodUnit) -> Int {
+        let currentSeconds = customUnit.toSeconds(customValue)
+        customUnit = newUnit
+        let converted: Int
+        switch newUnit {
+        case .seconds: converted = currentSeconds
+        case .minutes: converted = currentSeconds / 60
+        case .hours: converted = currentSeconds / 3_600
+        }
+        customValue = min(max(0, converted), newUnit.maxValue)
+        choice = .custom
+        return newUnit.toSeconds(customValue)
+    }
+}
+
 /// Native Form / onboarding controls for `gracePeriodSeconds`.
 struct GracePeriodEditor: View {
     @Binding var seconds: Int
     /// When true, use a radio-group layout suited to the setup guide.
     var radioStyle: Bool = false
 
-    @State private var choice: GracePeriodChoice = .preset(.thirtySeconds)
-    @State private var customValue: Int = 30
-    @State private var customUnit: GracePeriodUnit = .seconds
+    @ObservedObject private var model: GracePeriodEditorModel
+
+    init(seconds: Binding<Int>, radioStyle: Bool = false) {
+        _seconds = seconds
+        self.radioStyle = radioStyle
+        _model = ObservedObject(wrappedValue: GracePeriodEditorModel(seconds: seconds.wrappedValue))
+    }
 
     var body: some View {
         Group {
@@ -33,23 +109,8 @@ struct GracePeriodEditor: View {
                 formBody
             }
         }
-        .onAppear { syncFromSeconds(seconds) }
         .onChange(of: seconds) { _, newValue in
-            // External write (import / another screen) - resync unless we just
-            // wrote the same value ourselves.
-            if GracePeriodPreset.matching(newValue) != nil || choice == .custom {
-                let expected: Int = {
-                    switch choice {
-                    case let .preset(p): return p.seconds
-                    case .custom: return customUnit.toSeconds(customValue)
-                    }
-                }()
-                if newValue != expected {
-                    syncFromSeconds(newValue)
-                }
-            } else {
-                syncFromSeconds(newValue)
-            }
+            model.syncFromSeconds(newValue)
         }
     }
 
@@ -63,7 +124,7 @@ struct GracePeriodEditor: View {
                 }
                 Text("Custom").tag(GracePeriodChoice.custom)
             }
-            if choice == .custom {
+            if model.choice == .custom {
                 customControls
             }
         }
@@ -82,7 +143,7 @@ struct GracePeriodEditor: View {
             .pickerStyle(.radioGroup)
             .labelsHidden()
 
-            if choice == .custom {
+            if model.choice == .custom {
                 customControls
             }
         }
@@ -91,9 +152,9 @@ struct GracePeriodEditor: View {
     private var customControls: some View {
         HStack(spacing: 10) {
             Stepper(
-                "\(customValue)",
+                "\(model.customValue)",
                 value: customValueBinding,
-                in: 0 ... customUnit.maxValue
+                in: 0 ... model.customUnit.maxValue
             )
             .frame(maxWidth: 160, alignment: .leading)
 
@@ -111,62 +172,22 @@ struct GracePeriodEditor: View {
 
     private var choiceBinding: Binding<GracePeriodChoice> {
         Binding(
-            get: { choice },
-            set: { newChoice in
-                choice = newChoice
-                switch newChoice {
-                case let .preset(preset):
-                    seconds = preset.seconds
-                case .custom:
-                    let display = GracePeriodUnit.preferredDisplay(forSeconds: seconds)
-                    customValue = display.value
-                    customUnit = display.unit
-                    seconds = customUnit.toSeconds(customValue)
-                }
-            }
+            get: { model.choice },
+            set: { seconds = model.applyChoice($0, currentSeconds: seconds) }
         )
     }
 
     private var customValueBinding: Binding<Int> {
         Binding(
-            get: { customValue },
-            set: { newValue in
-                customValue = min(max(0, newValue), customUnit.maxValue)
-                seconds = customUnit.toSeconds(customValue)
-            }
+            get: { model.customValue },
+            set: { seconds = model.setCustomValue($0) }
         )
     }
 
     private var customUnitBinding: Binding<GracePeriodUnit> {
         Binding(
-            get: { customUnit },
-            set: { newUnit in
-                // Keep wall-clock time stable when switching units when possible.
-                let currentSeconds = customUnit.toSeconds(customValue)
-                customUnit = newUnit
-                let converted: Int
-                switch newUnit {
-                case .seconds:
-                    converted = currentSeconds
-                case .minutes:
-                    converted = currentSeconds / 60
-                case .hours:
-                    converted = currentSeconds / 3_600
-                }
-                customValue = min(max(0, converted), newUnit.maxValue)
-                seconds = newUnit.toSeconds(customValue)
-            }
+            get: { model.customUnit },
+            set: { seconds = model.setCustomUnit($0) }
         )
-    }
-
-    private func syncFromSeconds(_ value: Int) {
-        if let preset = GracePeriodPreset.matching(value) {
-            choice = .preset(preset)
-        } else {
-            choice = .custom
-            let display = GracePeriodUnit.preferredDisplay(forSeconds: value)
-            customValue = display.value
-            customUnit = display.unit
-        }
     }
 }
