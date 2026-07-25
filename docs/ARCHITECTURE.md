@@ -95,7 +95,8 @@ NSWorkspace didLaunch / didActivate
 ```
 
 `RelockManager` observes sleep / screen-lock / session events and revokes the
-matching grants in `UnlockStateStore`. Grants with an inactivity scope are
+matching grants in `UnlockStateStore`. Screen lock clears everything except
+`.untilLogout` (every-launch / manual-only). Grants with an inactivity scope are
 checked on a light timer against real keyboard/mouse idle time. Together these
 drive auto-relock without busy-polling.
 

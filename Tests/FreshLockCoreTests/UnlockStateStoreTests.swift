@@ -131,4 +131,27 @@ struct UnlockStateStoreTests {
         #expect(store.isUnlocked("com.apple.MobileSMS", pid: 50) == false)
         #expect(store.isUnlocked("com.apple.MobileSMS", pid: 51) == false)
     }
+
+    @Test func screenLockStyleRevokeKeepsUntilLogout() {
+        let store = UnlockStateStore()
+        store.grantUnlock("sleepy", scope: .untilSleep, sessionPID: 1)
+        store.grantUnlock("timed", scope: .forDuration(600), sessionPID: 2)
+        store.grantUnlock("idle", scope: .untilInactivity(300), sessionPID: 3)
+        store.grantUnlock("manual", scope: .untilLogout, sessionPID: 4)
+        store.revokeGrants { scope in
+            if case .untilLogout = scope { return false }
+            return true
+        }
+        #expect(store.isUnlocked("sleepy", pid: 1) == false)
+        #expect(store.isUnlocked("timed", pid: 2) == false)
+        #expect(store.isUnlocked("idle", pid: 3) == false)
+        #expect(store.isUnlocked("manual", pid: 4))
+    }
+
+    @Test func unlockScopeDisplayNames() {
+        #expect(UnlockScope.untilSleep.displayName == "Until Sleep")
+        #expect(UnlockScope.untilInactivity(120).displayName == "After 2 min idle")
+        #expect(UnlockScope.untilInactivity(120).inactivityThreshold == 120)
+        #expect(UnlockScope.untilSleep.inactivityThreshold == nil)
+    }
 }
