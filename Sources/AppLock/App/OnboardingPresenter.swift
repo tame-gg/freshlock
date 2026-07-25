@@ -79,5 +79,7 @@ final class OnboardingPresenter {
         windowController?.close()
         windowController = nil
         Log.lifecycle.info("Onboarding completed")
+        // Open the main window so the first-run user can pick apps to protect.
+        WindowManager.shared.showMain()
     }
 }

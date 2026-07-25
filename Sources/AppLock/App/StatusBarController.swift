@@ -101,13 +101,8 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         }
     }
 
-    @objc private func openMain() { openWindow(AppWindowID.main) }
-    @objc private func openPreferences() { openWindow(AppWindowID.settings) }
-    @objc private func openAbout() { openWindow(AppWindowID.about) }
+    @objc private func openMain() { WindowManager.shared.showMain() }
+    @objc private func openPreferences() { WindowManager.shared.showPreferences() }
+    @objc private func openAbout() { WindowManager.shared.showAbout() }
     @objc private func quit() { NSApp.terminate(nil) }
-
-    private func openWindow(_ id: String) {
-        NSApp.activate(ignoringOtherApps: true)
-        WindowOpener.shared.open?(id)
-    }
 }

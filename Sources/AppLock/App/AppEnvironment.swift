@@ -25,6 +25,9 @@ final class AppEnvironment {
     let helperLoginItem: LoginItemServiceProtocol
     /// The single source of truth for the configuration in this GUI process.
     let configurationStore: ConfigurationStore
+    /// The view model backing the main window (owned here so the AppKit-hosted
+    /// window and any SwiftUI scene share one instance).
+    let protectionViewModel: ProtectionViewModel
 
     /// Present only when the GUI runs the engine itself (dev / no-helper mode).
     private(set) var engine: LockEngine?
@@ -55,7 +58,9 @@ final class AppEnvironment {
         self.accessibility = accessibility
         self.helperLoginItem = helperLoginItem
         self.runEngineInProcess = runEngineInProcess
-        self.configurationStore = ConfigurationStore(settingsService: settingsService)
+        let store = ConfigurationStore(settingsService: settingsService)
+        self.configurationStore = store
+        self.protectionViewModel = ProtectionViewModel(store: store, discoveryService: discoveryService)
     }
 
     /// Boot whatever this process is responsible for.

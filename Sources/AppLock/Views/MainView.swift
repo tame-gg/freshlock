@@ -13,7 +13,6 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var viewModel: ProtectionViewModel
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         ZStack {
@@ -30,11 +29,6 @@ struct MainView: View {
         .frame(minWidth: 560, minHeight: 520)
         .preferredColorScheme(.dark)
         .task { await viewModel.refreshInstalledApps() }
-        .onAppear {
-            // Let the AppDelegate reopen this window (e.g. when the menu-bar
-            // icon is hidden and AppLock is relaunched from Finder).
-            WindowOpener.shared.open = { openWindow(id: $0) }
-        }
     }
 
     // MARK: Header
@@ -53,7 +47,7 @@ struct MainView: View {
                 Spacer()
                 protectedPill
                 Button {
-                    openWindow(id: AppWindowID.settings)
+                    WindowManager.shared.showPreferences()
                 } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 15, weight: .semibold))

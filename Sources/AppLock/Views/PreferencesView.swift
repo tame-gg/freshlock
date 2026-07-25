@@ -2,9 +2,9 @@
 //  PreferencesView.swift
 //  AppLock
 //
-//  The Preferences window, laid out as a standard macOS `Form` with grouped
-//  sections. Every control is bound directly to `SettingsViewModel.settings`,
-//  which persists on change.
+//  The Preferences window, redesigned to match the app's koels.net dark theme:
+//  a single scrollable page of grouped, card-style sections rather than the
+//  cramped default tabbed Form. All controls bind to `SettingsViewModel`.
 //
 
 import AppKit
@@ -25,70 +25,156 @@ struct PreferencesView: View {
     }
 
     var body: some View {
-        TabView {
-            generalTab.tabItem { Label("General", systemImage: "gearshape") }
-            lockingTab.tabItem { Label("Locking", systemImage: "lock") }
-            shortcutsTab.tabItem { Label("Shortcuts", systemImage: "command") }
-            backupTab.tabItem { Label("Backup", systemImage: "arrow.up.arrow.down.circle") }
-            advancedTab.tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
+        ZStack {
+            Theme.background
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        MicroLabel("Preferences")
+                        Text("Settings").font(.system(size: 26, weight: .heavy)).foregroundStyle(Theme.textPrimary)
+                    }
+                    generalSection
+                    lockingSection
+                    shortcutsSection
+                    backupSection
+                    advancedSection
+                }
+                .padding(26)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
-        .frame(width: 460)
-        .padding()
+        .frame(width: 500, height: 640)
+        .preferredColorScheme(.dark)
     }
 
-    // MARK: General
+    // MARK: Sections
 
-    private var generalTab: some View {
-        Form {
-            Toggle("Launch at Login", isOn: $viewModel.settings.launchAtLogin)
+    private var generalSection: some View {
+        SettingsSection("General") {
+            SettingsRow("Launch at login") {
+                toggle($viewModel.settings.launchAtLogin)
+            }
             if let error = viewModel.loginItemError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                note(error, error: true)
             }
-            Toggle("Show icon in menu bar", isOn: $showMenuBarIcon)
-            if !showMenuBarIcon {
-                Text("Reopen AppLock from Finder or Spotlight to bring back its window.")
-                    .font(.caption).foregroundStyle(.secondary)
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Show icon in menu bar",
+                        subtitle: showMenuBarIcon ? nil : "Reopen AppLock from Finder or Spotlight to bring back its window.") {
+                toggle($showMenuBarIcon)
             }
-            Toggle("Notify when a protected app launches", isOn: $viewModel.settings.notifyOnProtectedLaunch)
-            Picker("Overlay Style", selection: $viewModel.settings.overlayStyle) {
-                ForEach(OverlayStyle.allCases, id: \.self) { style in
-                    Text(style.displayName).tag(style)
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Notify when a protected app launches") {
+                toggle($viewModel.settings.notifyOnProtectedLaunch)
+            }
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Overlay style") {
+                Picker("", selection: $viewModel.settings.overlayStyle) {
+                    ForEach(OverlayStyle.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                }
+                .labelsHidden().fixedSize().tint(Theme.textSecondary)
+            }
+        }
+    }
+
+    private var lockingSection: some View {
+        SettingsSection("Locking") {
+            SettingsRow("Default relock",
+                        subtitle: "\u{201C}When switching away\u{201D} matches iOS — re-asks each time you return.") {
+                Picker("", selection: defaultRelockKind) {
+                    ForEach(PolicyKind.explicitCases, id: \.self) { Text($0.displayName).tag($0) }
+                }
+                .labelsHidden().fixedSize().tint(Theme.textSecondary)
+            }
+            if defaultRelockKind.wrappedValue.needsMinutes {
+                Divider().overlay(Theme.stroke)
+                SettingsRow("Minutes") {
+                    Stepper("\(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1...240)
+                        .fixedSize()
+                }
+            }
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Require authentication on every launch",
+                        subtitle: "Prompt on every activation, ignoring the relock policy.") {
+                toggle($viewModel.settings.requireEveryLaunch)
+            }
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Grace period") {
+                Stepper("\(viewModel.settings.gracePeriodSeconds)s",
+                        value: $viewModel.settings.gracePeriodSeconds, in: 0...60).fixedSize()
+            }
+        }
+    }
+
+    private var shortcutsSection: some View {
+        SettingsSection("Global Shortcuts") {
+            SettingsRow("Lock All") {
+                ShortcutRecorderView(shortcut: $viewModel.settings.lockAllShortcut).frame(width: 150, height: 26)
+            }
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Unlock All") {
+                ShortcutRecorderView(shortcut: $viewModel.settings.unlockAllShortcut).frame(width: 150, height: 26)
+            }
+            note("Each shortcut needs at least one of ⌘/⌥/⌃. Press ⌫ while recording to clear.")
+        }
+    }
+
+    private var backupSection: some View {
+        SettingsSection("Backup") {
+            SettingsRow("Export configuration") {
+                accentButton("Export…", action: exportConfiguration)
+            }
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Import configuration") {
+                accentButton("Import…", action: importConfiguration)
+            }
+            if let backupStatus {
+                note(backupStatus, error: backupIsError)
+            }
+            note("A single JSON file with your protected apps and preferences. It never contains passwords.")
+        }
+    }
+
+    private var advancedSection: some View {
+        SettingsSection("Advanced") {
+            SettingsRow("Developer mode") { toggle($viewModel.settings.developerMode) }
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Accessibility") {
+                Text(AccessibilityStatusText.current)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(AXIsProcessTrusted() ? Theme.green : .orange)
+            }
+            Divider().overlay(Theme.stroke)
+            SettingsRow("Setup guide") {
+                accentButton("Replay…") {
+                    NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
                 }
             }
         }
     }
 
-    // MARK: Locking
+    // MARK: Reusable controls
 
-    private var lockingTab: some View {
-        Form {
-            Picker("Default relock", selection: defaultRelockKind) {
-                ForEach(PolicyKind.explicitCases, id: \.self) { Text($0.displayName).tag($0) }
-            }
-            if defaultRelockKind.wrappedValue.needsMinutes {
-                Stepper("After \(defaultRelockMinutes.wrappedValue) min", value: defaultRelockMinutes, in: 1...240)
-            }
-            Text("Applies to apps set to \u{201C}Default\u{201D}. \u{201C}Once per launch\u{201D} prompts only when you open an app, not each time you switch back.")
-                .font(.caption).foregroundStyle(.secondary)
-
-            Toggle("Require authentication on every launch", isOn: $viewModel.settings.requireEveryLaunch)
-            Stepper(
-                "Grace period: \(viewModel.settings.gracePeriodSeconds)s",
-                value: $viewModel.settings.gracePeriodSeconds,
-                in: 0...60
-            )
-            Stepper(
-                "Default inactivity timeout: \(viewModel.settings.defaultInactivityMinutes) min",
-                value: $viewModel.settings.defaultInactivityMinutes,
-                in: 1...120
-            )
-        }
+    private func toggle(_ binding: Binding<Bool>) -> some View {
+        Toggle("", isOn: binding).labelsHidden().toggleStyle(.switch).tint(Theme.green)
     }
 
-    /// The global default relock policy, mapped to the flat `PolicyKind` picker
-    /// (there is no "Default" option here — this *is* the default).
+    private func accentButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.accent)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func note(_ text: String, error: Bool = false) -> some View {
+        Text(text)
+            .font(.system(size: 11))
+            .foregroundStyle(error ? Color.red : Theme.textMuted)
+            .padding(.top, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Bindings
+
     private var defaultRelockKind: Binding<PolicyKind> {
         .init(
             get: { PolicyKind(from: viewModel.settings.defaultRelockPolicy) },
@@ -105,51 +191,7 @@ struct PreferencesView: View {
         )
     }
 
-    // MARK: Shortcuts
-
-    private var shortcutsTab: some View {
-        Form {
-            Section {
-                LabeledContent("Lock All") {
-                    ShortcutRecorderView(shortcut: $viewModel.settings.lockAllShortcut)
-                        .frame(width: 150, height: 24)
-                }
-                LabeledContent("Unlock All") {
-                    ShortcutRecorderView(shortcut: $viewModel.settings.unlockAllShortcut)
-                        .frame(width: 150, height: 24)
-                }
-            } footer: {
-                Text("System-wide shortcuts. Lock All immediately relocks every app; Unlock All authenticates once and unlocks all protected apps until sleep. Each shortcut needs at least one of ⌘/⌥/⌃. Press ⌫ while recording to clear.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    // MARK: Backup
-
-    private var backupTab: some View {
-        Form {
-            Section {
-                LabeledContent("Export configuration") {
-                    Button("Export…", action: exportConfiguration)
-                }
-                LabeledContent("Import configuration") {
-                    Button("Import…", action: importConfiguration)
-                }
-            } footer: {
-                Text("Configuration is a single JSON document containing your protected apps and preferences — safe to back up or move between Macs. It never contains passwords.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let backupStatus {
-                Text(backupStatus)
-                    .font(.caption)
-                    .foregroundStyle(backupIsError ? .red : .green)
-            }
-        }
-    }
+    // MARK: Backup actions
 
     private func exportConfiguration() {
         let panel = NSSavePanel()
@@ -182,28 +224,61 @@ struct PreferencesView: View {
         backupStatus = message
         backupIsError = isError
     }
+}
 
-    // MARK: Advanced
+// MARK: - Building blocks
 
-    private var advancedTab: some View {
-        Form {
-            Toggle("Developer Mode", isOn: $viewModel.settings.developerMode)
-            LabeledContent("Accessibility", value: AccessibilityStatusText.current)
-            LabeledContent("Setup Guide") {
-                Button("Replay…") {
-                    NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
-                }
-            }
-            Text("Verbose logging is written to the unified log under subsystem gg.tame.applock.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+/// A titled card section in the koels dark style.
+private struct SettingsSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            MicroLabel(title)
+            VStack(alignment: .leading, spacing: 0) { content }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+                .background(Theme.card, in: .rect(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.stroke))
         }
     }
 }
 
-/// Small helper that reports the current Accessibility trust state as text.
-private enum AccessibilityStatusText {
-    static var current: String {
-        AXIsProcessTrusted() ? "Granted" : "Not granted"
+/// A single labelled row with a trailing control.
+private struct SettingsRow<Control: View>: View {
+    let title: String
+    let subtitle: String?
+    @ViewBuilder let control: Control
+
+    init(_ title: String, subtitle: String? = nil, @ViewBuilder control: () -> Control) {
+        self.title = title
+        self.subtitle = subtitle
+        self.control = control()
     }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.textPrimary)
+                if let subtitle {
+                    Text(subtitle).font(.system(size: 11)).foregroundStyle(Theme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 12)
+            control
+        }
+        .padding(.vertical, 11)
+    }
+}
+
+/// Reports the current Accessibility trust state as text.
+private enum AccessibilityStatusText {
+    static var current: String { AXIsProcessTrusted() ? "Granted" : "Not granted" }
 }

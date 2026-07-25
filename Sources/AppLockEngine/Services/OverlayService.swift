@@ -218,7 +218,11 @@ final class OverlayService: OverlayServiceProtocol {
         hosting.wantsLayer = true
         window.contentView = hosting
         window.setFrame(frame, display: true)
-        window.level = .screenSaver
+        // Above ordinary app windows, but BELOW system UI like Apple's Touch ID
+        // sheet — otherwise the cover would sit on top of the sheet and block
+        // your taps on it, so it would appear stuck. (Trade-off: a protected app
+        // in native full-screen may not be covered; windowed apps are.)
+        window.level = .floating
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = false
