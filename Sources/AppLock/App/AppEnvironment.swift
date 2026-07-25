@@ -29,8 +29,12 @@ final class AppEnvironment {
     /// Present only when the GUI runs the engine itself (dev / no-helper mode).
     private(set) var engine: LockEngine?
 
-    /// When `true`, the GUI hosts the engine in-process. When `false`, the GUI
-    /// assumes the background helper is doing the protecting.
+    /// When `true`, the GUI hosts the engine in-process. The GUI is authoritative
+    /// whenever it is running: it always runs the engine, and the background
+    /// helper stands down while the GUI is alive (see `AppLockHelper/main.swift`).
+    /// This makes protection reliable out of the box — including unsigned builds
+    /// where the helper can't be registered — and guarantees the two never run
+    /// two engines at once.
     private let runEngineInProcess: Bool
 
     private var started = false
@@ -42,7 +46,7 @@ final class AppEnvironment {
         unlockStore: UnlockStateStore = UnlockStateStore(),
         accessibility: AccessibilityServiceProtocol = AccessibilityService(),
         helperLoginItem: LoginItemServiceProtocol = LoginItemService(service: .agent(plistName: "gg.tame.applock.helper.plist")),
-        runEngineInProcess: Bool = AppEnvironment.helperUnavailable()
+        runEngineInProcess: Bool = true
     ) {
         self.settingsService = settingsService
         self.authService = authService
@@ -72,20 +76,6 @@ final class AppEnvironment {
         } else {
             Log.lifecycle.info("Delegating protection to the background helper")
         }
-    }
-
-    /// Whether the GUI should host the locking engine itself.
-    ///
-    /// The rule is simply: **run in-process unless the background helper is
-    /// already running**. This guarantees protection is active out of the box —
-    /// including for unsigned local builds where `SMAppService` can't register
-    /// the helper — while still deferring to the helper when it *is* live (so we
-    /// never run two engines and double-prompt). The helper enabling itself
-    /// later takes effect on the next GUI launch.
-    private static func helperUnavailable() -> Bool {
-        NSRunningApplication
-            .runningApplications(withBundleIdentifier: Self.helperBundleID)
-            .isEmpty
     }
 
     static let helperBundleID = "gg.tame.applock.helper"

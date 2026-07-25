@@ -18,7 +18,16 @@ final class NotificationPresenter {
 
     private init() {}
 
+    /// `UNUserNotificationCenter` requires a code-signed app *bundle*; calling it
+    /// from a bare executable (e.g. a raw `swift run` binary) raises an
+    /// uncaught Objective-C exception. Guard on bundle identity so notifications
+    /// simply no-op in that context instead of crashing the process.
+    private var notificationsAvailable: Bool {
+        Bundle.main.bundleIdentifier != nil
+    }
+
     func requestAuthorizationIfNeeded() async {
+        guard notificationsAvailable else { return }
         let center = UNUserNotificationCenter.current()
         do {
             authorized = try await center.requestAuthorization(options: [.alert, .sound])
@@ -28,6 +37,7 @@ final class NotificationPresenter {
     }
 
     func notifyProtectedLaunch(appName: String) {
+        guard notificationsAvailable else { return }
         Task {
             if !authorized { await requestAuthorizationIfNeeded() }
             guard authorized else { return }
