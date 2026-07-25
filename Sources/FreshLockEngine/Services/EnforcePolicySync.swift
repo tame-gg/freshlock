@@ -67,8 +67,8 @@ public final class EnforcePolicySync {
         DispatchQueue.main.async { [weak self] in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                publishQueued = false
-                publishNow()
+                self.publishQueued = false
+                self.publishNow()
             }
         }
     }

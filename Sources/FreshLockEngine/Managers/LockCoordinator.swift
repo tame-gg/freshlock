@@ -509,8 +509,8 @@ extension LockCoordinator {
                 let bundleID = app.bundleIdentifier
             else { return }
             MainActor.assumeIsolated {
-                guard let self, visibilityKeepers.contains(bundleID) else { return }
-                keepVisible(bundleID)
+                guard let self, self.visibilityKeepers.contains(bundleID) else { return }
+                self.keepVisible(bundleID)
             }
         }
     }
@@ -522,8 +522,8 @@ extension LockCoordinator {
         ) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                for bundleID in visibilityKeepers {
-                    keepVisible(bundleID)
+                for bundleID in self.visibilityKeepers {
+                    self.keepVisible(bundleID)
                 }
             }
         }

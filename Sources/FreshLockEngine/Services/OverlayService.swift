@@ -178,8 +178,8 @@ final class OverlayService: OverlayServiceProtocol {
     }
 
     func dismissOverlay(for bundleID: String) {
-        trackTimers[bundleID]?.invalidate()
-        trackTimers[bundleID] = nil
+        stopTracking(bundleID)
+        lastFrontmostPID[bundleID] = nil
         if let pid = pidByBundleID[bundleID] {
             accessibility.stopWatching(pid: pid)
         }
@@ -203,12 +203,14 @@ final class OverlayService: OverlayServiceProtocol {
     private func placeOrUpdate(_ bundleID: String) {
         guard let content = contentByBundleID[bundleID], let pid = pidByBundleID[bundleID] else { return }
 
+        let frontmost = NSWorkspace.shared.frontmostApplication
         var windows = windowsByBundleID[bundleID] ?? []
-        var frames = shouldCover(bundleID: bundleID, pid: pid) ? framesForPID(pid) : []
+        let covering = shouldCover(bundleID: bundleID, pid: pid, frontmost: frontmost)
+        var frames = covering ? framesForPID(pid) : []
 
         if !frames.isEmpty {
             lastFramesByBundleID[bundleID] = frames
-        } else if pinnedBundleIDs.contains(bundleID), shouldCover(bundleID: bundleID, pid: pid) {
+        } else if covering, pinnedBundleIDs.contains(bundleID) {
             // Prefer last known app frames. Never fall back to full-screen —
             // that blanketed FreshLock / other apps and made the picker look empty.
             frames = lastFramesByBundleID[bundleID] ?? []
@@ -216,20 +218,34 @@ final class OverlayService: OverlayServiceProtocol {
 
         guard !frames.isEmpty else {
             windows.forEach { $0.orderOut(nil) }
+            lastFrontmostPID[bundleID] = nil
             return
         }
 
+        // Only touch the window server when something actually moved. This runs
+        // on a timer, and unconditional setFrame/orderFront churn was a large
+        // share of idle CPU while an overlay was up.
+        var changed = false
         if windows.count != frames.count {
             windows.forEach { $0.orderOut(nil) }
             windows = frames.map { Self.makeOverlayWindow(frame: $0, content: content) }
             windowsByBundleID[bundleID] = windows
+            changed = true
         } else {
             for (window, frame) in zip(windows, frames) where window.frame != frame {
                 window.setFrame(frame, display: true)
+                changed = true
             }
         }
-        // Order front WITHOUT becoming key, so LocalAuthentication keeps focus.
-        windows.forEach { $0.orderFrontRegardless() }
+
+        // Re-raise when the stack could have shifted: geometry changed, a panel
+        // is not on screen, or a different app came forward.
+        let frontPID = frontmost?.processIdentifier
+        if changed || lastFrontmostPID[bundleID] != frontPID || windows.contains(where: { !$0.isVisible }) {
+            // Order front WITHOUT becoming key, so LocalAuthentication keeps focus.
+            windows.forEach { $0.orderFrontRegardless() }
+        }
+        lastFrontmostPID[bundleID] = frontPID
     }
 
     private func framesForPID(_ pid: pid_t) -> [NSRect] {
@@ -241,29 +257,54 @@ final class OverlayService: OverlayServiceProtocol {
     }
 
     private func startTracking(_ bundleID: String) {
+        settleDeadlines[bundleID] = Date().addingTimeInterval(Self.settleDuration)
+        scheduleTracking(bundleID, interval: Self.settleInterval)
+    }
+
+    private var backstopInterval: TimeInterval {
+        accessibility.isTrusted ? Self.axBackstopInterval : Self.unobservedBackstopInterval
+    }
+
+    private func scheduleTracking(_ bundleID: String, interval: TimeInterval) {
         trackTimers[bundleID]?.invalidate()
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] timer in
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
             guard let self else { timer.invalidate(); return }
             MainActor.assumeIsolated {
-                guard self.contentByBundleID[bundleID] != nil else {
-                    self.trackTimers[bundleID]?.invalidate()
-                    self.trackTimers[bundleID] = nil
-                    return
-                }
-                self.placeOrUpdate(bundleID)
+                self.trackingTick(bundleID, interval: interval)
             }
         }
+        timer.tolerance = interval * 0.3
         trackTimers[bundleID] = timer
+    }
+
+    private func trackingTick(_ bundleID: String, interval: TimeInterval) {
+        guard contentByBundleID[bundleID] != nil else {
+            stopTracking(bundleID)
+            return
+        }
+        placeOrUpdate(bundleID)
+
+        // Once the app's windows have settled, drop to the backstop cadence and
+        // let AX notifications carry subsequent moves/resizes.
+        guard interval == Self.settleInterval else { return }
+        if let deadline = settleDeadlines[bundleID], Date() >= deadline {
+            settleDeadlines[bundleID] = nil
+            scheduleTracking(bundleID, interval: backstopInterval)
+        }
+    }
+
+    private func stopTracking(_ bundleID: String) {
+        trackTimers[bundleID]?.invalidate()
+        trackTimers[bundleID] = nil
+        settleDeadlines[bundleID] = nil
     }
 
     /// Cover when pinned (launch→auth), when the protected app is frontmost /
     /// active, or when LocalAuthentication is frontmost.
     /// When *FreshLock itself* is frontmost, never cover — full-screen / pinned
     /// covers were blanking the application picker.
-    private func shouldCover(bundleID: String, pid: pid_t) -> Bool {
-        if let front = NSWorkspace.shared.frontmostApplication,
-           let id = front.bundleIdentifier
-        {
+    private func shouldCover(bundleID: String, pid: pid_t, frontmost: NSRunningApplication?) -> Bool {
+        if let id = frontmost?.bundleIdentifier {
             if id == FreshLockIdentity.mainBundleID || id == FreshLockIdentity.helperBundleID {
                 return false
             }
@@ -274,8 +315,8 @@ final class OverlayService: OverlayServiceProtocol {
         if pinnedBundleIDs.contains(bundleID) {
             return true
         }
-        guard let front = NSWorkspace.shared.frontmostApplication else { return true }
-        if front.processIdentifier == pid {
+        guard let frontmost else { return true }
+        if frontmost.processIdentifier == pid {
             return true
         }
         if let app = NSRunningApplication(processIdentifier: pid), app.isActive {
