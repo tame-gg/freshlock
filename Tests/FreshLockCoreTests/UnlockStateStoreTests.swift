@@ -22,6 +22,9 @@ struct UnlockStateStoreTests {
         // Mismatch must not destroy the grant for the authenticating process.
         #expect(store.hasGrant("com.example.app"))
         #expect(store.isUnlocked("com.example.app", pid: 42))
+        // Multi-process: grant stays valid if session PID is among live PIDs.
+        #expect(store.isUnlockedWhileAlive("com.example.app", livePIDs: [42, 99]))
+        #expect(store.isUnlockedWhileAlive("com.example.app", livePIDs: [99]) == false)
     }
 
     @Test func quitAndRelaunchRequiresAuth() {

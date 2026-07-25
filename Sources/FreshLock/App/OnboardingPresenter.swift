@@ -84,6 +84,7 @@ final class OnboardingPresenter {
         window.setContentSize(NSSize(width: 580, height: 600))
         window.minSize = NSSize(width: 540, height: 500)
         window.isReleasedWhenClosed = false
+        window.hidesOnDeactivate = true
         window.center()
 
         let controller = NSWindowController(window: window)

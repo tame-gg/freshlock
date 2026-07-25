@@ -130,6 +130,9 @@ final class WindowManager {
         window.setContentSize(size)
         window.minSize = minSize
         window.isReleasedWhenClosed = false
+        // Menu-bar (LSUIElement) apps: hide normal windows when another app
+        // is focused so chrome never floats over unrelated apps.
+        window.hidesOnDeactivate = true
         window.center()
         return window
     }

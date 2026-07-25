@@ -28,8 +28,10 @@ public struct AppSettings: Codable, Hashable, Sendable {
     /// Post a user notification whenever a protected app launches.
     public var notifyOnProtectedLaunch: Bool
 
-    /// Force authentication on every activation regardless of per-app policy.
-    /// This is a global "paranoid mode" master switch.
+    /// Paranoid mode: relock on every focus switch-away (like `.afterSwitchingAway`
+    /// for all apps), so returning to a protected app always re-authenticates.
+    /// Does **not** destroy a live grant while that app stays frontmost - that
+    /// previously caused an unlock→re-prompt loop after LocalAuthentication.
     public var requireEveryLaunch: Bool
 
     /// Enables verbose logging and diagnostic UI. Off by default.

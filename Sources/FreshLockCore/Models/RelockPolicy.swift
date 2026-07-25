@@ -68,10 +68,10 @@ public extension RelockPolicy {
         }
     }
 
-    /// Whether this policy can produce a lasting (cached) unlock rather than
-    /// re-prompting on every activation. All policies now cache the unlock for
-    /// their window; the global `requireEveryLaunch` setting is the master
-    /// override that forces authentication on every activation.
+    /// Whether this policy can produce a lasting (cached) unlock for the live
+    /// session. All policies cache for their window; the global
+    /// `requireEveryLaunch` setting forces relock on switch-away, not a wipe
+    /// of a grant that was just written.
     var grantsLastingUnlock: Bool {
         true
     }

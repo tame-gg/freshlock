@@ -36,6 +36,16 @@ public final class UnlockStateStore: ObservableObject {
         return grant.sessionPID == pid
     }
 
+    /// Whether a non-expired grant exists whose `sessionPID` is still among the
+    /// live processes for this bundle (Electron / multi-process apps).
+    public func isUnlockedWhileAlive(_ bundleID: String, livePIDs: Set<pid_t>) -> Bool {
+        guard let grant = grants[bundleID] else { return false }
+        if grant.isTimeExpired(asOf: now()) {
+            return false
+        }
+        return livePIDs.contains(grant.sessionPID)
+    }
+
     /// Whether any non-expired grant exists for this bundle (UI / diagnostics).
     public func hasGrant(_ bundleID: String) -> Bool {
         guard let grant = grants[bundleID] else { return false }

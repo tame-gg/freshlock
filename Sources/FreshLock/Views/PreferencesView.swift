@@ -89,11 +89,12 @@ struct PreferencesView: View {
             if defaultRelockKind.wrappedValue.needsMinutes {
                 Stepper("Minutes: \(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1 ... 240)
             }
-            Toggle("Require authentication on every launch", isOn: viewModel.binding(\.requireEveryLaunch))
+            Toggle("Relock when switching away (all apps)", isOn: viewModel.binding(\.requireEveryLaunch))
+                .help("Paranoid mode: always require authentication again after leaving a protected app, regardless of that app's relock policy. Unlock still sticks while you stay in the app.")
             Text(
                 """
-                Prompt on every activation, even if this process was already unlocked. \
-                Quitting always clears unlock regardless of this setting.
+                Applies `.afterSwitchingAway` globally. Unlock still sticks while the \
+                protected app stays frontmost; quitting always clears unlock.
                 """
             )
             .font(.caption)

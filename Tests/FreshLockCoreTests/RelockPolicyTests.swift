@@ -16,8 +16,8 @@ struct RelockPolicyTests {
     }
 
     @Test func allPoliciesGrantLastingUnlock() {
-        // Every policy caches its unlock for its own window; the global
-        // requireEveryLaunch setting is the only "prompt every activation" path.
+        // Every policy caches its unlock for its own window; requireEveryLaunch
+        // forces relock on switch-away rather than destroying a live grant.
         for policy in [RelockPolicy.everyLaunch, .afterMinutes(5), .manualOnly, .afterSwitchingAway] {
             #expect(policy.grantsLastingUnlock)
         }

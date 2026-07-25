@@ -98,13 +98,19 @@ final class LockCoordinator {
 
         let frontID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         for app in config.enabledProtectedApps {
-            guard let running = ProtectedAppProcess.running(bundleID: app.bundleIdentifier) else {
+            let bundleID = app.bundleIdentifier
+            let livePIDs = liveByBundle[bundleID] ?? []
+            // Honor a grant bound to any still-live process for this bundle
+            // (helpers share the bundle ID on Electron apps).
+            if store.isUnlockedWhileAlive(bundleID, livePIDs: livePIDs) {
+                continue
+            }
+            guard let running = ProtectedAppProcess.running(bundleID: bundleID) else {
                 continue
             }
             let pid = running.processIdentifier
-            guard !store.isUnlocked(app.bundleIdentifier, pid: pid) else { continue }
-            let isFront = frontID == app.bundleIdentifier
-            let covering = overlay.isShowingOverlay(for: app.bundleIdentifier)
+            let isFront = frontID == bundleID
+            let covering = overlay.isShowingOverlay(for: bundleID)
             if isFront || covering {
                 beginSecuring(app, config: config, pid: pid)
             }
@@ -245,10 +251,15 @@ extension LockCoordinator {
             let policy = prevApp.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
             // Grace period softens focus flicker: skip switch-away relock briefly
             // after a successful unlock so apps that resign/regain focus don't
-            // immediately re-prompt.
-            if case .afterSwitchingAway = policy,
-               !isWithinGracePeriod(previous, config: config)
-            {
+            // immediately re-prompt. `requireEveryLaunch` is paranoid mode:
+            // always relock on switch-away (same as `.afterSwitchingAway`).
+            let relockOnSwitchAway =
+                config.settings.requireEveryLaunch
+                || {
+                    if case .afterSwitchingAway = policy { return true }
+                    return false
+                }()
+            if relockOnSwitchAway, !isWithinGracePeriod(previous, config: config) {
                 store.lock(previous)
             }
             if securing.contains(previous) || overlay.isShowingOverlay(for: previous) {
@@ -284,12 +295,17 @@ extension LockCoordinator {
 
     private func beginSecuring(_ app: ProtectedApp, config: Configuration, pid: pid_t) {
         let bundleID = app.bundleIdentifier
-        let requireEveryLaunch = config.settings.requireEveryLaunch
         let policy = app.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
+        let livePIDs = ProtectedAppProcess.allPIDs(forBundleID: bundleID)
 
-        if requireEveryLaunch {
-            store.lock(bundleID)
-        } else if store.isUnlocked(bundleID, pid: pid), policy.grantsLastingUnlock {
+        // A live grant always wins. Never wipe it here - that made
+        // `requireEveryLaunch` destroy the grant on the success→activate path
+        // and immediately re-prompt. Paranoid mode relocks on switch-away only.
+        if policy.grantsLastingUnlock,
+           store.isUnlocked(bundleID, pid: pid)
+           || store.isUnlockedWhileAlive(bundleID, livePIDs: livePIDs)
+        {
+            Log.lifecycle.debug("Skip securing \(bundleID, privacy: .public) - live unlock grant")
             return
         }
 
@@ -329,7 +345,10 @@ extension LockCoordinator {
             return
         }
 
-        if !config.settings.requireEveryLaunch, store.isUnlocked(bundleID, pid: currentPID) {
+        let livePIDs = ProtectedAppProcess.allPIDs(forBundleID: bundleID)
+        if store.isUnlocked(bundleID, pid: currentPID)
+            || store.isUnlockedWhileAlive(bundleID, livePIDs: livePIDs)
+        {
             clearSecuringUI(for: bundleID, lock: false)
             return
         }
@@ -368,7 +387,10 @@ extension LockCoordinator {
             clearSecuringUI(for: bundleID)
             return
         }
-        if !config.settings.requireEveryLaunch, store.isUnlocked(bundleID, pid: currentPID) {
+        let liveNow = ProtectedAppProcess.allPIDs(forBundleID: bundleID)
+        if store.isUnlocked(bundleID, pid: currentPID)
+            || store.isUnlockedWhileAlive(bundleID, livePIDs: liveNow)
+        {
             clearSecuringUI(for: bundleID, lock: false)
             return
         }
@@ -437,14 +459,24 @@ extension LockCoordinator {
         let result = await auth.authenticate(reason: "unlock \(app.name)")
         switch result {
         case .success:
-            guard let still = livePID(for: bundleID), still == pid else {
+            let livePIDs = ProtectedAppProcess.allPIDs(forBundleID: bundleID)
+            // Prefer the PID we authenticated against if it is still alive;
+            // otherwise fall back to any current live process for the bundle.
+            let grantPID: pid_t?
+            if livePIDs.contains(pid) {
+                grantPID = pid
+            } else {
+                grantPID = livePID(for: bundleID)
+            }
+            guard let still = grantPID else {
                 store.lock(bundleID)
                 overlay.dismissOverlay(for: bundleID)
                 stopKeepingVisible(bundleID)
-                Log.lifecycle.notice("Auth succeeded but process gone/replaced — not granting unlock")
+                Log.lifecycle.notice("Auth succeeded but process gone/replaced - not granting unlock")
                 return
             }
             stopKeepingVisible(bundleID)
+            Log.lifecycle.info("Auth success for \(bundleID, privacy: .public) granting sessionPID=\(still)")
             handleSuccess(app: app, config: config, pid: still)
         case .cancelled:
             // Internal cancel (switch-away / tear-down): leave overlay pinned if the
