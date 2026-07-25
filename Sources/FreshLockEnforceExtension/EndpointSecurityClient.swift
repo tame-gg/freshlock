@@ -23,6 +23,7 @@ enum ESClientStartError: Error, CustomStringConvertible {
     case notPermitted
     case invalidArgument
     case tooManyClients
+    case subscribeFailed
     case unknown(es_new_client_result_t)
 
     var description: String {
@@ -37,6 +38,8 @@ enum ESClientStartError: Error, CustomStringConvertible {
             "es_new_client invalid argument"
         case .tooManyClients:
             "Too many ES clients on this Mac"
+        case .subscribeFailed:
+            "es_subscribe for AUTH_EXEC failed"
         case let .unknown(code):
             "es_new_client failed with code \(code.rawValue)"
         }
