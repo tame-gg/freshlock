@@ -41,4 +41,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
+
+    /// Reopening AppLock (Finder/Spotlight) surfaces the main window — the way
+    /// back when the menu-bar icon is hidden.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        MainActor.assumeIsolated {
+            NSApp.activate(ignoringOtherApps: true)
+            WindowOpener.shared.open?(AppWindowID.main)
+        }
+        return true
+    }
 }

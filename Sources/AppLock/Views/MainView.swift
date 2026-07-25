@@ -2,8 +2,10 @@
 //  MainView.swift
 //  AppLock
 //
-//  The main window: a `NavigationSplitView` with a source-list sidebar and a
-//  searchable app list, mirroring the layout of Apple's own utilities.
+//  The main window, redesigned in the koels.net spirit: a single, dark,
+//  uncluttered screen — a bold gradient wordmark, a prominent search, a simple
+//  three-way filter, and a clean card list of apps with one-tap protection.
+//  Per-app options live in a popover so the list itself stays calm.
 //
 
 import AppLockCore
@@ -11,101 +13,167 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var viewModel: ProtectionViewModel
+    @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
-        } content: {
-            appList
-        } detail: {
-            detailPane
+        ZStack {
+            Theme.background
+            VStack(spacing: 0) {
+                header
+                    .padding(.horizontal, 28)
+                    .padding(.top, 24)
+                    .padding(.bottom, 18)
+                Divider().overlay(Theme.stroke)
+                list
+            }
         }
-        .task {
-            await viewModel.refreshInstalledApps()
+        .frame(minWidth: 560, minHeight: 520)
+        .preferredColorScheme(.dark)
+        .task { await viewModel.refreshInstalledApps() }
+        .onAppear {
+            // Let the AppDelegate reopen this window (e.g. when the menu-bar
+            // icon is hidden and AppLock is relaunched from Finder).
+            WindowOpener.shared.open = { openWindow(id: $0) }
         }
     }
 
-    // MARK: Sidebar
+    // MARK: Header
 
-    private var sidebar: some View {
-        List(selection: $viewModel.sidebarSelection) {
-            Section {
-                label("All Apps", systemImage: "square.grid.2x2.fill", tint: .gray, tag: .all)
-                label("Protected", systemImage: "lock.fill", tint: .blue, tag: .protected)
-                    .badge(viewModel.protectedCount)
-                label("Favourites", systemImage: "star.fill", tint: .yellow, tag: .favorites)
-                    .badge(viewModel.favoritesCount)
-            }
-            Section("Categories") {
-                ForEach(AppCategory.allCases, id: \.self) { category in
-                    label(category.displayName, systemImage: category.symbolName, tint: .accentColor, tag: .category(category))
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 8) {
+                    MicroLabel("App Protection")
+                    HStack(spacing: 0) {
+                        Text("App").foregroundStyle(Theme.textPrimary)
+                        Text("Lock").foregroundStyle(Theme.brandGradient)
+                    }
+                    .font(.system(size: 40, weight: .heavy)).tracking(-0.5)
                 }
+                Spacer()
+                protectedPill
+                Button {
+                    openSettings()
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(width: 34, height: 34)
+                        .background(Theme.card, in: .circle)
+                        .overlay(Circle().stroke(Theme.stroke))
+                }
+                .buttonStyle(.plain)
+                .help("Preferences")
+            }
+
+            searchField
+            FilterBar(selection: $viewModel.sidebarSelection,
+                      protectedCount: viewModel.protectedCount,
+                      favoritesCount: viewModel.favoritesCount)
+        }
+    }
+
+    private var protectedPill: some View {
+        HStack(spacing: 7) {
+            Circle().fill(Theme.green).frame(width: 7, height: 7)
+            Text("\(viewModel.protectedCount) protected")
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 7)
+        .background(Theme.card, in: .capsule)
+        .overlay(Capsule().stroke(Theme.stroke))
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass").foregroundStyle(Theme.textMuted)
+            TextField("Search apps", text: $viewModel.searchText)
+                .textFieldStyle(.plain)
+                .foregroundStyle(Theme.textPrimary)
+                .font(.system(size: 14))
+            if !viewModel.searchText.isEmpty {
+                Button { viewModel.searchText = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textMuted)
+                }.buttonStyle(.plain)
             }
         }
-        .navigationSplitViewColumnWidth(min: 210, ideal: 230)
-        .navigationTitle("AppLock")
+        .padding(.horizontal, 14).padding(.vertical, 11)
+        .background(Theme.baseElevated, in: .rect(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.stroke))
     }
 
-    private func label(_ title: String, systemImage: String, tint: Color, tag: SidebarItem) -> some View {
-        Label {
-            Text(title)
-        } icon: {
-            Image(systemName: systemImage).foregroundStyle(tint)
-        }
-        .tag(tag)
-    }
+    // MARK: List
 
-    // MARK: App list (content column)
-
-    private var appList: some View {
+    private var list: some View {
         Group {
             if viewModel.visibleApps.isEmpty {
-                ContentUnavailableView(
-                    "No Apps",
-                    systemImage: "magnifyingglass",
-                    description: Text("No applications match your selection.")
-                )
+                emptyState
             } else {
-                List(selection: $viewModel.selectedAppID) {
-                    if !viewModel.favoriteVisibleApps.isEmpty {
-                        Section("Favourites") {
-                            ForEach(viewModel.favoriteVisibleApps) { row(for: $0) }
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(viewModel.visibleApps) { app in
+                            AppRowView(viewModel: viewModel, app: app)
                         }
-                        Section("All Apps") {
-                            ForEach(viewModel.nonFavoriteVisibleApps) { row(for: $0) }
-                        }
-                    } else {
-                        ForEach(viewModel.visibleApps) { row(for: $0) }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                }
+                .scrollContentBackground(.hidden)
+            }
+        }
+        .frame(maxHeight: .infinity)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 34)).foregroundStyle(Theme.textMuted)
+            Text("No apps match").font(.headline).foregroundStyle(Theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// The three-way koels-style pill filter.
+private struct FilterBar: View {
+    @Binding var selection: SidebarItem
+    let protectedCount: Int
+    let favoritesCount: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            pill("All Apps", tag: .all, count: nil)
+            pill("Protected", tag: .protected, count: protectedCount)
+            pill("Favourites", tag: .favorites, count: favoritesCount)
+            Spacer()
+        }
+    }
+
+    private func pill(_ title: String, tag: SidebarItem, count: Int?) -> some View {
+        let active = selection == tag
+        return Button {
+            selection = tag
+        } label: {
+            HStack(spacing: 6) {
+                Text(title).font(.system(size: 13, weight: .semibold))
+                if let count, count > 0 {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundStyle(active ? Theme.base : Theme.textMuted)
+                }
+            }
+            .foregroundStyle(active ? Theme.base : Theme.textSecondary)
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .background {
+                if active {
+                    Capsule().fill(Theme.brandGradient)
+                } else {
+                    Capsule().fill(Theme.card).overlay(Capsule().stroke(Theme.stroke))
                 }
             }
         }
-        .searchable(text: $viewModel.searchText, placement: .toolbar, prompt: "Search apps")
-        .navigationTitle("Apps")
-    }
-
-    private func row(for app: InstalledApp) -> some View {
-        AppRowView(
-            app: app,
-            isProtected: viewModel.isProtected(app.bundleIdentifier),
-            isFavorite: viewModel.isFavorite(app.bundleIdentifier),
-            onToggleProtection: { viewModel.toggleProtection(for: app) },
-            onToggleFavorite: { viewModel.toggleFavorite(for: app) }
-        )
-        .tag(app.bundleIdentifier)
-    }
-
-    // MARK: Detail (inspector column)
-
-    @ViewBuilder private var detailPane: some View {
-        if let app = viewModel.selectedApp {
-            AppDetailView(viewModel: viewModel, app: app)
-        } else {
-            ContentUnavailableView(
-                "Select an App",
-                systemImage: "lock.square.dashed",
-                description: Text("Choose an app to configure its protection and auto-relock.")
-            )
-        }
+        .buttonStyle(.plain)
     }
 }

@@ -23,6 +23,10 @@
     <string>AppLock</string>
     <key>CFBundleDisplayName</key>
     <string>AppLock</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>gg.tame.applock</string>
     <key>CFBundleExecutable</key>

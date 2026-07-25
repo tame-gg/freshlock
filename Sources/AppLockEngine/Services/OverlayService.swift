@@ -42,11 +42,12 @@ protocol OverlayServiceProtocol: AnyObject {
     func dismissAll()
 }
 
-/// A borderless panel that can take key focus, so it can absorb keyboard input
-/// destined for the covered app.
+/// A borderless, non-activating panel. It intercepts mouse events over the
+/// covered app but deliberately does **not** take key focus — stealing focus
+/// fights Apple's Touch ID sheet and prevents authentication from completing.
 private final class OverlayPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
 }
 
 @MainActor
@@ -129,8 +130,9 @@ final class OverlayService: OverlayServiceProtocol {
             windows.forEach { $0.orderOut(nil) }
             windows = frames.map { Self.makeOverlayWindow(frame: $0, content: content) }
             windowsByBundleID[bundleID] = windows
-            windows.first?.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            // Order front WITHOUT activating AppLock, so the Touch ID sheet keeps
+            // focus and can be completed.
+            windows.forEach { $0.orderFrontRegardless() }
         } else {
             for (window, frame) in zip(windows, frames) where window.frame != frame {
                 window.setFrame(frame, display: true)
@@ -186,7 +188,7 @@ final class OverlayService: OverlayServiceProtocol {
     private static func makeOverlayWindow(frame: NSRect, content: LockOverlayView) -> NSWindow {
         let window = OverlayPanel(
             contentRect: frame,
-            styleMask: [.borderless],
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )

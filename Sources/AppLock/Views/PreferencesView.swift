@@ -45,6 +45,11 @@ struct PreferencesView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+            Toggle("Show icon in menu bar", isOn: $viewModel.settings.showMenuBarIcon)
+            if !viewModel.settings.showMenuBarIcon {
+                Text("Reopen AppLock from Finder or Spotlight to bring back its window.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Toggle("Notify when a protected app launches", isOn: $viewModel.settings.notifyOnProtectedLaunch)
             Picker("Overlay Style", selection: $viewModel.settings.overlayStyle) {
                 ForEach(OverlayStyle.allCases, id: \.self) { style in

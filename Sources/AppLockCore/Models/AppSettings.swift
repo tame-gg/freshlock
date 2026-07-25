@@ -35,6 +35,10 @@ public struct AppSettings: Codable, Hashable, Sendable {
     /// Enables verbose logging and diagnostic UI. Off by default.
     public var developerMode: Bool
 
+    /// Whether the AppLock icon is shown in the menu bar. When hidden, reopen
+    /// AppLock (from Finder/Spotlight) to bring back its window.
+    public var showMenuBarIcon: Bool
+
     /// Minutes of inactivity used by `.afterInactivity` when a policy doesn't
     /// specify its own value.
     public var defaultInactivityMinutes: Int
@@ -55,6 +59,7 @@ public struct AppSettings: Codable, Hashable, Sendable {
         notifyOnProtectedLaunch: Bool = false,
         requireEveryLaunch: Bool = false,
         developerMode: Bool = false,
+        showMenuBarIcon: Bool = true,
         defaultInactivityMinutes: Int = 5,
         lockAllShortcut: GlobalShortcut? = nil,
         unlockAllShortcut: GlobalShortcut? = nil
@@ -66,6 +71,7 @@ public struct AppSettings: Codable, Hashable, Sendable {
         self.notifyOnProtectedLaunch = notifyOnProtectedLaunch
         self.requireEveryLaunch = requireEveryLaunch
         self.developerMode = developerMode
+        self.showMenuBarIcon = showMenuBarIcon
         self.defaultInactivityMinutes = defaultInactivityMinutes
         self.lockAllShortcut = lockAllShortcut
         self.unlockAllShortcut = unlockAllShortcut
