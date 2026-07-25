@@ -39,7 +39,7 @@ struct GlobalShortcutTests {
             {
               "launchAtLogin": false,
               "gracePeriodSeconds": 3,
-              "defaultRelockPolicy": "everyLaunch",
+              "defaultRelockPolicy": { "everyLaunch": {} },
               "overlayStyle": "blur",
               "notifyOnProtectedLaunch": false,
               "requireEveryLaunch": false,

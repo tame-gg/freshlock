@@ -212,8 +212,13 @@ final class LockCoordinator {
         }
         Log.lifecycle.info("Terminated \(bundleID, privacy: .public) pid \(pid) - session checked")
     }
+}
 
-    private func enforceSwitchAway(newFrontmost bundleID: String, config: Configuration) {
+// MARK: - Switch-away / securing
+
+@MainActor
+extension LockCoordinator {
+    fileprivate func enforceSwitchAway(newFrontmost bundleID: String, config: Configuration) {
         if FreshLockIdentity.transientFrontmostBundleIDs.contains(bundleID) {
             return
         }
