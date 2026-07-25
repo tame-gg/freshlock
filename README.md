@@ -8,7 +8,7 @@
 
 iOS and iPadOS let you lock individual apps behind Face ID / Touch ID. macOS has
 no native equivalent. **FreshLock** is the closest, honest implementation built
-entirely on **public Apple APIs** — no private frameworks, no kernel extensions,
+entirely on **public Apple APIs** - no private frameworks, no kernel extensions,
 no Electron.
 
 [![CI](https://github.com/tame-gg/freshlock/actions/workflows/ci.yml/badge.svg)](https://github.com/tame-gg/freshlock/actions/workflows/ci.yml)
@@ -22,23 +22,23 @@ no Electron.
 
 ## Features
 
-- 🔐 **Native authentication** — Apple's own LocalAuthentication sheet (Touch ID,
+- 🔐 **Native authentication** - Apple's own LocalAuthentication sheet (Touch ID,
   Apple Watch, or macOS password). FreshLock never draws a password field and never
   sees your password.
-- 🖥️ **Lock any app** — Finder, Terminal, Safari, System Settings, or anything in
+- 🖥️ **Lock any app** - Finder, Terminal, Safari, System Settings, or anything in
   `/Applications`.
-- 🎨 **Beautiful overlay** — blurred, material-based lock screen with light/dark
+- 🎨 **Beautiful overlay** - blurred, material-based lock screen with light/dark
   support and reduced-motion friendliness.
-- ⏱️ **Flexible auto-relock** — every launch, after N minutes, on sleep, on screen
+- ⏱️ **Flexible auto-relock** - every launch, after N minutes, on sleep, on screen
   lock, on inactivity, on switching away, or manual only.
-- 🧭 **Menu-bar first** — Lock All, Unlock Until Sleep, preferences, and more from
+- 🧭 **Menu-bar first** - Lock All, Unlock Until Sleep, preferences, and more from
   the menu bar. No Dock clutter (`LSUIElement`).
 - 🚀 **Launch at login** via `SMAppService`.
 - 🔍 **Searchable catalogue** with favorites and categories.
 - 📤 **Import / export / backup** your configuration as JSON (iCloud-sync ready).
-- ♿ **Accessible** — VoiceOver labels, keyboard navigation, reduced motion.
-- 🌍 **Localized** — English, Spanish and French (easy to add more).
-- 🪶 **Featherweight** — Accessibility-driven window covering; no hide/activate
+- ♿ **Accessible** - VoiceOver labels, keyboard navigation, reduced motion.
+- 🌍 **Localized** - English, Spanish and French (easy to add more).
+- 🪶 **Featherweight** - Accessibility-driven window covering; no hide/activate
   churn during Touch ID.
 
 ## Installation
@@ -81,9 +81,9 @@ We will never pretend a limitation doesn't exist.
 
 On first launch FreshLock will ask for:
 
-- **Accessibility** *(required)* — to detect protected windows and cover them
+- **Accessibility** *(required)* - to detect protected windows and cover them
   without hiding or reactivating apps (which would interrupt Touch ID).
-- **Notifications** *(optional)* — to alert you when a protected app launches.
+- **Notifications** *(optional)* - to alert you when a protected app launches.
 
 ## Contributing
 
