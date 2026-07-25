@@ -97,7 +97,7 @@ final class EndpointSecurityClient: @unchecked Sendable {
         guard sub == ES_RETURN_SUCCESS else {
             es_delete_client(newClient)
             client = nil
-            throw ESClientStartError.unknown(ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT)
+            throw ESClientStartError.subscribeFailed
         }
 
         // Reduce noise from common system helpers (program-path prefix mute).
