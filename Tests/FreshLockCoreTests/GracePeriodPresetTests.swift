@@ -63,4 +63,24 @@ struct GracePeriodPresetTests {
         let decoded = try JSONDecoder().decode(AppSettings.self, from: missingKey)
         #expect(decoded.gracePeriodSeconds == 30)
     }
+
+    @Test func appSettingsDefaultsAutoPromptAuthenticationToTrue() throws {
+        #expect(AppSettings.default.automaticallyPromptAuthentication == true)
+
+        let missingKey = Data(
+            """
+            {
+              "launchAtLogin": false,
+              "defaultRelockPolicy": { "afterSwitchingAway": {} },
+              "overlayStyle": "blur",
+              "notifyOnProtectedLaunch": false,
+              "requireEveryLaunch": false,
+              "developerMode": false,
+              "defaultInactivityMinutes": 5
+            }
+            """.utf8
+        )
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: missingKey)
+        #expect(decoded.automaticallyPromptAuthentication == true)
+    }
 }

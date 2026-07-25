@@ -59,6 +59,8 @@
 "Notify when a protected app launches" = "Notifier à l'ouverture d'une app protégée";
 "Overlay Style" = "Style de superposition";
 "Require authentication on every launch" = "Exiger l'authentification à chaque ouverture";
+"Prompt authentication automatically" = "Demander l'authentification automatiquement";
+"When off, FreshLock shows the lock overlay only. Click Unlock to authenticate. Cancel returns to the overlay." = "Désactivé : FreshLock affiche uniquement le verrou. Cliquez sur Déverrouiller pour vous authentifier. Annuler revient au verrou.";
 "Grace period after unlock" = "Délai de grâce après déverrouillage";
 "Time before relock when switching away." = "Délai avant reverrouillage en changeant d'app.";
 "Custom" = "Personnalisé";
