@@ -66,16 +66,31 @@ Xcode will resolve the package and let you build/run the `FreshLock` scheme.
 
 ## Phase 1 enforcement targets (scaffolding)
 
-These build with SwiftPM but are **not** embedded by `Scripts/build-app.sh`:
-
 ```bash
+# Pure policy library + unit tests (no entitlement)
 swift build --product FreshLockEnforce
+swift test
+
+# ES client binary (links libEndpointSecurity; exits cleanly if not entitled)
 swift build --product FreshLockEnforceExtension
+
+# Assemble gg.tame.freshlock.enforce.systemextension
+Scripts/build-systemextension.sh
+
+# Optional: embed sysext into FreshLock.app (off by default)
+EMBED_SYSTEM_EXTENSION=1 Scripts/build-app.sh
 ```
 
-`FreshLockEnforceExtension` links `libEndpointSecurity` and exits cleanly when the
-managed ES entitlement / privilege / FDA requirements are unmet. See
-[ENFORCEMENT.md](ENFORCEMENT.md) and [THREAT_MODEL.md](THREAT_MODEL.md).
+Default `Scripts/build-app.sh` does **not** embed the system extension, so Phase 0
+users without Apple's ES entitlement keep a normal shipping build.
+
+`FreshLockEnforceExtension` exits 0 when entitlement / privilege / FDA are unmet.
+Host registration UI: Preferences → Advanced → Developer mode → Activate system
+extension. See [ENFORCEMENT.md](ENFORCEMENT.md) and [THREAT_MODEL.md](THREAT_MODEL.md).
+
+| Variable | Values | Default |
+|----------|--------|---------|
+| `EMBED_SYSTEM_EXTENSION` | `0`, `1` | `0` |
 
 ## Why a script instead of an `.xcodeproj`?
 
