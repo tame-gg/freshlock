@@ -49,9 +49,20 @@ final class OnboardingPresenter {
             return
         }
 
+        // Capture at present time: first-run Quit terminates; Preferences replay
+        // only dismisses this window (app stays running).
+        let isReplay = hasCompletedOnboarding
         let viewModel = OnboardingViewModel(
             loginItem: loginItem,
-            onFinish: { [weak self] in self?.complete() }
+            onFinish: { [weak self] in self?.complete() },
+            onQuit: { [weak self] in
+                if isReplay {
+                    self?.dismiss()
+                } else {
+                    // AppDelegate skips LA while onboarding is incomplete.
+                    NSApp.terminate(nil)
+                }
+            }
         )
         let preferGlass = AppEnvironment.shared.configurationStore.configuration.settings.preferLiquidGlass
         let root = OnboardingView(viewModel: viewModel)
@@ -63,7 +74,7 @@ final class OnboardingPresenter {
         // First-run: no close button so the Accessibility gate cannot be skipped by
         // dismissing the window. Replay (already completed) remains closable.
         var styleMask: NSWindow.StyleMask = [.titled, .resizable, .fullSizeContentView]
-        if hasCompletedOnboarding {
+        if isReplay {
             styleMask.insert(.closable)
         }
         window.styleMask = styleMask
@@ -81,10 +92,14 @@ final class OnboardingPresenter {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func complete() {
-        defaults.set(true, forKey: Self.completedKey)
+    private func dismiss() {
         windowController?.close()
         windowController = nil
+    }
+
+    private func complete() {
+        defaults.set(true, forKey: Self.completedKey)
+        dismiss()
         Log.lifecycle.info("Onboarding completed")
         // Open the main window so the first-run user can pick apps to protect.
         WindowManager.shared.showMain()

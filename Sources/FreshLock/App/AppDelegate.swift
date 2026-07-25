@@ -8,7 +8,9 @@
 //
 //  Quit is gated by LocalAuthentication (`deviceOwnerAuthentication`): ⌘Q,
 //  menu Quit, and status-bar Quit all hit `applicationShouldTerminate`. Closing
-//  windows does not quit. After an authenticated GUI quit, the login-item helper
+//  windows does not quit. Incomplete first-run onboarding is the exception -
+//  Quit / ⌘Q terminate without LA so the non-closable setup window is escapable.
+//  After an authenticated GUI quit, the login-item helper
 //  (if registered) starts its own LockEngine so protection can continue without
 //  the settings UI; standalone/dev runs with only the in-process engine stop
 //  protecting when the GUI exits.
@@ -85,8 +87,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Central quit gate: every `NSApp.terminate` path (⌘Q, app menu Quit,
     /// status-bar Quit) prompts for device-owner authentication first.
+    /// Incomplete first-run onboarding skips LA so the non-closable setup window
+    /// has a real exit path (Quit / ⌘Q) before protection is configured.
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
         if allowTerminateWithoutAuth {
+            return .terminateNow
+        }
+        if onboarding?.hasCompletedOnboarding == false {
+            Log.lifecycle.info("Quit during incomplete onboarding; terminating without auth")
             return .terminateNow
         }
         if isAuthenticatingQuit {

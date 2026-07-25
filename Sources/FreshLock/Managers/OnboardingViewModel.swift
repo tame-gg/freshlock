@@ -38,12 +38,18 @@ final class OnboardingViewModel: ObservableObject {
 
     private let loginItem: LoginItemServiceProtocol
     private let onFinish: () -> Void
+    private let onQuit: () -> Void
     private var accessibilityPoll: Timer?
     private var becomeActiveObserver: NSObjectProtocol?
 
-    init(loginItem: LoginItemServiceProtocol, onFinish: @escaping () -> Void) {
+    init(
+        loginItem: LoginItemServiceProtocol,
+        onFinish: @escaping () -> Void,
+        onQuit: @escaping () -> Void
+    ) {
         self.loginItem = loginItem
         self.onFinish = onFinish
+        self.onQuit = onQuit
         launchAtLoginEnabled = loginItem.isEnabled
     }
 
@@ -131,6 +137,13 @@ final class OnboardingViewModel: ObservableObject {
         }
         stopAccessibilityMonitoring()
         onFinish()
+    }
+
+    /// Escape hatch while the first-run window has no close button. Presenter
+    /// decides terminate vs dismiss (replay from Preferences).
+    func quit() {
+        stopAccessibilityMonitoring()
+        onQuit()
     }
 
     // MARK: - Accessibility monitoring

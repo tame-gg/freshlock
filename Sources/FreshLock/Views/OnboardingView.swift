@@ -331,6 +331,13 @@ struct OnboardingView: View {
 
     private var footer: some View {
         HStack(spacing: 12) {
+            // Far left: escape hatch for the non-closable first-run window.
+            // ⌘Q stays on the app terminate path (LA-skipped while onboarding
+            // is incomplete; full LA after setup / during Preferences replay).
+            Button("Quit") { viewModel.quit() }
+                .buttonStyle(.borderless)
+                .controlSize(.large)
+
             if viewModel.canGoBack {
                 Button("Back") { viewModel.back() }
                     .buttonStyle(.borderless)
