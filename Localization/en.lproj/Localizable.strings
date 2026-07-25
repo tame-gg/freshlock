@@ -63,7 +63,6 @@
 "Notify when a protected app launches" = "Notify when a protected app launches";
 "Appearance" = "Appearance";
 "Use Liquid Glass" = "Use Liquid Glass";
-"Applies Liquid Glass to FreshLock chrome when available (macOS 26+). System windows still follow macOS Appearance." = "Applies Liquid Glass to FreshLock chrome when available (macOS 26+). System windows still follow macOS Appearance.";
 "Requires macOS 26 or later. Your preference is saved for when you upgrade." = "Requires macOS 26 or later. Your preference is saved for when you upgrade.";
 "Overlay Style" = "Overlay Style";
 "Require authentication on every launch" = "Require authentication on every launch";

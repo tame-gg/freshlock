@@ -71,10 +71,6 @@ struct PreferencesView: View {
             }
         } header: {
             Text("Appearance")
-        } footer: {
-            Text(
-                "Applies Liquid Glass to FreshLock chrome when available (macOS 26+). System windows still follow macOS Appearance."
-            )
         }
     }
 
