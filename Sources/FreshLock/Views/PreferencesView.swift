@@ -166,8 +166,15 @@ struct PreferencesView: View {
                 }
             }
             if !AccessibilityPermission.isTrusted {
-                Text("Required for reliable locking. Open System Settings to enable FreshLock.")
+                Text("Required for reliable locking. Enable the FreshLock entry for this app in System Settings → Privacy & Security → Accessibility.")
                     .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("If a FreshLock toggle is already on, it may be a different build. Remove old entries and enable:")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(AccessibilityPermission.runningBundlePathDisplay)
+                    .font(.system(.caption2, design: .monospaced))
+                    .textSelection(.enabled)
                     .foregroundStyle(.secondary)
             }
             Toggle("Developer mode", isOn: viewModel.binding(\.developerMode))

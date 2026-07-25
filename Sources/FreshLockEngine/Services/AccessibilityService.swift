@@ -43,7 +43,7 @@ enum FreshLockIdentity {
 /// Trust is always evaluated for the **currently running process** via
 /// `AXIsProcessTrusted`. System Settings can show a different FreshLock.app
 /// (another path or code signature) as enabled while this process remains
-/// untrusted — common when switching between Xcode, `dist/`, and `/Applications`.
+/// untrusted - common when switching between Xcode, `dist/`, and `/Applications`.
 @MainActor
 public enum AccessibilityPermission {
     /// Whether **this** process is currently trusted for Accessibility.

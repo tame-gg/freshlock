@@ -128,16 +128,26 @@ struct OnboardingView: View {
             statusPanel
 
             if !viewModel.accessibilityTrusted {
-                Button("Open System Settings…") {
-                    viewModel.requestAccessibility()
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                HStack(spacing: 12) {
+                    Button("Open System Settings…") {
+                        viewModel.requestAccessibility()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
 
-                Text("Continue stays disabled until Accessibility is granted. After enabling FreshLock in System Settings, return here.")
+                    Button("Check Again") {
+                        viewModel.refreshAccessibilityStatus()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                }
+
+                Text("Continue stays disabled until Accessibility is granted for this FreshLock. After enabling it in System Settings, return here - status refreshes when the app becomes active.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                mismatchTip
             } else {
                 Text("You can change this later in System Settings → Privacy & Security → Accessibility.")
                     .font(.callout)
@@ -145,7 +155,39 @@ struct OnboardingView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .onAppear { viewModel.refreshAccessibilityStatus() }
+        .onAppear { viewModel.startAccessibilityMonitoring() }
+        .onDisappear { viewModel.stopAccessibilityMonitoring() }
+    }
+
+    /// Shown when this process is untrusted: Settings may list a different build.
+    private var mismatchTip: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("If FreshLock already looks enabled")
+                .font(.subheadline.weight(.semibold))
+            Text(
+                """
+                A different FreshLock build may be listed (Xcode, another \
+                dist/, or a re-signed copy). Remove old FreshLock entries, then \
+                enable the one for this app:
+                """
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+            Text(viewModel.runningBundlePath)
+                .font(.system(.caption, design: .monospaced))
+                .textSelection(.enabled)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .freshLockGlass(
+            enabled: preferGlass,
+            in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+        )
+        .accessibilityElement(children: .combine)
     }
 
     private var launchAtLoginPage: some View {
@@ -260,12 +302,12 @@ struct OnboardingView: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(viewModel.accessibilityTrusted
-                    ? "Accessibility is enabled"
+                    ? "Accessibility is enabled for this FreshLock"
                     : "Accessibility is required for app locking")
                     .font(.body.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
                 if !viewModel.accessibilityTrusted {
-                    Text("Turn on FreshLock in the Accessibility list, then come back.")
+                    Text("Turn on the FreshLock entry that matches this running app, then come back.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -281,7 +323,7 @@ struct OnboardingView: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(viewModel.accessibilityTrusted
-            ? "Accessibility is enabled"
+            ? "Accessibility is enabled for this FreshLock"
             : "Accessibility is required for app locking")
     }
 
