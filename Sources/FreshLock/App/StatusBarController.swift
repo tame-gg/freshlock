@@ -101,7 +101,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         }
     }
 
-    /// Requires LocalAuthentication — same posture as Unlock All / overlay unlock.
+    /// Requires LocalAuthentication - same posture as Unlock All / overlay unlock.
     @objc private func unlockUntilSleep() {
         if let engine = environment.engine {
             engine.unlockUntilSleepNow()
@@ -128,7 +128,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             )
             guard case .success = result else { return }
             for app in environment.configurationStore.configuration.enabledProtectedApps {
-                // Only grant for processes that are actually running — a PID-less
+                // Only grant for processes that are actually running - a PID-less
                 // unlock would survive quit/relaunch and break the lock model.
                 // Prefer frontmost / newest instance (never `.first`).
                 guard let pid = NSRunningApplication

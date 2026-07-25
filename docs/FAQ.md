@@ -12,13 +12,23 @@ never sees, handles, or stores your password.
 notifies it, covers the app with an overlay, and requires authentication. That
 is a deterrent, not a pre-exec veto.
 
-**Possible later (Phase 1):** Apple's Endpoint Security framework can deny
-`AUTH_EXEC` before userland code runs, but only with a **managed entitlement**,
-a system extension (or root daemon), Full Disk Access, and Developer ID
-distribution - not as a typical Mac App Store feature. Scaffolding lives in
-`FreshLockEnforce*`; it is **not shipping**. Even with ES, a local **admin**
-can uninstall or disable the product. There is no public API for "admins cannot
-bypass" on a personally owned Mac. See [THREAT_MODEL.md](THREAT_MODEL.md).
+**Possible later (Phase 1):** Yes, via an **Endpoint Security System Extension**
+(`AUTH_EXEC`) - the supported replacement for the old "write a kernel extension"
+idea. Classic **kexts are deprecated** and are not FreshLock's path. Phase 1
+needs Apple's managed ES entitlement, Full Disk Access, user/MDM approval, and
+Developer ID distribution - not a typical Mac App Store feature. Scaffolding
+lives in `FreshLockEnforce*` / `Scripts/build-systemextension.sh`; it is **not
+shipping** in the default app build. Even with ES, a local **admin** can
+uninstall or disable the product. There is no public API for "admins cannot
+bypass" on a personally owned Mac. See [THREAT_MODEL.md](THREAT_MODEL.md) and
+[ENFORCEMENT.md](ENFORCEMENT.md).
+
+### Why not a kernel extension (kext)?
+
+Apple deprecated third-party kexts. **System Extensions** (especially Endpoint
+Security) exist so security products can still get kernel-held AUTH decisions
+with userland policy. That is what Phase 1 builds. It is stronger than overlays,
+but not admin-proof on unsupervised Macs.
 
 ### Is this as secure as iPhone app lock?
 
