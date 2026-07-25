@@ -54,6 +54,7 @@ final class OnboardingPresenter {
         let isReplay = hasCompletedOnboarding
         let viewModel = OnboardingViewModel(
             loginItem: loginItem,
+            store: AppEnvironment.shared.configurationStore,
             onFinish: { [weak self] in self?.complete() },
             onQuit: { [weak self] in
                 if isReplay {

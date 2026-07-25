@@ -3,8 +3,8 @@
 //  FreshLock
 //
 //  Drives the first-launch setup guide: welcoming the user, priming
-//  Accessibility (required for event-driven window covering), and offering
-//  launch-at-login.
+//  Accessibility (required for event-driven window covering), offering
+//  launch-at-login, and choosing a grace period before switch-away relock.
 //
 
 import AppKit
@@ -19,6 +19,7 @@ final class OnboardingViewModel: ObservableObject {
         case welcome
         case accessibility
         case launchAtLogin
+        case gracePeriod
         case done
     }
 
@@ -31,12 +32,14 @@ final class OnboardingViewModel: ObservableObject {
     @Published var step: Step = .welcome
     @Published private(set) var navigationDirection: NavigationDirection = .forward
     @Published var launchAtLoginEnabled: Bool
+    @Published var gracePeriodSeconds: Int
     @Published var accessibilityTrusted: Bool = AccessibilityPermission.isTrusted
     /// Path of the running `.app` - shown when trust is missing so developers can
     /// match the System Settings row to this process.
     @Published private(set) var runningBundlePath: String = AccessibilityPermission.runningBundlePathDisplay
 
     private let loginItem: LoginItemServiceProtocol
+    private let store: ConfigurationStore
     private let onFinish: () -> Void
     private let onQuit: () -> Void
     private var accessibilityPoll: Timer?
@@ -44,13 +47,16 @@ final class OnboardingViewModel: ObservableObject {
 
     init(
         loginItem: LoginItemServiceProtocol,
+        store: ConfigurationStore,
         onFinish: @escaping () -> Void,
         onQuit: @escaping () -> Void
     ) {
         self.loginItem = loginItem
+        self.store = store
         self.onFinish = onFinish
         self.onQuit = onQuit
         launchAtLoginEnabled = loginItem.isEnabled
+        gracePeriodSeconds = store.configuration.settings.gracePeriodSeconds
     }
 
     // MARK: Navigation
@@ -70,7 +76,7 @@ final class OnboardingViewModel: ObservableObject {
         switch step {
         case .accessibility:
             accessibilityTrusted
-        case .welcome, .launchAtLogin:
+        case .welcome, .launchAtLogin, .gracePeriod:
             true
         case .done:
             false
@@ -124,6 +130,12 @@ final class OnboardingViewModel: ObservableObject {
             Log.lifecycle.error("Onboarding launch-at-login failed: \(error.localizedDescription)")
             launchAtLoginEnabled = loginItem.isEnabled
         }
+    }
+
+    func setGracePeriodSeconds(_ seconds: Int) {
+        let clamped = max(0, seconds)
+        gracePeriodSeconds = clamped
+        store.update { $0.settings.gracePeriodSeconds = clamped }
     }
 
     func finish() {

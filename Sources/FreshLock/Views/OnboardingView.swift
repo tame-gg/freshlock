@@ -84,9 +84,10 @@ struct OnboardingView: View {
     private var stepCaption: String {
         switch viewModel.step {
         case .welcome: "Setup"
-        case .accessibility: "Step 2 of 4 · Accessibility"
-        case .launchAtLogin: "Step 3 of 4 · Launch at login"
-        case .done: "Step 4 of 4 · Ready"
+        case .accessibility: "Step 2 of 5 · Accessibility"
+        case .launchAtLogin: "Step 3 of 5 · Launch at login"
+        case .gracePeriod: "Step 4 of 5 · Grace period"
+        case .done: "Step 5 of 5 · Ready"
         }
     }
 
@@ -97,6 +98,7 @@ struct OnboardingView: View {
         case .welcome: welcomePage
         case .accessibility: accessibilityPage
         case .launchAtLogin: launchAtLoginPage
+        case .gracePeriod: gracePeriodPage
         case .done: donePage
         }
     }

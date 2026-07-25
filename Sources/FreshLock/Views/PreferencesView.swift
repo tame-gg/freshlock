@@ -99,19 +99,10 @@ struct PreferencesView: View {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
-            Stepper(
-                "Grace period: \(viewModel.settings.gracePeriodSeconds)s",
-                value: viewModel.binding(\.gracePeriodSeconds),
-                in: 0 ... 60
-            )
-            Text(
-                """
-                After a successful unlock, wait this long before "when switching away" \
-                relocks. Softens focus flicker without weakening lock-on-quit.
-                """
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            GracePeriodEditor(seconds: viewModel.binding(\.gracePeriodSeconds))
+            Text("Time before relock when switching away.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             if defaultRelockKind.wrappedValue == .afterInactivity {
                 Text("Inactivity uses real keyboard and mouse idle time, not time since unlock.")
                     .font(.caption)

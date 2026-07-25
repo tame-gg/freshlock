@@ -496,7 +496,7 @@ extension LockCoordinator {
             startKeepingVisible(bundleID)
             overlay.pinCover(for: bundleID)
             awaitingManualUnlock.insert(bundleID)
-            Log.lifecycle.info("Auth cancelled for \(bundleID, privacy: .public) — overlay remains")
+            Log.lifecycle.info("Auth cancelled for \(bundleID, privacy: .public) - overlay remains")
         case let .failure(error):
             if case .systemCancel = error {
                 keepVisible(bundleID)

@@ -56,7 +56,7 @@ public struct AppSettings: Codable, Hashable, Sendable {
 
     public init(
         launchAtLogin: Bool = false,
-        gracePeriodSeconds: Int = 3,
+        gracePeriodSeconds: Int = 30,
         defaultRelockPolicy: RelockPolicy = .default,
         overlayStyle: OverlayStyle = .default,
         notifyOnProtectedLaunch: Bool = false,
@@ -101,7 +101,7 @@ public struct AppSettings: Codable, Hashable, Sendable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         launchAtLogin = try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
-        gracePeriodSeconds = try c.decodeIfPresent(Int.self, forKey: .gracePeriodSeconds) ?? 3
+        gracePeriodSeconds = try c.decodeIfPresent(Int.self, forKey: .gracePeriodSeconds) ?? 30
         defaultRelockPolicy = try c.decodeIfPresent(RelockPolicy.self, forKey: .defaultRelockPolicy) ?? .default
         overlayStyle = try c.decodeIfPresent(OverlayStyle.self, forKey: .overlayStyle) ?? .default
         notifyOnProtectedLaunch = try c.decodeIfPresent(Bool.self, forKey: .notifyOnProtectedLaunch) ?? false
