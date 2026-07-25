@@ -2,16 +2,23 @@
 //  OverlayService.swift
 //  AppLockEngine
 //
-//  Owns the lock overlay windows. Rather than blanking the whole display, the
-//  overlay covers only the *protected app's own windows*: we look up the app's
-//  on-screen window frames and place one borderless, top-most panel over each.
-//  This feels like iOS app-lock (the rest of the desktop stays usable) instead
-//  of a full-screen takeover.
+//  Owns the lock overlay windows. The overlay must cover the *whole protected
+//  app* and leave it completely non-interactable until the user authenticates,
+//  even as they try to move, resize or minimise it. We achieve this by:
 //
-//  Timing: when an app is *launching*, its window often doesn't exist yet at the
-//  instant we must lock. We therefore cover the active screen immediately (so
-//  there's never an interactive gap) and then briefly poll for the app's real
-//  window, refitting the overlay to it the moment it appears.
+//  • Continuously tracking the app's on-screen window frames (a lightweight
+//    timer) and matching an overlay panel to each — so the cover follows resize
+//    and move in real time. The overlay is inset slightly *larger* than the
+//    window so the resize edges are covered too.
+//  • Making the overlay a key window and activating AppLock, so keyboard input
+//    goes to the (inert) overlay rather than the app underneath.
+//  • Intercepting mouse events over the covered region (including the title bar,
+//    which is inside the window bounds), so clicks and drags do nothing.
+//
+//  There is deliberately no full-screen fallback: the overlay appears the moment
+//  the app's window exists, avoiding the jarring "full screen then shrink"
+//  flash. Authentication (the system Touch ID sheet) is the real gate and runs
+//  regardless of overlay timing.
 //
 
 import AppKit
@@ -35,17 +42,26 @@ protocol OverlayServiceProtocol: AnyObject {
     func dismissAll()
 }
 
+/// A borderless panel that can take key focus, so it can absorb keyboard input
+/// destined for the covered app.
+private final class OverlayPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
 @MainActor
 final class OverlayService: OverlayServiceProtocol {
-    private var windowsByBundleID: [String: [NSWindow]] = [:]
-    /// The rendered content per overlay, kept so we can rebuild panels when we
-    /// refit to the app's real window (stored on `self` to avoid capturing
-    /// non-`Sendable` views in the refit timer closure).
     private var contentByBundleID: [String: LockOverlayView] = [:]
-    private var refitTimers: [String: Timer] = [:]
+    private var pidByBundleID: [String: pid_t] = [:]
+    private var windowsByBundleID: [String: [NSWindow]] = [:]
+    private var trackTimers: [String: Timer] = [:]
+
+    /// How much larger than the window to draw the cover, so resize edges (which
+    /// sit a few points outside the reported bounds) are also blocked.
+    private static let outset: CGFloat = 6
 
     func isShowingOverlay(for bundleID: String) -> Bool {
-        !(windowsByBundleID[bundleID]?.isEmpty ?? true)
+        contentByBundleID[bundleID] != nil
     }
 
     func showOverlay(
@@ -58,9 +74,9 @@ final class OverlayService: OverlayServiceProtocol {
         onUnlock: @escaping () -> Void,
         onCancel: @escaping () -> Void
     ) {
-        guard !isShowingOverlay(for: bundleID) else { return }
+        guard contentByBundleID[bundleID] == nil else { return }
 
-        let content = LockOverlayView(
+        contentByBundleID[bundleID] = LockOverlayView(
             appName: appName,
             icon: Image(nsImage: icon),
             method: method,
@@ -68,85 +84,81 @@ final class OverlayService: OverlayServiceProtocol {
             onUnlock: onUnlock,
             onCancel: onCancel
         )
-        contentByBundleID[bundleID] = content
+        pidByBundleID[bundleID] = pid
 
-        let frames = Self.windowFrames(pid: pid)
-        presentPanels(for: bundleID, frames: frames.isEmpty ? Self.fallbackFrames() : frames)
-
-        // If we couldn't fit the real window yet, keep trying briefly.
-        if frames.isEmpty {
-            startRefit(for: bundleID, pid: pid)
-        }
+        placeOrUpdate(bundleID)
+        startTracking(bundleID)
+        Log.overlay.info("Overlay engaged for \(bundleID, privacy: .public)")
     }
 
     func dismissOverlay(for bundleID: String) {
-        refitTimers[bundleID]?.invalidate()
-        refitTimers[bundleID] = nil
-        contentByBundleID[bundleID] = nil
+        trackTimers[bundleID]?.invalidate()
+        trackTimers[bundleID] = nil
         windowsByBundleID[bundleID]?.forEach { $0.orderOut(nil) }
         windowsByBundleID[bundleID] = nil
-        Log.overlay.info("Dismissed overlay for \(bundleID, privacy: .public)")
+        contentByBundleID[bundleID] = nil
+        pidByBundleID[bundleID] = nil
+        Log.overlay.info("Overlay dismissed for \(bundleID, privacy: .public)")
     }
 
     func dismissAll() {
-        for bundleID in Array(windowsByBundleID.keys) {
+        for bundleID in Array(contentByBundleID.keys) {
             dismissOverlay(for: bundleID)
         }
     }
 
-    // MARK: - Panel management
+    // MARK: - Tracking
 
-    private func presentPanels(for bundleID: String, frames: [NSRect]) {
-        guard let content = contentByBundleID[bundleID] else { return }
-        // Replace any existing panels (used both for first show and refit).
-        windowsByBundleID[bundleID]?.forEach { $0.orderOut(nil) }
+    /// Match overlay panels to the app's current windows. Called on show and on
+    /// every tracking tick, so the cover follows move/resize live.
+    private func placeOrUpdate(_ bundleID: String) {
+        guard let content = contentByBundleID[bundleID], let pid = pidByBundleID[bundleID] else { return }
 
-        var windows: [NSWindow] = []
-        for frame in frames {
-            let window = Self.makeOverlayWindow(frame: frame)
-            window.contentView = NSHostingView(rootView: content)
-            window.orderFrontRegardless()
-            windows.append(window)
+        let frames = Self.windowFrames(pid: pid).map { $0.insetBy(dx: -Self.outset, dy: -Self.outset) }
+        var windows = windowsByBundleID[bundleID] ?? []
+
+        guard !frames.isEmpty else {
+            // No visible window (still launching, or minimised): pull the cover
+            // until a window reappears. Tracking keeps running.
+            windows.forEach { $0.orderOut(nil) }
+            windowsByBundleID[bundleID] = []
+            return
         }
-        windowsByBundleID[bundleID] = windows
-        Log.overlay.info("Presented \(windows.count) overlay(s) for \(bundleID, privacy: .public)")
-    }
 
-    /// Poll (briefly, on the main run loop) for the app's real window and refit
-    /// the overlay to it once it appears.
-    private func startRefit(for bundleID: String, pid: pid_t) {
-        refitTimers[bundleID]?.invalidate()
-        var attempts = 0
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] timer in
-            guard let self else { timer.invalidate(); return }
-            MainActor.assumeIsolated {
-                attempts += 1
-                guard self.isShowingOverlay(for: bundleID) else { self.stopRefit(bundleID); return }
-                let frames = Self.windowFrames(pid: pid)
-                if !frames.isEmpty {
-                    self.presentPanels(for: bundleID, frames: frames)
-                    self.stopRefit(bundleID)
-                } else if attempts >= 20 { // ~3s
-                    self.stopRefit(bundleID)
-                }
+        if windows.count != frames.count {
+            windows.forEach { $0.orderOut(nil) }
+            windows = frames.map { Self.makeOverlayWindow(frame: $0, content: content) }
+            windowsByBundleID[bundleID] = windows
+            windows.first?.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            for (window, frame) in zip(windows, frames) where window.frame != frame {
+                window.setFrame(frame, display: true)
             }
         }
-        refitTimers[bundleID] = timer
     }
 
-    private func stopRefit(_ bundleID: String) {
-        refitTimers[bundleID]?.invalidate()
-        refitTimers[bundleID] = nil
+    private func startTracking(_ bundleID: String) {
+        trackTimers[bundleID]?.invalidate()
+        let timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] timer in
+            guard let self else { timer.invalidate(); return }
+            MainActor.assumeIsolated {
+                guard self.contentByBundleID[bundleID] != nil else {
+                    self.trackTimers[bundleID]?.invalidate()
+                    self.trackTimers[bundleID] = nil
+                    return
+                }
+                self.placeOrUpdate(bundleID)
+            }
+        }
+        trackTimers[bundleID] = timer
     }
 
     // MARK: - Window geometry
 
-    /// On-screen window frames (in Cocoa coordinates) belonging to `pid`.
-    ///
-    /// `CGWindowListCopyWindowInfo` reports normal app windows at layer 0 with
-    /// bounds in a top-left origin global space; we convert to AppKit's
-    /// bottom-left origin using the primary screen's height. Bounds are
-    /// available without Screen Recording permission (only titles/pixels aren't).
+    /// On-screen window frames (Cocoa coordinates) belonging to `pid`. Bounds
+    /// are available without Screen Recording permission (only titles/pixels
+    /// aren't).
     private static func windowFrames(pid: pid_t) -> [NSRect] {
         guard let primaryHeight = NSScreen.screens.first?.frame.height else { return [] }
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
@@ -171,20 +183,14 @@ final class OverlayService: OverlayServiceProtocol {
         return frames
     }
 
-    /// Full frame of the primary screen, used only until the app's window
-    /// appears.
-    private static func fallbackFrames() -> [NSRect] {
-        if let screen = NSScreen.main { return [screen.frame] }
-        return NSScreen.screens.map(\.frame)
-    }
-
-    private static func makeOverlayWindow(frame: NSRect) -> NSWindow {
-        let window = NSPanel(
+    private static func makeOverlayWindow(frame: NSRect, content: LockOverlayView) -> NSWindow {
+        let window = OverlayPanel(
             contentRect: frame,
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
+        window.contentView = NSHostingView(rootView: content)
         window.setFrame(frame, display: true)
         window.level = .screenSaver
         window.isOpaque = false
@@ -194,6 +200,7 @@ final class OverlayService: OverlayServiceProtocol {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
         window.isReleasedWhenClosed = false
         window.hidesOnDeactivate = false
+        window.orderFrontRegardless()
         return window
     }
 }

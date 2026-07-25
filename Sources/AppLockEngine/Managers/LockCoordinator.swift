@@ -148,7 +148,7 @@ final class LockCoordinator {
             method: auth.availableMethod(),
             style: config.settings.overlayStyle,
             onUnlock: { [weak self] in self?.authenticate(app: app, config: config) },
-            onCancel: { [weak self] in self?.cancelAndHide(app: app) }
+            onCancel: { [weak self] in self?.cancelAndClose(app: app) }
         )
 
         if config.settings.notifyOnProtectedLaunch {
@@ -173,26 +173,37 @@ final class LockCoordinator {
             case .success:
                 self.handleSuccess(app: app, config: config)
             case .cancelled:
-                // Cancelling authentication backs out of the app entirely.
-                self.cancelAndHide(app: app)
+                // Cancelling authentication closes the app entirely.
+                self.cancelAndClose(app: app)
             case .failure:
                 self.handleFailure(app: app, config: config)
             }
         }
     }
 
-    /// The user declined to authenticate: relock, remove the overlay, and hide
-    /// the protected app so it's no longer on screen (reversible — re-opening it
-    /// prompts again). Hiding rather than force-quitting avoids data loss.
-    private func cancelAndHide(app: ProtectedApp) {
+    /// The user declined to authenticate: relock, remove the overlay, and quit
+    /// the protected app. We ask politely first (`terminate`, which lets the app
+    /// save/prompt) and escalate to a force terminate if it's still running
+    /// shortly after.
+    private func cancelAndClose(app: ProtectedApp) {
         let bundleID = app.bundleIdentifier
         store.lock(bundleID)
         overlay.dismissOverlay(for: bundleID)
         authInFlight.remove(bundleID)
-        for running in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID) {
-            running.hide()
+
+        let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+        running.forEach { $0.terminate() }
+        Log.lifecycle.info("Closing \(bundleID, privacy: .public) after cancel")
+
+        // Escalate to force-quit anything that ignored the polite request.
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard self != nil else { return }
+            for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            where !app.isTerminated {
+                app.forceTerminate()
+            }
         }
-        Log.lifecycle.info("Hid \(bundleID, privacy: .public) after cancel")
     }
 
     private func handleSuccess(app: ProtectedApp, config: Configuration) {
