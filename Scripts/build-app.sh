@@ -100,11 +100,38 @@ if [[ -f "$ROOT/Packaging/AppIcon.icns" ]]; then
   cp "$ROOT/Packaging/AppIcon.icns" "$BUNDLE/Contents/Resources/AppIcon.icns"
 fi
 
-# --- Ad-hoc sign so Info.plist is bound and Accessibility identity is stable.
-# Developer ID / notarization is handled separately by sign-and-notarize.sh when
-# SIGNING_IDENTITY is set. ---
-if [[ -z "${SIGNING_IDENTITY:-}" ]]; then
-  echo "▶ Ad-hoc signing bundle (stable local identity)…"
+# --- Signing.
+#
+# Three tiers, in order of how well macOS remembers an Accessibility grant across
+# updates:
+#
+#   1. SIGNING_IDENTITY  → Developer ID (paid). sign-and-notarize.sh handles it.
+#   2. LOCAL_SIGNING_IDENTITY → a persistent signing identity that is NOT
+#      Developer ID: a free self-signed code-signing certificate, or an "Apple
+#      Development" cert from a free Apple ID. Both give the bundle a stable
+#      *designated requirement* anchored to the certificate, so a rebuilt release
+#      still satisfies the requirement TCC stored at grant time.
+#   3. Ad-hoc (`--sign -`) → fallback. WARNING: an ad-hoc signature has no
+#      certificate, so its designated requirement is a bare `cdhash` pin. The
+#      cdhash changes on every build, so TCC drops the Accessibility grant on
+#      every update. This is the least-sticky option; prefer (1) or (2) for
+#      anything users install.
+if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
+  echo "▶ SIGNING_IDENTITY set - leaving signing to Scripts/sign-and-notarize.sh"
+elif [[ -n "${LOCAL_SIGNING_IDENTITY:-}" ]]; then
+  echo "▶ Signing bundle with persistent identity '$LOCAL_SIGNING_IDENTITY' (cert-anchored, update-stable)…"
+  # Innermost first, then host. --deep covers nested LoginItems helper.
+  codesign --force --sign "$LOCAL_SIGNING_IDENTITY" \
+    --entitlements "$ENTITLEMENTS" \
+    "$HELPER" 2>/dev/null || codesign --force --sign "$LOCAL_SIGNING_IDENTITY" "$HELPER"
+  codesign --force --deep --sign "$LOCAL_SIGNING_IDENTITY" \
+    --entitlements "$ENTITLEMENTS" \
+    "$BUNDLE"
+  codesign --verify --verbose=1 "$BUNDLE" 2>&1 | sed 's/^/   /' || true
+  echo "   Designated requirement (what TCC pins the grant to):"
+  codesign -d --requirements - "$BUNDLE" 2>&1 | sed 's/^/   /' || true
+else
+  echo "▶ Ad-hoc signing bundle (cdhash-pinned; Accessibility grant will NOT survive updates)…"
   # Innermost first, then host. --deep covers nested LoginItems helper.
   codesign --force --sign - \
     --entitlements "$ENTITLEMENTS" \
@@ -113,8 +140,6 @@ if [[ -z "${SIGNING_IDENTITY:-}" ]]; then
     --entitlements "$ENTITLEMENTS" \
     "$BUNDLE"
   codesign --verify --verbose=1 "$BUNDLE" 2>&1 | sed 's/^/   /' || true
-else
-  echo "▶ SIGNING_IDENTITY set - leaving signing to Scripts/sign-and-notarize.sh"
 fi
 
 echo "✅ Built $BUNDLE"

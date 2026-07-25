@@ -183,9 +183,22 @@ final class OnboardingViewModel: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.refreshAccessibilityStatus()
+                self?.handleReactivation()
             }
         }
+    }
+
+    /// FreshLock became active again - typically the user returning from System
+    /// Settings after toggling the Accessibility switch. Re-check trust and, if it
+    /// is now granted while the Accessibility page is showing, advance for them.
+    ///
+    /// Auto-advance is deliberately confined to reactivation (not the 1 Hz poll):
+    /// the page never moves on behind the user's back while they are away, only in
+    /// direct response to them coming back with permission granted.
+    private func handleReactivation() {
+        refreshAccessibilityStatus()
+        guard step == .accessibility, accessibilityTrusted else { return }
+        next()
     }
 
     func stopAccessibilityMonitoring() {

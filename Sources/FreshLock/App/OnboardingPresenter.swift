@@ -85,7 +85,12 @@ final class OnboardingPresenter {
         window.setContentSize(NSSize(width: 580, height: 600))
         window.minSize = NSSize(width: 540, height: 500)
         window.isReleasedWhenClosed = false
-        window.hidesOnDeactivate = true
+        // Onboarding must survive the user tabbing to System Settings to grant
+        // Accessibility. `hidesOnDeactivate` would order the setup window out the
+        // instant FreshLock resigns active (opening System Settings does exactly
+        // that), so the guide appears to "close". Keep it on screen across
+        // deactivation; the Accessibility page re-checks trust on reactivation.
+        window.hidesOnDeactivate = false
         window.center()
 
         let controller = NSWindowController(window: window)

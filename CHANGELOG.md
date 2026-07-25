@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [1.70]
+
+### Fixed
+- **First-run setup no longer vanishes when you open System Settings.** The
+  onboarding window was created with `hidesOnDeactivate`, so activating System
+  Settings to grant Accessibility ordered the setup window off screen and the
+  guide appeared to close. The window now stays put across app deactivation, and
+  when you return with permission granted the Accessibility step advances
+  automatically.
+
+### Changed
+- **Accessibility permission is now retained across updates.** Releases are
+  signed with a stable "tame.gg" certificate instead of an ad-hoc signature.
+  macOS pins a TCC grant to the app's designated requirement; a cert-signed build
+  anchors that requirement to the certificate rather than the code hash, so the
+  grant is no longer dropped every time the app is updated. (Not Apple-notarized;
+  the cask still clears Gatekeeper quarantine on install.)
+
 ## [1.69]
 
 ### Fixed

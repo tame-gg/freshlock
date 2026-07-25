@@ -28,9 +28,21 @@ xattr -cr "$APP"
 if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
   echo "▶ Signing with Developer ID and notarizing"
   "$ROOT/Scripts/sign-and-notarize.sh" "$APP"
+elif [[ -n "${LOCAL_SIGNING_IDENTITY:-}" ]]; then
+  # Persistent, non–Developer-ID identity (free self-signed cert or an Apple
+  # Development cert). The point is a *stable* signature: TCC pins an
+  # Accessibility grant to the bundle's designated requirement, which for a
+  # cert-signed app is anchored to the certificate — not the cdhash — so the
+  # grant survives updates as long as the same cert signs every release.
+  echo "▶ Signing with persistent identity '$LOCAL_SIGNING_IDENTITY' (cert-anchored, update-stable)"
+  codesign --force -s "$LOCAL_SIGNING_IDENTITY" "$HELPER"
+  codesign --force --deep -s "$LOCAL_SIGNING_IDENTITY" "$APP"
+  echo "   Designated requirement (what TCC pins the grant to):"
+  codesign -d --requirements - "$APP" 2>&1 | sed 's/^/   /' || true
 else
-  echo "ℹ️  No SIGNING_IDENTITY — applying an ad-hoc signature (runs locally,"
-  echo "    Gatekeeper will warn other users). Set SIGNING_IDENTITY to distribute."
+  echo "ℹ️  No signing identity — applying an ad-hoc signature (runs locally,"
+  echo "    Gatekeeper will warn other users, and the Accessibility grant will be"
+  echo "    lost on every update). Set LOCAL_SIGNING_IDENTITY or SIGNING_IDENTITY."
   codesign --force --deep -s - "$HELPER"
   codesign --force --deep -s - "$APP"
 fi
