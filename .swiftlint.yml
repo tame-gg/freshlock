@@ -17,7 +17,6 @@ opt_in_rules:
   - force_unwrapping
   - implicitly_unwrapped_optional
   - redundant_nil_coalescing
-  - sorted_imports
   - vertical_whitespace_closing_braces
 
 analyzer_rules:

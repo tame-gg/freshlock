@@ -95,7 +95,7 @@ public final class LocalAuthenticationService: AuthenticationServiceProtocol {
 
         do {
             // `evaluatePolicy` is nonisolated; `nonisolated(unsafe)` lets us send
-            // this MainActor-owned context across that boundary without racing —
+            // this MainActor-owned context across that boundary without racing -
             // we still only touch `activeContexts` on the main actor, and
             // `cancel()` invalidates the same instance.
             nonisolated(unsafe) let evaluationContext = context

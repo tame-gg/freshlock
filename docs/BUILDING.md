@@ -64,6 +64,19 @@ xed .
 
 Xcode will resolve the package and let you build/run the `FreshLock` scheme.
 
+## Phase 1 enforcement targets (scaffolding)
+
+These build with SwiftPM but are **not** embedded by `Scripts/build-app.sh`:
+
+```bash
+swift build --product FreshLockEnforce
+swift build --product FreshLockEnforceExtension
+```
+
+`FreshLockEnforceExtension` links `libEndpointSecurity` and exits cleanly when the
+managed ES entitlement / privilege / FDA requirements are unmet. See
+[ENFORCEMENT.md](ENFORCEMENT.md) and [THREAT_MODEL.md](THREAT_MODEL.md).
+
 ## Why a script instead of an `.xcodeproj`?
 
 The core logic lives in an SPM package so `swift test` runs anywhere (including
