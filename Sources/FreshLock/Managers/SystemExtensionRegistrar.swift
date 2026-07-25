@@ -55,6 +55,7 @@ public final class SystemExtensionRegistrar: NSObject, ObservableObject {
     public let extensionIdentifier: String
 
     private var pendingRequest: OSSystemExtensionRequest?
+    private var pendingIsActivation = true
 
     public init(extensionIdentifier: String = EnforceGatePaths.extensionBundleIdentifier) {
         self.extensionIdentifier = extensionIdentifier
@@ -100,6 +101,7 @@ public final class SystemExtensionRegistrar: NSObject, ObservableObject {
             return
         }
         status = .submitting
+        pendingIsActivation = true
         let request = OSSystemExtensionRequest.activationRequest(
             forExtensionWithIdentifier: extensionIdentifier,
             queue: .main
@@ -116,6 +118,7 @@ public final class SystemExtensionRegistrar: NSObject, ObservableObject {
             return
         }
         status = .submitting
+        pendingIsActivation = false
         let request = OSSystemExtensionRequest.deactivationRequest(
             forExtensionWithIdentifier: extensionIdentifier,
             queue: .main
@@ -142,7 +145,7 @@ extension SystemExtensionRegistrar: OSSystemExtensionRequestDelegate {
             pendingRequest = nil
             switch result {
             case .completed:
-                status = .activated
+                status = pendingIsActivation ? .activated : .deactivated
                 log.notice("System extension request completed")
             case .willCompleteAfterReboot:
                 status = .failed("Will complete after reboot")

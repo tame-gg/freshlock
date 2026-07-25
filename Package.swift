@@ -6,10 +6,11 @@
 //  The package is intentionally split into targets:
 //
 //  • `FreshLockCore` — models, services, unlock state (unit-testable).
-//  • `FreshLockEngine` — AppKit lock pipeline (overlay + LA), shared by GUI/helper.
+//  • `FreshLockEngine` — AppKit lock pipeline (overlay + LA) + EnforcePolicySync.
 //  • `FreshLockEnforce` — pure exec-gate policy for Phase 1 (no ES link).
-//  • `FreshLockEnforceExtension` — Endpoint Security AUTH_EXEC scaffolding.
-//    Not embedded in the .app yet; requires Apple's managed ES entitlement.
+//  • `FreshLockEnforceExtension` — Endpoint Security AUTH_EXEC client.
+//    Assemble with Scripts/build-systemextension.sh; optional EMBED_SYSTEM_EXTENSION=1.
+//    Default build-app.sh does not embed; SIP-on enforce needs Apple ES entitlement.
 //  • `FreshLock` / `FreshLockHelper` — GUI and background helper executables.
 //
 import PackageDescription
@@ -72,8 +73,8 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
-        // ES AUTH_EXEC client scaffolding. Links EndpointSecurity; does not ship
-        // inside FreshLock.app until packaging + Apple entitlement are ready.
+        // ES AUTH_EXEC client. Package via Scripts/build-systemextension.sh;
+        // embed only with EMBED_SYSTEM_EXTENSION=1 (off by default).
         .executableTarget(
             name: "FreshLockEnforceExtension",
             dependencies: ["FreshLockEnforce"],
