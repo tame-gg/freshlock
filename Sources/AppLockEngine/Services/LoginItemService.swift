@@ -12,7 +12,7 @@ import ServiceManagement
 import AppLockCore
 
 @MainActor
-protocol LoginItemServiceProtocol: AnyObject {
+public protocol LoginItemServiceProtocol: AnyObject {
     var isEnabled: Bool { get }
     /// Enable or disable launch-at-login. Throws if the system rejects it
     /// (e.g. the app isn't in /Applications, or the user denied it).
@@ -20,18 +20,21 @@ protocol LoginItemServiceProtocol: AnyObject {
 }
 
 @MainActor
-final class LoginItemService: LoginItemServiceProtocol {
+public final class LoginItemService: LoginItemServiceProtocol {
     private let service: SMAppService
 
-    init(service: SMAppService = .mainApp) {
+    /// - Parameter service: the `SMAppService` to manage. Defaults to
+    ///   ``SMAppService/mainApp``; the GUI passes ``SMAppService/agent(plistName:)``
+    ///   to register the background helper instead.
+    public init(service: SMAppService = .mainApp) {
         self.service = service
     }
 
-    var isEnabled: Bool {
+    public var isEnabled: Bool {
         service.status == .enabled
     }
 
-    func setEnabled(_ enabled: Bool) throws {
+    public func setEnabled(_ enabled: Bool) throws {
         if enabled {
             if service.status != .enabled {
                 try service.register()

@@ -11,17 +11,50 @@ Sources/
     Services/             # AppDiscovery, Authentication, Settings persistence
     Managers/             # UnlockStateStore (pure lock-state machine)
     Utilities/            # os.Logger wrapper
-  AppLock/                # Executable app target (AppKit + SwiftUI)
-    App/                  # @main, DI container, AppDelegate
+  AppLockEngine/          # Shared AppKit locking engine (GUI + helper link it)
+    LockEngine.swift      # Public composition root
     Services/             # AppMonitor, Overlay, Accessibility, LoginItem, …
-    Managers/             # LockCoordinator, RelockManager, view models
-    Views/                # SwiftUI views + NSVisualEffect bridge
+    Managers/             # LockCoordinator, RelockManager
+    Views/                # LockOverlayView + NSVisualEffect bridge
+  AppLock/                # GUI executable (SwiftUI settings + menu bar)
+    App/                  # @main, DI container, AppDelegate
+    Managers/             # View models
+    Views/                # Catalogue, preferences, about
+  AppLockHelper/          # Headless background helper executable
+    main.swift            # Boots a LockEngine and runs the loop
 Tests/AppLockCoreTests/   # swift-testing unit tests
 ```
 
 `AppLockCore` never imports AppKit/SwiftUI, which keeps the business logic
-portable and trivially testable (`swift test`). The app target depends on the
-core; a future background helper can link the same core without the UI.
+portable and trivially testable (`swift test`). `AppLockEngine` holds the
+AppKit-dependent locking machinery and is linked by **both** the GUI and the
+helper — that shared library is what makes "the helper does the protecting"
+real rather than aspirational.
+
+## Two processes, one configuration
+
+```
+┌────────────────────┐         configuration.json          ┌────────────────────┐
+│   AppLock.app      │  writes  (App Support, atomic)  reads │  AppLockHelper.app │
+│  (GUI / settings)  │ ───────────────────────────────────► │  (background)      │
+│                    │                                       │   runs LockEngine  │
+│  edits protected   │                                       │   monitors launches│
+│  apps & settings   │                                       │   shows overlays   │
+└────────────────────┘                                       └────────────────────┘
+```
+
+The two processes never talk directly — they coordinate purely through the
+shared JSON document, which the helper re-reads on every event. The GUI can
+quit and protection continues.
+
+**Registration & lifecycle.** The GUI registers the helper via
+`SMAppService.agent(plistName: "gg.tame.applock.helper.plist")` when the user
+enables *Launch at Login*. The helper is embedded at
+`Contents/Library/LoginItems/AppLockHelper.app` with its launchd plist at
+`Contents/Library/LaunchAgents/`, using `RunAtLoad` + `KeepAlive` so it starts
+at login and is relaunched if it ever exits. When run from a bare SwiftPM binary
+(no `.app`, hence no helper), the GUI detects the helper's absence and hosts the
+`LockEngine` in-process so development still works.
 
 ## The lock/unlock flow
 

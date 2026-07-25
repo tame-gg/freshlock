@@ -17,7 +17,7 @@ import Foundation
 import AppLockCore
 
 @MainActor
-protocol AccessibilityServiceProtocol: AnyObject {
+public protocol AccessibilityServiceProtocol: AnyObject {
     /// Whether the process is currently trusted for Accessibility.
     var isTrusted: Bool { get }
     /// Prompt the user to grant Accessibility (opens System Settings pane).
@@ -25,12 +25,14 @@ protocol AccessibilityServiceProtocol: AnyObject {
 }
 
 @MainActor
-final class AccessibilityService: AccessibilityServiceProtocol {
-    var isTrusted: Bool {
+public final class AccessibilityService: AccessibilityServiceProtocol {
+    public init() {}
+
+    public var isTrusted: Bool {
         AXIsProcessTrusted()
     }
 
-    func requestAccess() {
+    public func requestAccess() {
         // Passing the prompt option shows the system dialog if not yet trusted.
         // Use the literal key to avoid referencing the non-Sendable global
         // `kAXTrustedCheckOptionPrompt`; the string value is stable API.

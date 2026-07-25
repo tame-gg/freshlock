@@ -14,6 +14,9 @@ to [Semantic Versioning](https://semver.org/).
   categories.
 - Locking engine: `NSWorkspace`-driven launch detection, full-screen blur
   overlay, native LocalAuthentication, and configurable auto-relock.
+- Shared `AppLockEngine` library and a dedicated background helper
+  (`AppLockHelper`) registered via `SMAppService`, so protection runs
+  independently of the settings GUI.
 - Preferences window (General, Locking, Advanced) with import/export.
 - Launch-at-login via `SMAppService`.
 - Documentation suite, CI, SwiftLint/SwiftFormat, and Homebrew cask.

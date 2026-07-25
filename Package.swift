@@ -27,7 +27,9 @@ let package = Package(
     ],
     products: [
         .library(name: "AppLockCore", targets: ["AppLockCore"]),
-        .executable(name: "AppLock", targets: ["AppLock"])
+        .library(name: "AppLockEngine", targets: ["AppLockEngine"]),
+        .executable(name: "AppLock", targets: ["AppLock"]),
+        .executable(name: "AppLockHelper", targets: ["AppLockHelper"])
     ],
     targets: [
         .target(
@@ -37,10 +39,30 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
+        // The AppKit-based locking engine, shared by the GUI and the helper so
+        // "the helper does the protecting" is a real, buildable arrangement.
+        .target(
+            name: "AppLockEngine",
+            dependencies: ["AppLockCore"],
+            path: "Sources/AppLockEngine",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
         .executableTarget(
             name: "AppLock",
-            dependencies: ["AppLockCore"],
+            dependencies: ["AppLockCore", "AppLockEngine"],
             path: "Sources/AppLock",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        // The background helper: a headless accessory process that runs the
+        // engine independently of the settings UI.
+        .executableTarget(
+            name: "AppLockHelper",
+            dependencies: ["AppLockCore", "AppLockEngine"],
+            path: "Sources/AppLockHelper",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]

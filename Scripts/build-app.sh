@@ -39,9 +39,20 @@ BIN_PATH="$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)"
 echo "▶ Assembling bundle at $BUNDLE"
 rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
+mkdir -p "$BUNDLE/Contents/Library/LoginItems" "$BUNDLE/Contents/Library/LaunchAgents"
 
 cp "$BIN_PATH/$APP_NAME" "$BUNDLE/Contents/MacOS/$APP_NAME"
 cp "$ROOT/Packaging/Info.plist" "$BUNDLE/Contents/Info.plist"
+
+# --- Embed the background helper as a nested LoginItems app bundle ---
+HELPER="$BUNDLE/Contents/Library/LoginItems/AppLockHelper.app"
+mkdir -p "$HELPER/Contents/MacOS"
+cp "$BIN_PATH/AppLockHelper" "$HELPER/Contents/MacOS/AppLockHelper"
+cp "$ROOT/Packaging/Helper-Info.plist" "$HELPER/Contents/Info.plist"
+
+# launchd agent plist that SMAppService registers to keep the helper alive.
+cp "$ROOT/Packaging/gg.tame.applock.helper.plist" \
+   "$BUNDLE/Contents/Library/LaunchAgents/gg.tame.applock.helper.plist"
 
 # Copy an app icon if present (Scripts/generate-icon.sh produces AppIcon.icns).
 if [[ -f "$ROOT/Packaging/AppIcon.icns" ]]; then

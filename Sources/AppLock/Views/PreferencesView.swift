@@ -8,15 +8,21 @@
 //
 
 import AppLockCore
+import AppLockEngine
 import ApplicationServices
 import SwiftUI
 
 struct PreferencesView: View {
     @StateObject private var viewModel: SettingsViewModel
 
-    init(settingsService: SettingsServiceProtocol, initialConfiguration: Configuration) {
+    init(
+        settingsService: SettingsServiceProtocol,
+        loginItem: LoginItemServiceProtocol,
+        initialConfiguration: Configuration
+    ) {
         _viewModel = StateObject(wrappedValue: SettingsViewModel(
             settingsService: settingsService,
+            loginItem: loginItem,
             initialConfiguration: initialConfiguration
         ))
     }
@@ -36,6 +42,11 @@ struct PreferencesView: View {
     private var generalTab: some View {
         Form {
             Toggle("Launch at Login", isOn: $viewModel.settings.launchAtLogin)
+            if let error = viewModel.loginItemError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
             Toggle("Notify when a protected app launches", isOn: $viewModel.settings.notifyOnProtectedLaunch)
             Picker("Overlay Style", selection: $viewModel.settings.overlayStyle) {
                 ForEach(OverlayStyle.allCases, id: \.self) { style in

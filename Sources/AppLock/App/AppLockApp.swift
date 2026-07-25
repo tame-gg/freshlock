@@ -58,6 +58,7 @@ struct AppLockApp: App {
         Settings {
             PreferencesView(
                 settingsService: environment.settingsService,
+                loginItem: environment.helperLoginItem,
                 initialConfiguration: protectionViewModel.configuration
             )
         }

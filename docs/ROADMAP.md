@@ -13,7 +13,7 @@ This is a living document; priorities may shift with community feedback.
 
 ## v0.2 — Polish
 
-- [ ] Dedicated background helper (`SMAppService` daemon) so protection survives
+- [x] Dedicated background helper (`SMAppService` agent) so protection survives
       the GUI quitting
 - [ ] Per-app relock policy editor UI
 - [ ] Global keyboard shortcuts (Lock All / Unlock)
