@@ -23,6 +23,9 @@ to [Semantic Versioning](https://semver.org/).
 - Per-app inspector: protection, favourite, category, per-app relock-policy
   override (with minutes), and terminate-after-failures.
 - Configuration import/export as JSON via native save/open panels.
+- Global keyboard shortcuts (Lock All / Unlock All) via Carbon hot keys, owned by
+  the engine process, with a shortcut-recorder UI and live re-registration when
+  edited (a `DispatchSource` config-file watcher, no polling).
 - Launch-at-login via `SMAppService`.
 - Documentation suite, CI, SwiftLint/SwiftFormat, and Homebrew cask.
 

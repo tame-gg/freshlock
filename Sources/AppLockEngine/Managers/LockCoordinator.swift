@@ -56,6 +56,36 @@ final class LockCoordinator {
         Log.lifecycle.info("Lock coordinator started")
     }
 
+    // MARK: - Global-shortcut actions
+
+    /// Relock every unlocked app immediately, and re-cover the frontmost
+    /// protected app so the lock takes visible effect right away.
+    func lockAllNow() {
+        store.lockAll()
+        let config = configProvider()
+        if let frontID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+           let app = config.protectedApp(for: frontID), app.isEnabled {
+            presentLock(for: app, config: config)
+        }
+        Log.lifecycle.info("Lock All triggered via shortcut")
+    }
+
+    /// Authenticate once and grant an until-sleep unlock to every enabled app,
+    /// dismissing any visible overlays on success.
+    func unlockAllNow() {
+        let config = configProvider()
+        Task { [weak self] in
+            guard let self else { return }
+            let result = await auth.authenticate(reason: "unlock your protected apps")
+            guard case .success = result else { return }
+            for app in config.enabledProtectedApps {
+                store.grantUnlock(app.bundleIdentifier, scope: .untilSleep)
+                overlay.dismissOverlay(for: app.bundleIdentifier)
+            }
+            Log.lifecycle.info("Unlock All granted via shortcut")
+        }
+    }
+
     // MARK: - Event handling
 
     private func handle(_ event: AppLifecycleEvent) {

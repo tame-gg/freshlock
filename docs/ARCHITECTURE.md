@@ -47,6 +47,12 @@ The two processes never talk directly — they coordinate purely through the
 shared JSON document, which the helper re-reads on every event. The GUI can
 quit and protection continues.
 
+**Global shortcuts** live in whichever process runs the engine (`GlobalHotKeyService`,
+Carbon `RegisterEventHotKey`). Because a shortcut edited in the GUI must reach the
+helper, the engine also runs a `ConfigurationFileWatcher` (`DispatchSource`, no
+polling) that re-registers the hot keys when the configuration file changes on
+disk. This keeps cross-process edits live without any IPC.
+
 **Registration & lifecycle.** The GUI registers the helper via
 `SMAppService.agent(plistName: "gg.tame.applock.helper.plist")` when the user
 enables *Launch at Login*. The helper is embedded at

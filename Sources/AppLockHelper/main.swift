@@ -32,7 +32,8 @@ final class HelperAppDelegate: NSObject, NSApplicationDelegate {
             let engine = LockEngine(
                 authService: LocalAuthenticationService(),
                 unlockStore: UnlockStateStore(),
-                configProvider: { (try? settings.load()) ?? .empty }
+                configProvider: { (try? settings.load()) ?? .empty },
+                configFileURL: settings.storeURL
             )
             engine.start()
             self.engine = engine

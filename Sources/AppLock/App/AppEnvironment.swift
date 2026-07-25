@@ -62,7 +62,8 @@ final class AppEnvironment {
             let engine = LockEngine(
                 authService: authService,
                 unlockStore: unlockStore,
-                configProvider: { [settingsService] in (try? settingsService.load()) ?? .empty }
+                configProvider: { [settingsService] in (try? settingsService.load()) ?? .empty },
+                configFileURL: settingsService.storeURL
             )
             engine.start()
             self.engine = engine

@@ -27,6 +27,7 @@ struct PreferencesView: View {
         TabView {
             generalTab.tabItem { Label("General", systemImage: "gearshape") }
             lockingTab.tabItem { Label("Locking", systemImage: "lock") }
+            shortcutsTab.tabItem { Label("Shortcuts", systemImage: "command") }
             backupTab.tabItem { Label("Backup", systemImage: "arrow.up.arrow.down.circle") }
             advancedTab.tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
         }
@@ -68,6 +69,27 @@ struct PreferencesView: View {
                 value: $viewModel.settings.defaultInactivityMinutes,
                 in: 1...120
             )
+        }
+    }
+
+    // MARK: Shortcuts
+
+    private var shortcutsTab: some View {
+        Form {
+            Section {
+                LabeledContent("Lock All") {
+                    ShortcutRecorderView(shortcut: $viewModel.settings.lockAllShortcut)
+                        .frame(width: 150, height: 24)
+                }
+                LabeledContent("Unlock All") {
+                    ShortcutRecorderView(shortcut: $viewModel.settings.unlockAllShortcut)
+                        .frame(width: 150, height: 24)
+                }
+            } footer: {
+                Text("System-wide shortcuts. Lock All immediately relocks every app; Unlock All authenticates once and unlocks all protected apps until sleep. Each shortcut needs at least one of ⌘/⌥/⌃. Press ⌫ while recording to clear.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 

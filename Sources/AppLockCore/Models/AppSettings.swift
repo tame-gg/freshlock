@@ -39,6 +39,14 @@ public struct AppSettings: Codable, Hashable, Sendable {
     /// specify its own value.
     public var defaultInactivityMinutes: Int
 
+    /// Global shortcut that immediately relocks every unlocked app. `nil` when
+    /// the user hasn't assigned one.
+    public var lockAllShortcut: GlobalShortcut?
+
+    /// Global shortcut that authenticates once and unlocks all protected apps
+    /// until sleep. `nil` when unassigned.
+    public var unlockAllShortcut: GlobalShortcut?
+
     public init(
         launchAtLogin: Bool = false,
         gracePeriodSeconds: Int = 3,
@@ -47,7 +55,9 @@ public struct AppSettings: Codable, Hashable, Sendable {
         notifyOnProtectedLaunch: Bool = false,
         requireEveryLaunch: Bool = false,
         developerMode: Bool = false,
-        defaultInactivityMinutes: Int = 5
+        defaultInactivityMinutes: Int = 5,
+        lockAllShortcut: GlobalShortcut? = nil,
+        unlockAllShortcut: GlobalShortcut? = nil
     ) {
         self.launchAtLogin = launchAtLogin
         self.gracePeriodSeconds = gracePeriodSeconds
@@ -57,6 +67,8 @@ public struct AppSettings: Codable, Hashable, Sendable {
         self.requireEveryLaunch = requireEveryLaunch
         self.developerMode = developerMode
         self.defaultInactivityMinutes = defaultInactivityMinutes
+        self.lockAllShortcut = lockAllShortcut
+        self.unlockAllShortcut = unlockAllShortcut
     }
 
     public static let `default` = AppSettings()

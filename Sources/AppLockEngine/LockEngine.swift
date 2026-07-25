@@ -21,6 +21,11 @@ public final class LockEngine {
     private let overlay: OverlayService
     private let coordinator: LockCoordinator
     private let relockManager: RelockManager
+    private let hotKeys: GlobalHotKeyService
+    private let configProvider: @Sendable () -> Configuration
+    private var watcher: ConfigurationFileWatcher?
+    /// Ids of the currently-registered global shortcuts, for re-registration.
+    private var registeredHotKeyIDs: [UInt32] = []
 
     /// The store other components can observe for live lock state.
     public let unlockStore: UnlockStateStore
@@ -32,16 +37,22 @@ public final class LockEngine {
     ///   - unlockStore: the shared unlock-state store.
     ///   - configProvider: returns the freshest `Configuration` on demand. The
     ///     engine reads it on each event so config edits take effect live.
+    ///   - configFileURL: the on-disk configuration path to watch for changes
+    ///     (so shortcuts re-register when edited in another process). Pass `nil`
+    ///     to disable live reloading.
     public init(
         authService: AuthenticationServiceProtocol,
         unlockStore: UnlockStateStore,
-        configProvider: @escaping @Sendable () -> Configuration
+        configProvider: @escaping @Sendable () -> Configuration,
+        configFileURL: URL? = nil
     ) {
         self.unlockStore = unlockStore
+        self.configProvider = configProvider
         let monitor = AppMonitorService()
         let overlay = OverlayService()
         self.monitor = monitor
         self.overlay = overlay
+        self.hotKeys = GlobalHotKeyService()
         self.coordinator = LockCoordinator(
             monitor: monitor,
             auth: authService,
@@ -50,6 +61,11 @@ public final class LockEngine {
             configProvider: configProvider
         )
         self.relockManager = RelockManager(store: unlockStore)
+        if let configFileURL {
+            self.watcher = ConfigurationFileWatcher(url: configFileURL) { [weak self] in
+                self?.reloadShortcuts()
+            }
+        }
     }
 
     /// Boot the live locking engine. Idempotent.
@@ -58,6 +74,8 @@ public final class LockEngine {
         started = true
         relockManager.start()
         coordinator.start()
+        reloadShortcuts()
+        watcher?.start()
         Log.lifecycle.info("Lock engine started")
     }
 
@@ -67,7 +85,27 @@ public final class LockEngine {
         started = false
         monitor.stop()
         relockManager.stop()
+        watcher?.stop()
+        hotKeys.unregisterAll()
+        registeredHotKeyIDs.removeAll()
         overlay.dismissAll()
         Log.lifecycle.info("Lock engine stopped")
+    }
+
+    /// (Re)register the global shortcuts from the current settings. Safe to call
+    /// repeatedly — it clears and rebuilds the registration set.
+    public func reloadShortcuts() {
+        hotKeys.unregisterAll()
+        registeredHotKeyIDs.removeAll()
+
+        let settings = configProvider().settings
+        if let lockAll = settings.lockAllShortcut,
+           let id = hotKeys.register(lockAll, handler: { [weak self] in self?.coordinator.lockAllNow() }) {
+            registeredHotKeyIDs.append(id)
+        }
+        if let unlockAll = settings.unlockAllShortcut,
+           let id = hotKeys.register(unlockAll, handler: { [weak self] in self?.coordinator.unlockAllNow() }) {
+            registeredHotKeyIDs.append(id)
+        }
     }
 }
