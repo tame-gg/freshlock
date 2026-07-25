@@ -43,36 +43,53 @@ struct MainView: View {
 
     private var sidebar: some View {
         List(selection: $viewModel.sidebarSelection) {
-            Section("Library") {
+            Section {
                 ForEach(SidebarItem.primaryCases, id: \.self) { item in
-                    Label {
-                        Text(item.title)
-                    } icon: {
-                        IconTile(symbol: item.symbolName, tint: item.tint)
-                    }
-                    .tag(item)
+                    sidebarRow(symbol: item.symbolName, title: item.title)
+                        .tag(item)
                 }
+            } header: {
+                sidebarSectionHeader("Library")
             }
-            Section("Settings") {
+            Section {
                 ForEach(SettingsPane.allCases) { pane in
-                    Label {
-                        Text(pane.title)
-                    } icon: {
-                        IconTile(symbol: pane.symbolName, tint: pane.tint)
-                    }
-                    .tag(SidebarItem.settings(pane))
+                    sidebarRow(symbol: pane.symbolName, title: pane.title)
+                        .tag(SidebarItem.settings(pane))
                 }
+            } header: {
+                sidebarSectionHeader("Settings")
             }
         }
         .listStyle(.sidebar)
+        // Neutral selection keeps the tinted wells as the only colour in the
+        // column; an accent-filled pill fights them for attention.
+        .tint(Theme.sidebarSelection)
         .navigationSplitViewColumnWidth(
-            min: 150,
+            min: 168,
             ideal: Theme.sidebarWidth,
-            max: 240
+            max: 260
         )
         .safeAreaInset(edge: .bottom, spacing: 0) {
             sidebarFooter
         }
+    }
+
+    private func sidebarRow(symbol: String, title: String) -> some View {
+        Label {
+            Text(title)
+                .font(.system(size: 13))
+        } icon: {
+            IconWell(symbol: symbol)
+        }
+        .padding(.vertical, 3)
+    }
+
+    private func sidebarSectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(.primary)
+            .textCase(nil)
+            .padding(.top, 6)
     }
 
     private var sidebarFooter: some View {
@@ -114,7 +131,7 @@ struct MainView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.windowBackground)
             .safeAreaInset(edge: .top, spacing: 0) {
-                SettingsPageHeader(pane: pane)
+                PageHeader(symbol: pane.symbolName, title: pane.title, subtitle: pane.summary)
             }
             .navigationTitle(pane.title)
             .toolbar {
@@ -141,6 +158,13 @@ struct MainView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.windowBackground)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            PageHeader(
+                symbol: viewModel.sidebarSelection.symbolName,
+                title: viewModel.sidebarSelection.title,
+                subtitle: librarySubtitle
+            )
+        }
         .navigationTitle(viewModel.sidebarSelection.title)
         .searchable(
             text: $viewModel.searchText,
@@ -159,31 +183,33 @@ struct MainView: View {
 
     private var appList: some View {
         List {
-            Section {
-                ForEach(viewModel.visibleApps) { app in
-                    AppRowView(viewModel: viewModel, app: app)
-                }
-            } header: {
-                Text(sectionHeader)
-                    .textCase(nil)
+            ForEach(viewModel.visibleApps) { app in
+                AppRowView(viewModel: viewModel, app: app)
             }
         }
         .listStyle(.inset)
         .scrollContentBackground(.hidden)
     }
 
-    private var sectionHeader: String {
+    /// Line under the page title. The header already names the filter, so this
+    /// says how much is in it rather than repeating the title.
+    private var librarySubtitle: String {
+        if !viewModel.searchText.isEmpty {
+            let count = viewModel.visibleApps.count
+            return count == 1 ? "1 result for \"\(viewModel.searchText)\""
+                : "\(count) results for \"\(viewModel.searchText)\""
+        }
         switch viewModel.sidebarSelection {
         case .all:
-            viewModel.searchText.isEmpty ? "Applications" : "Results"
+            return "Every app installed on this Mac."
         case .protected:
-            "Protected apps"
+            let count = viewModel.protectedCount
+            return count == 1 ? "1 app asks for Touch ID before it opens."
+                : "\(count) apps ask for Touch ID before they open."
         case .favorites:
-            "Favorites"
-        case .settings:
-            "Settings"
-        case let .category(category):
-            category.displayName
+            return "Apps you starred for quick access."
+        case .settings, .category:
+            return ""
         }
     }
 
@@ -282,15 +308,4 @@ extension SidebarItem {
         }
     }
 
-    /// Tile colour in the sidebar, so a destination is recognisable by hue
-    /// before its label is read.
-    var tint: Color {
-        switch self {
-        case .all: Theme.tileBlue
-        case .protected: Theme.tileGreen
-        case .favorites: Theme.tileYellow
-        case let .settings(pane): pane.tint
-        case .category: Theme.tileGray
-        }
-    }
 }
