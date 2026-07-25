@@ -1,0 +1,23 @@
+# SwiftFormat configuration for AppLock
+# https://github.com/nicklockwood/SwiftFormat
+
+--swiftversion 6.0
+
+# Rules
+--enable isEmpty
+--enable sortedImports
+--enable redundantSelf
+--enable trailingCommas
+--enable wrapMultilineStatementBraces
+
+--self remove
+--importgrouping testable-bottom
+--commas inline
+--trimwhitespace always
+--indent 4
+--maxwidth 120
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+
+--exclude .build,dist

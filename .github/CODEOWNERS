@@ -1,0 +1,8 @@
+# Default owners for everything in the repo.
+* @tame-gg/maintainers
+
+# Core security-sensitive areas get extra review.
+/Sources/AppLockCore/Services/AuthenticationService.swift @tame-gg/maintainers
+/Sources/AppLock/Managers/LockCoordinator.swift           @tame-gg/maintainers
+/SECURITY.md                                              @tame-gg/maintainers
+/.github/workflows/                                       @tame-gg/maintainers

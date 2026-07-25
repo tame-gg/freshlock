@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, sign, notarize & publish
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_17.app || true
+
+      - name: Test
+        run: swift test
+
+      - name: Build app bundle
+        run: CONFIGURATION=release ARCH=universal Scripts/build-app.sh
+
+      - name: Sign & notarize (skips gracefully without secrets)
+        env:
+          SIGNING_IDENTITY: ${{ secrets.SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: Scripts/sign-and-notarize.sh dist/AppLock.app
+
+      - name: Zip app
+        run: |
+          cd dist
+          ditto -c -k --keepParent AppLock.app AppLock.zip
+
+      - name: Generate checksum
+        run: |
+          cd dist
+          shasum -a 256 AppLock.zip | tee AppLock.zip.sha256
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/AppLock.zip
+            dist/AppLock.zip.sha256
+          generate_release_notes: true
+
+      - name: Bump Homebrew cask
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        if: ${{ env.GH_TOKEN != '' }}
+        run: Scripts/update-cask.sh "${GITHUB_REF_NAME#v}" dist/AppLock.zip.sha256
