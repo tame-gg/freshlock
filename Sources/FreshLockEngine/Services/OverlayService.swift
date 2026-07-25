@@ -67,10 +67,25 @@ private final class OverlayPanel: NSPanel {
 final class OverlayService: OverlayServiceProtocol {
     private let accessibility: AccessibilityServiceProtocol
 
+    /// Cadence for the brief window right after an overlay is requested, while
+    /// the protected app may not have created its windows yet. Covering fast
+    /// here is security-critical.
+    private static let settleInterval: TimeInterval = 0.1
+    private static let settleDuration: TimeInterval = 1.5
+    /// Steady-state backstop once the app has settled. With Accessibility
+    /// trusted, AX notifications drive repositioning and this only catches what
+    /// they miss; without it there are no events, so poll a little faster.
+    private static let axBackstopInterval: TimeInterval = 1.0
+    private static let unobservedBackstopInterval: TimeInterval = 0.5
+
     private var contentByBundleID: [String: LockOverlayView] = [:]
     private var pidByBundleID: [String: pid_t] = [:]
     private var windowsByBundleID: [String: [NSWindow]] = [:]
     private var trackTimers: [String: Timer] = [:]
+    private var settleDeadlines: [String: Date] = [:]
+    /// Frontmost PID at the last placement, so the cover is only re-raised when
+    /// the window stack could actually have changed underneath it.
+    private var lastFrontmostPID: [String: pid_t] = [:]
     /// Bundle IDs that must stay covered through the launch→auth handoff, even
     /// when `frontmostApplication` has not yet caught up to the protected app.
     private var pinnedBundleIDs: Set<String> = []

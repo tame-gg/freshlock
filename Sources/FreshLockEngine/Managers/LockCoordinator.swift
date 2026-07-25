@@ -383,6 +383,9 @@ extension LockCoordinator {
 
         store.lock(bundleID)
         securing.insert(bundleID)
+        // Securing is exactly the state the liveness poll must cover; the next
+        // reconcile tick stands it back down if it turns out to be unnecessary.
+        startProcessPolling()
         Log.lifecycle.info("Securing \(bundleID, privacy: .public) pid \(pid)")
         Task { [weak self] in
             await self?.secureAndAuthenticate(app: app, config: config, pid: pid)
@@ -663,6 +666,7 @@ extension LockCoordinator {
         }
 
         store.grantUnlock(bundleID, scope: scope, sessionPID: pid)
+        startProcessPolling()
         stopKeepingVisible(bundleID)
         overlay.dismissOverlay(for: bundleID)
         securing.remove(bundleID)

@@ -96,6 +96,7 @@ public final class LockEngine {
         guard started else { return }
         started = false
         monitor.stop()
+        coordinator.stop()
         relockManager.stop()
         watcher?.stop()
         hotKeys.unregisterAll()
