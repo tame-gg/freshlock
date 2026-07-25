@@ -41,9 +41,12 @@ enum FreshLockEnforceExtensionMain {
             // Fail clean: entitlement / FDA / privilege missing. Do not crash.
             log.error("ES client unavailable: \(error.description, privacy: .public)")
             log.error("Phase 1 not active. Kernel kexts are not used; see docs/ENFORCEMENT.md.")
+            fputs("FreshLockEnforceExtension: \(error.description)\n", stderr)
+            fputs("Phase 1 not active (fail-clean). See docs/ENFORCEMENT.md.\n", stderr)
             exit(EXIT_SUCCESS)
         } catch {
             log.error("ES client failed: \(String(describing: error), privacy: .public)")
+            fputs("FreshLockEnforceExtension: \(error)\n", stderr)
             exit(EXIT_FAILURE)
         }
 
