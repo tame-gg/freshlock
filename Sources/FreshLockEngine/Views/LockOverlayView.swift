@@ -5,6 +5,7 @@
 //  Lock overlay content: system blur or solid backdrop, unlock prompt. On
 //  macOS 26+ the prompt panel can use Liquid Glass when the blur style is
 //  selected; older systems keep NSVisualEffectView materials.
+//  Cancelling LocalAuthentication returns here; Quit exits the protected app.
 //
 
 import FreshLockCore
@@ -17,8 +18,8 @@ struct LockOverlayView: View {
     let style: OverlayStyle
     /// Invoked when the user asks to authenticate (also triggered automatically).
     let onUnlock: () -> Void
-    /// Invoked when the user backs out — the coordinator closes the app.
-    let onCancel: () -> Void
+    /// Invoked when the user explicitly quits the protected app from the overlay.
+    let onQuit: () -> Void
     /// Corner radius matching the covered macOS window, so the overlay has the
     /// same rounded (continuous) corners rather than sharp rectangular ones.
     var cornerRadius: CGFloat = 10
@@ -76,8 +77,8 @@ struct LockOverlayView: View {
             }
 
             HStack(spacing: 12) {
-                Button(action: onCancel) {
-                    Text("Cancel")
+                Button(role: .destructive, action: onQuit) {
+                    Text("Quit")
                         .frame(minWidth: 90)
                 }
                 .controlSize(.large)
@@ -97,7 +98,7 @@ struct LockOverlayView: View {
         .modifier(OverlayPanelChrome(useGlass: style == .blur))
         .opacity(appeared ? 1 : 0)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(appName) is locked. Unlock with \(method.displayName).")
+        .accessibilityLabel("\(appName) is locked. Unlock with \(method.displayName), or quit.")
     }
 
     private var symbol: String {
