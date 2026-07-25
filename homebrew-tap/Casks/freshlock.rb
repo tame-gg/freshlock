@@ -1,6 +1,6 @@
 cask "freshlock" do
-  version "1.67"
-  sha256 "c04bee3a6b6de582623c6cdef8d519f1c1a5a1cb8d5be93fb7458869532eed57"
+  version "1.68"
+  sha256 "0d6b11e05db04c25dd11c62615c3b0e121be918818d87e5f5fea1e9ff7c05617"
 
   url "https://github.com/tame-gg/freshlock/releases/download/v#{version}/FreshLock.zip"
   name "FreshLock"
