@@ -32,7 +32,7 @@ struct PreferencesView: View {
         .formStyle(.grouped)
         .tint(Theme.accent)
         .environment(\.preferLiquidGlass, preferGlass)
-        .frame(width: 500, height: 640)
+        .frame(minWidth: 520, idealWidth: 560, minHeight: 560, idealHeight: 660)
     }
 
     // MARK: Sections

@@ -24,7 +24,7 @@ struct AppBrandIcon: View {
             } else {
                 Image(systemName: "lock.shield.fill")
                     .font(.system(size: size * 0.72))
-                    .foregroundStyle(Theme.accent)
+                    .foregroundStyle(Theme.brand)
                     .symbolRenderingMode(.hierarchical)
                     .frame(width: size, height: size)
             }

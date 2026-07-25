@@ -40,10 +40,12 @@ final class WindowManager {
         let window = Self.makeWindow(
             title: "FreshLock",
             contentViewController: hosting,
-            size: NSSize(width: 680, height: 680),
-            minSize: NSSize(width: 560, height: 520)
+            size: NSSize(width: 820, height: 640),
+            minSize: NSSize(width: 720, height: 520),
+            showsToolbarTitle: true
         )
         window.setFrameAutosaveName("FreshLockMainWindow")
+        window.toolbarStyle = .unified
         mainController = NSWindowController(window: window)
         mainController?.showWindow(nil)
         Task { await environment.protectionViewModel.refreshInstalledApps() }
@@ -91,8 +93,8 @@ final class WindowManager {
         let window = Self.makeWindow(
             title: "Preferences",
             contentViewController: hosting,
-            size: NSSize(width: 500, height: 640),
-            minSize: NSSize(width: 500, height: 480)
+            size: NSSize(width: 560, height: 660),
+            minSize: NSSize(width: 520, height: 520)
         )
         prefsController = NSWindowController(window: window)
         prefsController?.showWindow(nil)
@@ -105,7 +107,8 @@ final class WindowManager {
         contentViewController: NSViewController,
         size: NSSize,
         minSize: NSSize,
-        resizable: Bool = true
+        resizable: Bool = true,
+        showsToolbarTitle: Bool = false
     ) -> NSWindow {
         var style: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
         if resizable {
@@ -114,8 +117,15 @@ final class WindowManager {
         let window = NSWindow(contentViewController: contentViewController)
         window.styleMask = style
         window.title = title
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
+        // Main catalogue keeps a unified toolbar (search + nav title). Other
+        // windows stay chrome-light with a transparent titlebar.
+        if showsToolbarTitle {
+            window.titlebarAppearsTransparent = false
+            window.titleVisibility = .visible
+        } else {
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+        }
         window.isMovableByWindowBackground = true
         window.setContentSize(size)
         window.minSize = minSize
