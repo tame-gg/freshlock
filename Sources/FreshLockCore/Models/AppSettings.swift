@@ -54,6 +54,11 @@ public struct AppSettings: Codable, Hashable, Sendable {
     /// Does not override the system Appearance tint slider on macOS 27.
     public var preferLiquidGlass: Bool
 
+    /// When true (default), securing a protected app auto-presents LocalAuthentication
+    /// after the lock overlay. When false, only the overlay appears; the user must
+    /// tap Unlock to authenticate. Cancel on the LA sheet always returns to the overlay.
+    public var automaticallyPromptAuthentication: Bool
+
     public init(
         launchAtLogin: Bool = false,
         gracePeriodSeconds: Int = 30,
@@ -65,7 +70,8 @@ public struct AppSettings: Codable, Hashable, Sendable {
         defaultInactivityMinutes: Int = 5,
         lockAllShortcut: GlobalShortcut? = nil,
         unlockAllShortcut: GlobalShortcut? = nil,
-        preferLiquidGlass: Bool = true
+        preferLiquidGlass: Bool = true,
+        automaticallyPromptAuthentication: Bool = true
     ) {
         self.launchAtLogin = launchAtLogin
         self.gracePeriodSeconds = gracePeriodSeconds
@@ -78,6 +84,7 @@ public struct AppSettings: Codable, Hashable, Sendable {
         self.lockAllShortcut = lockAllShortcut
         self.unlockAllShortcut = unlockAllShortcut
         self.preferLiquidGlass = preferLiquidGlass
+        self.automaticallyPromptAuthentication = automaticallyPromptAuthentication
     }
 
     public static let `default` = AppSettings()
@@ -96,6 +103,7 @@ public struct AppSettings: Codable, Hashable, Sendable {
         case lockAllShortcut
         case unlockAllShortcut
         case preferLiquidGlass
+        case automaticallyPromptAuthentication
     }
 
     public init(from decoder: Decoder) throws {
@@ -112,6 +120,8 @@ public struct AppSettings: Codable, Hashable, Sendable {
         unlockAllShortcut = try c.decodeIfPresent(GlobalShortcut.self, forKey: .unlockAllShortcut)
         // Older configs omit this key; default on so macOS 26+ picks up glass.
         preferLiquidGlass = try c.decodeIfPresent(Bool.self, forKey: .preferLiquidGlass) ?? true
+        // Older configs omit this key; default on preserves current auto-LA behavior.
+        automaticallyPromptAuthentication = try c.decodeIfPresent(Bool.self, forKey: .automaticallyPromptAuthentication) ?? true
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -127,5 +137,6 @@ public struct AppSettings: Codable, Hashable, Sendable {
         try c.encodeIfPresent(lockAllShortcut, forKey: .lockAllShortcut)
         try c.encodeIfPresent(unlockAllShortcut, forKey: .unlockAllShortcut)
         try c.encode(preferLiquidGlass, forKey: .preferLiquidGlass)
+        try c.encode(automaticallyPromptAuthentication, forKey: .automaticallyPromptAuthentication)
     }
 }

@@ -365,9 +365,13 @@ extension LockCoordinator {
                 method: auth.availableMethod(),
                 style: config.settings.overlayStyle,
                 onUnlock: { [weak self] in
+                    // Unlock always presents LA, even when auto-prompt is off.
                     guard let self, let pid = livePID(for: bundleID) else { return }
                     awaitingManualUnlock.remove(bundleID)
-                    beginSecuring(app, config: configProvider(), pid: pid)
+                    let cfg = configProvider()
+                    Task { [weak self] in
+                        await self?.authenticate(app: app, config: cfg, pid: pid)
+                    }
                 },
                 onQuit: { [weak self] in self?.quitProtectedApp(app: app) }
             )
@@ -392,6 +396,16 @@ extension LockCoordinator {
             || store.isUnlockedWhileAlive(bundleID, livePIDs: liveNow)
         {
             clearSecuringUI(for: bundleID, lock: false)
+            return
+        }
+
+        // Auto-prompt off: leave the overlay up and wait for Unlock / Quit.
+        // `awaitingManualUnlock` keeps the poll from re-entering this path.
+        if !config.settings.automaticallyPromptAuthentication {
+            awaitingManualUnlock.insert(bundleID)
+            Log.lifecycle.info(
+                "Auto-auth skipped for \(bundleID, privacy: .public) - awaiting Unlock"
+            )
             return
         }
 

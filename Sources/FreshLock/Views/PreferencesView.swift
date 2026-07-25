@@ -99,6 +99,21 @@ struct PreferencesView: View {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
+            Toggle(
+                "Prompt authentication automatically",
+                isOn: viewModel.binding(\.automaticallyPromptAuthentication)
+            )
+            .help(
+                "When on, Touch ID / password appears as soon as you enter a protected app. When off, only the lock overlay appears until you click Unlock."
+            )
+            Text(
+                """
+                When off, FreshLock shows the lock overlay only. Click Unlock to \
+                authenticate. Cancel returns to the overlay.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
             GracePeriodEditor(seconds: viewModel.binding(\.gracePeriodSeconds))
             Text("Time before relock when switching away.")
                 .font(.caption)

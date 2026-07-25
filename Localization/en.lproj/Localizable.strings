@@ -63,6 +63,8 @@
 "Notify when a protected app launches" = "Notify when a protected app launches";
 "Overlay Style" = "Overlay Style";
 "Require authentication on every launch" = "Require authentication on every launch";
+"Prompt authentication automatically" = "Prompt authentication automatically";
+"When off, FreshLock shows the lock overlay only. Click Unlock to authenticate. Cancel returns to the overlay." = "When off, FreshLock shows the lock overlay only. Click Unlock to authenticate. Cancel returns to the overlay.";
 "Grace period after unlock" = "Grace period after unlock";
 "Time before relock when switching away." = "Time before relock when switching away.";
 "Custom" = "Custom";
