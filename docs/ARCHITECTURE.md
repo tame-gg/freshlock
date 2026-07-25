@@ -119,3 +119,8 @@ the main actor to avoid data races.
 The entire configuration is a single `Codable` `Configuration` document written
 atomically to `~/Library/Application Support/AppLock/configuration.json`. This
 one-document design makes export, backup, and future iCloud sync straightforward.
+
+## Localization
+
+AppLock ships English, Spanish and French. Add a language by translating
+`Localization/en.lproj/Localizable.strings` — see [CONTRIBUTING.md](../CONTRIBUTING.md#localization).

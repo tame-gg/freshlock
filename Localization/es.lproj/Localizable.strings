@@ -1,0 +1,97 @@
+/* AppLock — Español. Las claves faltantes recurren a en.lproj. */
+
+// MARK: Barra de menú
+"AppLock — %lld protected" = "AppLock — %lld protegidas";
+"Lock All" = "Bloquear todo";
+"Unlock Until Sleep" = "Desbloquear hasta suspender";
+"Unlock Until Logout" = "Desbloquear hasta cerrar sesión";
+"Unlock All" = "Desbloquear todo";
+"Open Preferences…" = "Abrir Preferencias…";
+"About AppLock" = "Acerca de AppLock";
+"Quit AppLock" = "Salir de AppLock";
+
+// MARK: Barra lateral y lista
+"All Apps" = "Todas las apps";
+"Protected" = "Protegidas";
+"Favourites" = "Favoritas";
+"Categories" = "Categorías";
+"Apps" = "Apps";
+"Search apps" = "Buscar apps";
+"No Apps" = "Sin apps";
+"No applications match your selection." = "Ninguna aplicación coincide con tu selección.";
+"Select an App" = "Selecciona una app";
+"Choose an app to configure its protection and auto-relock." = "Elige una app para configurar su protección y bloqueo automático.";
+
+// MARK: Fila e inspector
+"Add %@ to favourites" = "Añadir %@ a favoritas";
+"Remove %@ from favourites" = "Quitar %@ de favoritas";
+"Protect %@ with Touch ID" = "Proteger %@ con Touch ID";
+"Protect %@" = "Proteger %@";
+"Protect this app" = "Proteger esta app";
+"Favourite" = "Favorita";
+"Category" = "Categoría";
+"Protection" = "Protección";
+"Auto Relock" = "Bloqueo automático";
+"Relock" = "Volver a bloquear";
+"Default (%@)" = "Predeterminado (%@)";
+"After %lld min" = "Tras %lld min";
+"Quit after repeated failures" = "Cerrar tras fallos repetidos";
+"After %lld failed attempts" = "Tras %lld intentos fallidos";
+"If authentication fails this many times in a row, AppLock will quit the app." = "Si la autenticación falla esta cantidad de veces seguidas, AppLock cerrará la app.";
+
+// MARK: Superposición de bloqueo
+"Unlock" = "Desbloquear";
+"Unlock with %@" = "Desbloquear con %@";
+
+// MARK: Acerca de
+"Version %@" = "Versión %@";
+"Protect any macOS app with Touch ID, Apple Watch, or your password." = "Protege cualquier app de macOS con Touch ID, Apple Watch o tu contraseña.";
+
+// MARK: Preferencias — pestañas
+"General" = "General";
+"Locking" = "Bloqueo";
+"Shortcuts" = "Atajos";
+"Backup" = "Copia de seguridad";
+"Advanced" = "Avanzado";
+
+// MARK: Preferencias — controles
+"Launch at Login" = "Abrir al iniciar sesión";
+"Notify when a protected app launches" = "Avisar cuando se abra una app protegida";
+"Overlay Style" = "Estilo de superposición";
+"Require authentication on every launch" = "Requerir autenticación en cada apertura";
+"Grace period: %llds" = "Periodo de gracia: %llds";
+"Default inactivity timeout: %lld min" = "Inactividad predeterminada: %lld min";
+"Developer Mode" = "Modo desarrollador";
+"Accessibility" = "Accesibilidad";
+"Granted" = "Concedido";
+"Not granted" = "No concedido";
+"Setup Guide" = "Guía de configuración";
+"Replay…" = "Repetir…";
+"Export configuration" = "Exportar configuración";
+"Import configuration" = "Importar configuración";
+"Export…" = "Exportar…";
+"Import…" = "Importar…";
+
+// MARK: Bienvenida
+"Welcome to AppLock" = "Te damos la bienvenida a AppLock";
+"Protect any app behind Touch ID, Apple Watch, or your Mac password." = "Protege cualquier app con Touch ID, Apple Watch o la contraseña de tu Mac.";
+"Lock apps like Safari, Finder or System Settings." = "Bloquea apps como Safari, Finder o Ajustes del Sistema.";
+"Unlock with Apple's own authentication — AppLock never sees your password." = "Desbloquea con la autenticación de Apple: AppLock nunca ve tu contraseña.";
+"Lightweight and notification-driven; near-zero idle CPU." = "Ligero y basado en notificaciones; CPU casi nula en reposo.";
+"Grant Accessibility" = "Conceder Accesibilidad";
+"AppLock needs Accessibility permission to place its lock overlay above other apps." = "AppLock necesita permiso de Accesibilidad para mostrar su bloqueo sobre otras apps.";
+"Accessibility granted" = "Accesibilidad concedida";
+"Accessibility not granted yet" = "Accesibilidad aún no concedida";
+"Open Accessibility Settings" = "Abrir ajustes de Accesibilidad";
+"Grant Accessibility…" = "Conceder Accesibilidad…";
+"You can change this any time in System Settings → Privacy & Security → Accessibility." = "Puedes cambiarlo cuando quieras en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad.";
+"Keep Protecting" = "Sigue protegiendo";
+"Launch AppLock at login so your apps stay protected after every restart." = "Abre AppLock al iniciar sesión para que tus apps sigan protegidas tras cada reinicio.";
+"Launch AppLock at login" = "Abrir AppLock al iniciar sesión";
+"You're all set" = "Todo listo";
+"Open AppLock from the menu bar to choose which apps to protect." = "Abre AppLock desde la barra de menú para elegir qué apps proteger.";
+"Find AppLock in your menu bar for quick actions." = "Encuentra AppLock en la barra de menú para acciones rápidas.";
+"Back" = "Atrás";
+"Continue" = "Continuar";
+"Done" = "Listo";
+"Step %lld of %lld" = "Paso %lld de %lld";

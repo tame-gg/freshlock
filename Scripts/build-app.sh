@@ -44,11 +44,26 @@ mkdir -p "$BUNDLE/Contents/Library/LoginItems" "$BUNDLE/Contents/Library/LaunchA
 cp "$BIN_PATH/$APP_NAME" "$BUNDLE/Contents/MacOS/$APP_NAME"
 cp "$ROOT/Packaging/Info.plist" "$BUNDLE/Contents/Info.plist"
 
+# --- Localizations: copy .lproj catalogs into the main bundle. SwiftUI's
+# LocalizedStringKey resolves literals against the main bundle at runtime, so
+# no code changes are needed — only these resources. ---
+copy_localizations() {
+  local resources_dir="$1"
+  for lproj in "$ROOT"/Localization/*.lproj; do
+    [[ -d "$lproj" ]] || continue
+    cp -R "$lproj" "$resources_dir/"
+  done
+}
+copy_localizations "$BUNDLE/Contents/Resources"
+
 # --- Embed the background helper as a nested LoginItems app bundle ---
 HELPER="$BUNDLE/Contents/Library/LoginItems/AppLockHelper.app"
 mkdir -p "$HELPER/Contents/MacOS"
 cp "$BIN_PATH/AppLockHelper" "$HELPER/Contents/MacOS/AppLockHelper"
 cp "$ROOT/Packaging/Helper-Info.plist" "$HELPER/Contents/Info.plist"
+# The helper renders the lock overlay in production, so it needs the strings too.
+mkdir -p "$HELPER/Contents/Resources"
+copy_localizations "$HELPER/Contents/Resources"
 
 # launchd agent plist that SMAppService registers to keep the helper alive.
 cp "$ROOT/Packaging/gg.tame.applock.helper.plist" \

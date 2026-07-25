@@ -29,6 +29,8 @@ to [Semantic Versioning](https://semver.org/).
 - First-launch onboarding guide with Accessibility permission priming (live
   status), launch-at-login, honest limitation framing, and a "Replay Setup
   Guide" action in Preferences.
+- Localization pipeline (`.lproj/Localizable.strings` copied into the app and
+  helper bundles) with English, Spanish and French translations of the UI.
 - Launch-at-login via `SMAppService`.
 - Documentation suite, CI, SwiftLint/SwiftFormat, and Homebrew cask.
 

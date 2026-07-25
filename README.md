@@ -35,6 +35,7 @@ no Electron.
 - 🔍 **Searchable catalogue** with favourites and categories.
 - 📤 **Import / export / backup** your configuration as JSON (iCloud-sync ready).
 - ♿ **Accessible** — VoiceOver labels, keyboard navigation, reduced motion.
+- 🌍 **Localized** — English, Spanish and French (easy to add more).
 - 🪶 **Featherweight** — zero polling; everything is notification-driven.
 
 ## Installation

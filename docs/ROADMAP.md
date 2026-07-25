@@ -18,7 +18,7 @@ This is a living document; priorities may shift with community feedback.
 - [x] Per-app relock policy editor UI
 - [x] Global keyboard shortcuts (Lock All / Unlock)
 - [x] Onboarding flow with permission priming
-- [ ] Localised strings (catalog)
+- [x] Localised strings (en, es, fr)
 
 ## v0.3 — Sync & backup
 

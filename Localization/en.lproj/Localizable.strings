@@ -1,0 +1,101 @@
+/* AppLock — English (development region, canonical keys).
+   Keys are the base English strings, which is how SwiftUI's LocalizedStringKey
+   resolves literals. Interpolations map to printf placeholders: Int → %lld,
+   String → %@. Other languages need only override the keys they translate;
+   anything missing falls back to this file. */
+
+// MARK: Menu bar
+"AppLock — %lld protected" = "AppLock — %lld protected";
+"Lock All" = "Lock All";
+"Unlock Until Sleep" = "Unlock Until Sleep";
+"Unlock Until Logout" = "Unlock Until Logout";
+"Unlock All" = "Unlock All";
+"Open Preferences…" = "Open Preferences…";
+"About AppLock" = "About AppLock";
+"Quit AppLock" = "Quit AppLock";
+
+// MARK: Sidebar & app list
+"All Apps" = "All Apps";
+"Protected" = "Protected";
+"Favourites" = "Favourites";
+"Categories" = "Categories";
+"Apps" = "Apps";
+"Search apps" = "Search apps";
+"No Apps" = "No Apps";
+"No applications match your selection." = "No applications match your selection.";
+"Select an App" = "Select an App";
+"Choose an app to configure its protection and auto-relock." = "Choose an app to configure its protection and auto-relock.";
+
+// MARK: App row & detail inspector
+"Add %@ to favourites" = "Add %@ to favourites";
+"Remove %@ from favourites" = "Remove %@ from favourites";
+"Protect %@ with Touch ID" = "Protect %@ with Touch ID";
+"Protect %@" = "Protect %@";
+"Protect this app" = "Protect this app";
+"Favourite" = "Favourite";
+"Category" = "Category";
+"Protection" = "Protection";
+"Auto Relock" = "Auto Relock";
+"Relock" = "Relock";
+"Default (%@)" = "Default (%@)";
+"After %lld min" = "After %lld min";
+"Quit after repeated failures" = "Quit after repeated failures";
+"After %lld failed attempts" = "After %lld failed attempts";
+"If authentication fails this many times in a row, AppLock will quit the app." = "If authentication fails this many times in a row, AppLock will quit the app.";
+
+// MARK: Lock overlay
+"Unlock" = "Unlock";
+"Unlock with %@" = "Unlock with %@";
+
+// MARK: About
+"Version %@" = "Version %@";
+"Protect any macOS app with Touch ID, Apple Watch, or your password." = "Protect any macOS app with Touch ID, Apple Watch, or your password.";
+
+// MARK: Preferences — tabs
+"General" = "General";
+"Locking" = "Locking";
+"Shortcuts" = "Shortcuts";
+"Backup" = "Backup";
+"Advanced" = "Advanced";
+
+// MARK: Preferences — controls
+"Launch at Login" = "Launch at Login";
+"Notify when a protected app launches" = "Notify when a protected app launches";
+"Overlay Style" = "Overlay Style";
+"Require authentication on every launch" = "Require authentication on every launch";
+"Grace period: %llds" = "Grace period: %llds";
+"Default inactivity timeout: %lld min" = "Default inactivity timeout: %lld min";
+"Developer Mode" = "Developer Mode";
+"Accessibility" = "Accessibility";
+"Granted" = "Granted";
+"Not granted" = "Not granted";
+"Setup Guide" = "Setup Guide";
+"Replay…" = "Replay…";
+"Export configuration" = "Export configuration";
+"Import configuration" = "Import configuration";
+"Export…" = "Export…";
+"Import…" = "Import…";
+
+// MARK: Onboarding
+"Welcome to AppLock" = "Welcome to AppLock";
+"Protect any app behind Touch ID, Apple Watch, or your Mac password." = "Protect any app behind Touch ID, Apple Watch, or your Mac password.";
+"Lock apps like Safari, Finder or System Settings." = "Lock apps like Safari, Finder or System Settings.";
+"Unlock with Apple's own authentication — AppLock never sees your password." = "Unlock with Apple's own authentication — AppLock never sees your password.";
+"Lightweight and notification-driven; near-zero idle CPU." = "Lightweight and notification-driven; near-zero idle CPU.";
+"Grant Accessibility" = "Grant Accessibility";
+"AppLock needs Accessibility permission to place its lock overlay above other apps." = "AppLock needs Accessibility permission to place its lock overlay above other apps.";
+"Accessibility granted" = "Accessibility granted";
+"Accessibility not granted yet" = "Accessibility not granted yet";
+"Open Accessibility Settings" = "Open Accessibility Settings";
+"Grant Accessibility…" = "Grant Accessibility…";
+"You can change this any time in System Settings → Privacy & Security → Accessibility." = "You can change this any time in System Settings → Privacy & Security → Accessibility.";
+"Keep Protecting" = "Keep Protecting";
+"Launch AppLock at login so your apps stay protected after every restart." = "Launch AppLock at login so your apps stay protected after every restart.";
+"Launch AppLock at login" = "Launch AppLock at login";
+"You're all set" = "You're all set";
+"Open AppLock from the menu bar to choose which apps to protect." = "Open AppLock from the menu bar to choose which apps to protect.";
+"Find AppLock in your menu bar for quick actions." = "Find AppLock in your menu bar for quick actions.";
+"Back" = "Back";
+"Continue" = "Continue";
+"Done" = "Done";
+"Step %lld of %lld" = "Step %lld of %lld";

@@ -47,6 +47,29 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `perf`.
 - Small, focused files. Comment the *why*, not the *what*.
 - No new third-party dependencies without discussion.
 
+## Localization
+
+User-facing strings live in `Localization/<lang>.lproj/Localizable.strings`. The
+**key is the base English string** (matching SwiftUI's `LocalizedStringKey`), so
+adding a new UI string requires no code change beyond using a normal `Text("…")`
+/ `Button("…")` literal — just add the key to `en.lproj` and any translations.
+
+Interpolations map to printf placeholders: `Text("Step \(i) of \(n)")` →
+key `"Step %lld of %lld"`; a `String` interpolation → `%@`.
+
+The packaging script copies every `*.lproj` into the app (and helper) bundle's
+`Contents/Resources`, where the runtime resolves them against the main bundle.
+A bare `swift build` run has no bundle resources and shows the English literals.
+
+To add a language:
+
+1. Copy `Localization/en.lproj/Localizable.strings` to `Localization/<code>.lproj/`.
+2. Translate the values (leave placeholders intact). Untranslated keys fall back
+   to English automatically.
+3. Add `<code>` to `CFBundleLocalizations` in `Packaging/Info.plist` and
+   `Packaging/Helper-Info.plist`.
+4. `plutil -lint Localization/<code>.lproj/Localizable.strings` must pass.
+
 ## Pull requests
 
 - Fill in the PR template.
