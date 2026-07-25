@@ -26,6 +26,9 @@ to [Semantic Versioning](https://semver.org/).
 - Global keyboard shortcuts (Lock All / Unlock All) via Carbon hot keys, owned by
   the engine process, with a shortcut-recorder UI and live re-registration when
   edited (a `DispatchSource` config-file watcher, no polling).
+- First-launch onboarding guide with Accessibility permission priming (live
+  status), launch-at-login, honest limitation framing, and a "Replay Setup
+  Guide" action in Preferences.
 - Launch-at-login via `SMAppService`.
 - Documentation suite, CI, SwiftLint/SwiftFormat, and Homebrew cask.
 

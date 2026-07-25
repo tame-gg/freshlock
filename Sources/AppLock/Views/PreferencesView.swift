@@ -156,6 +156,11 @@ struct PreferencesView: View {
         Form {
             Toggle("Developer Mode", isOn: $viewModel.settings.developerMode)
             LabeledContent("Accessibility", value: AccessibilityStatusText.current)
+            LabeledContent("Setup Guide") {
+                Button("Replay…") {
+                    NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
+                }
+            }
             Text("Verbose logging is written to the unified log under subsystem gg.tame.applock.")
                 .font(.caption)
                 .foregroundStyle(.secondary)

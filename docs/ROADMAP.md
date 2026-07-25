@@ -17,7 +17,7 @@ This is a living document; priorities may shift with community feedback.
       the GUI quitting
 - [x] Per-app relock policy editor UI
 - [x] Global keyboard shortcuts (Lock All / Unlock)
-- [ ] Onboarding flow with permission priming
+- [x] Onboarding flow with permission priming
 - [ ] Localised strings (catalog)
 
 ## v0.3 — Sync & backup
