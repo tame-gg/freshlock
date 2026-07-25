@@ -16,6 +16,7 @@ import UniformTypeIdentifiers
 
 struct PreferencesView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @AppStorage(MenuBarPreference.key) private var showMenuBarIcon = true
     @State private var backupStatus: String?
     @State private var backupIsError = false
 
@@ -45,8 +46,8 @@ struct PreferencesView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
-            Toggle("Show icon in menu bar", isOn: $viewModel.settings.showMenuBarIcon)
-            if !viewModel.settings.showMenuBarIcon {
+            Toggle("Show icon in menu bar", isOn: $showMenuBarIcon)
+            if !showMenuBarIcon {
                 Text("Reopen AppLock from Finder or Spotlight to bring back its window.")
                     .font(.caption).foregroundStyle(.secondary)
             }

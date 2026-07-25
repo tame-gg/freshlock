@@ -14,6 +14,13 @@ import SwiftUI
 enum AppWindowID {
     static let main = "main"
     static let about = "about"
+    static let settings = "settings"
+}
+
+/// The `UserDefaults`/`@AppStorage` key for menu-bar icon visibility, shared by
+/// the app entry and Preferences.
+enum MenuBarPreference {
+    static let key = "gg.tame.applock.showMenuBarIcon"
 }
 
 /// Bridges SwiftUI's `openWindow` action to AppKit code (the `AppDelegate`),
@@ -43,23 +50,9 @@ struct AppLockApp: App {
         ))
     }
 
-    /// Two-way binding to the "show menu bar icon" preference, so toggling it in
-    /// Preferences inserts/removes the `MenuBarExtra` live.
-    private var showMenuBarIcon: Binding<Bool> {
-        Binding(
-            get: { protectionViewModel.configuration.settings.showMenuBarIcon },
-            set: { newValue in
-                environment.configurationStore.update { $0.settings.showMenuBarIcon = newValue }
-            }
-        )
-    }
-
     var body: some Scene {
-        // Menu-bar presence — the always-on face of the app (user can hide it).
-        MenuBarExtra("AppLock", systemImage: "lock.shield.fill", isInserted: showMenuBarIcon) {
-            MenuBarContent(viewModel: protectionViewModel, unlockStore: environment.unlockStore)
-        }
-        .menuBarExtraStyle(.menu)
+        // The menu-bar item is managed in AppKit (StatusBarController) — see that
+        // file for why MenuBarExtra isn't used.
 
         // Main window.
         Window("AppLock", id: AppWindowID.main) {
@@ -67,6 +60,7 @@ struct AppLockApp: App {
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 640, height: 640)
+        .defaultLaunchBehavior(.presented)
 
         // About window.
         Window("About AppLock", id: AppWindowID.about) {
@@ -74,12 +68,15 @@ struct AppLockApp: App {
         }
         .windowResizability(.contentSize)
 
-        // Preferences via the standard ⌘, menu item.
-        Settings {
+        // Preferences as a plain window (NOT the `Settings` scene): the Settings
+        // scene installs a main-menu item that churns against the MenuBarExtra
+        // and sends SwiftUI into an infinite scene-update loop on this macOS.
+        Window("Preferences", id: AppWindowID.settings) {
             PreferencesView(
                 store: environment.configurationStore,
                 loginItem: environment.helperLoginItem
             )
         }
+        .windowResizability(.contentSize)
     }
 }

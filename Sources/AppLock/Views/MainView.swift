@@ -13,7 +13,6 @@ import SwiftUI
 
 struct MainView: View {
     @ObservedObject var viewModel: ProtectionViewModel
-    @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -54,7 +53,7 @@ struct MainView: View {
                 Spacer()
                 protectedPill
                 Button {
-                    openSettings()
+                    openWindow(id: AppWindowID.settings)
                 } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 15, weight: .semibold))

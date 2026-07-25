@@ -13,6 +13,8 @@ import AppLockCore
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Retained for the lifetime of the app so onboarding can be replayed.
     private var onboarding: OnboardingPresenter?
+    /// Owns the menu-bar status item.
+    private var statusBar: StatusBarController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Accessory activation policy = menu-bar utility, no Dock icon. This is
@@ -23,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated {
             let env = AppEnvironment.shared
             env.startServices()
+            statusBar = StatusBarController(environment: env)
 
             let presenter = OnboardingPresenter(
                 accessibility: env.accessibility,
