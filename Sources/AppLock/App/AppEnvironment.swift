@@ -9,6 +9,7 @@
 //  the two so both work.
 //
 
+import AppKit
 import AppLockCore
 import AppLockEngine
 import Foundation
@@ -73,23 +74,21 @@ final class AppEnvironment {
         }
     }
 
-    /// Whether the packaged background helper is present. When running from a
-    /// bare SwiftPM binary (no `.app`), there is no helper, so the GUI hosts the
-    /// engine itself.
+    /// Whether the GUI should host the locking engine itself.
+    ///
+    /// The rule is simply: **run in-process unless the background helper is
+    /// already running**. This guarantees protection is active out of the box —
+    /// including for unsigned local builds where `SMAppService` can't register
+    /// the helper — while still deferring to the helper when it *is* live (so we
+    /// never run two engines and double-prompt). The helper enabling itself
+    /// later takes effect on the next GUI launch.
     private static func helperUnavailable() -> Bool {
-        // The helper lives at Contents/Library/LoginItems/AppLockHelper.app when
-        // packaged. Absence means we should run in-process.
-        Bundle.main.bundleURL
-            .appendingPathComponent("Contents/Library/LoginItems/AppLockHelper.app")
-            .checkResourceIsReachableSafely() == false
+        NSRunningApplication
+            .runningApplications(withBundleIdentifier: Self.helperBundleID)
+            .isEmpty
     }
+
+    static let helperBundleID = "gg.tame.applock.helper"
 
     static let shared = AppEnvironment()
-}
-
-private extension URL {
-    /// Non-throwing reachability check.
-    func checkResourceIsReachableSafely() -> Bool {
-        (try? checkResourceIsReachable()) ?? false
-    }
 }
