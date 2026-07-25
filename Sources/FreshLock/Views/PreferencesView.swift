@@ -2,9 +2,10 @@
 //  PreferencesView.swift
 //  FreshLock
 //
-//  Embeddable Settings content: a native grouped Form for the main window
-//  detail pane. Includes the Liquid Glass preference (applied to FreshLock
-//  chrome when macOS 26+ APIs are available).
+//  Embeddable Settings content: one native grouped Form per `SettingsPane`,
+//  shown in the main window's detail pane. Splitting the pages keeps each one
+//  short enough to read, and lets the explanatory copy live as a caption under
+//  the control it belongs to rather than as loose paragraphs in the scroll.
 //
 
 import AppKit
@@ -15,6 +16,8 @@ import UniformTypeIdentifiers
 
 struct PreferencesView: View {
     @ObservedObject var viewModel: SettingsViewModel
+    var pane: SettingsPane = .general
+
     @StateObject private var systemExtensionRegistrar = SystemExtensionRegistrar()
 
     private var preferGlass: Bool {
@@ -22,112 +25,164 @@ struct PreferencesView: View {
     }
 
     var body: some View {
-        Form {
-            generalSection
-            appearanceSection
-            lockingSection
-            shortcutsSection
-            backupSection
-            advancedSection
+        Group {
+            if pane == .about {
+                aboutPane
+            } else {
+                form
+            }
         }
-        .formStyle(.grouped)
         .tint(Theme.accent)
         .environment(\.preferLiquidGlass, preferGlass)
+    }
+
+    private var form: some View {
+        Form {
+            switch pane {
+            case .general:
+                generalSection
+                appearanceSection
+            case .locking:
+                lockingSection
+            case .shortcuts:
+                shortcutsSection
+            case .backup:
+                backupSection
+            case .advanced:
+                advancedSection
+            case .about:
+                EmptyView()
+            }
+        }
+        .formStyle(.grouped)
         .scrollContentBackground(.hidden)
     }
 
-    // MARK: Sections
+    // MARK: General
 
     private var generalSection: some View {
         Section("General") {
-            Toggle("Launch at login", isOn: viewModel.launchAtLogin)
+            Toggle(isOn: viewModel.launchAtLogin) {
+                SettingsRowLabel(
+                    symbol: "power",
+                    title: "Launch at login",
+                    subtitle: "Start protecting apps as soon as you sign in."
+                )
+            }
             if let error = viewModel.loginItemError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                SettingsRowNote(text: "\(error)", isError: true)
             }
-            Toggle("Show icon in menu bar", isOn: viewModel.showMenuBarIcon)
+
+            Toggle(isOn: viewModel.showMenuBarIcon) {
+                SettingsRowLabel(
+                    symbol: "menubar.arrow.up.rectangle",
+                    title: "Show icon in menu bar",
+                    subtitle: "Lock state and your protected apps, one click away."
+                )
+            }
             if !viewModel.showMenuBarIcon.wrappedValue {
-                Text("Reopen FreshLock from Finder or Spotlight to bring back its window.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsRowNote(text: "Reopen FreshLock from Finder or Spotlight to bring back its window.")
             }
-            Toggle("Notify when a protected app launches", isOn: viewModel.binding(\.notifyOnProtectedLaunch))
-            Picker("Overlay style", selection: viewModel.binding(\.overlayStyle)) {
+
+            Toggle(isOn: viewModel.binding(\.notifyOnProtectedLaunch)) {
+                SettingsRowLabel(
+                    symbol: "bell",
+                    title: "Notify when a protected app launches",
+                    subtitle: "A quiet confirmation that FreshLock stepped in."
+                )
+            }
+
+            Picker(selection: viewModel.binding(\.overlayStyle)) {
                 ForEach(OverlayStyle.allCases, id: \.self) { Text($0.displayName).tag($0) }
+            } label: {
+                SettingsRowLabel(
+                    symbol: "rectangle.on.rectangle",
+                    title: "Overlay style",
+                    subtitle: "What covers a locked app while it waits for you."
+                )
             }
         }
     }
 
     private var appearanceSection: some View {
-        Section {
+        Section("Appearance") {
             // Remains enabled on older OS so the preference persists; glass is a
             // no-op until macOS 26+ (see LiquidGlass.swift).
-            Toggle("Use Liquid Glass", isOn: viewModel.binding(\.preferLiquidGlass))
-            if !LiquidGlassSupport.isAvailable {
-                Text(LiquidGlassSupport.unavailableNote)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Toggle(isOn: viewModel.binding(\.preferLiquidGlass)) {
+                SettingsRowLabel(
+                    symbol: "circle.lefthalf.filled",
+                    title: "Use Liquid Glass",
+                    subtitle: "Opt FreshLock's own surfaces into the system glass material."
+                )
             }
-        } header: {
-            Text("Appearance")
+            if !LiquidGlassSupport.isAvailable {
+                SettingsRowNote(text: LiquidGlassSupport.unavailableNote)
+            }
         }
     }
 
+    // MARK: Locking
+
     private var lockingSection: some View {
-        Section("Locking") {
-            Picker("Default relock", selection: defaultRelockKind) {
+        Section("Relock") {
+            Picker(selection: defaultRelockKind) {
                 ForEach(PolicyKind.explicitCases, id: \.self) { Text($0.displayName).tag($0) }
+            } label: {
+                SettingsRowLabel(
+                    symbol: "clock.arrow.circlepath",
+                    title: "Default relock",
+                    subtitle: "\"When switching away\" matches iOS - it re-asks each time you return."
+                )
             }
-            Text("\"When switching away\" matches iOS - re-asks each time you return.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
             if defaultRelockKind.wrappedValue.needsMinutes {
                 Stepper("Minutes: \(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1 ... 240)
             }
-            Toggle("Relock when switching away (all apps)", isOn: viewModel.binding(\.requireEveryLaunch))
-                .help("Paranoid mode: always require authentication again after leaving a protected app, regardless of that app's relock policy. Unlock still sticks while you stay in the app.")
-            Text(
-                """
-                Applies `.afterSwitchingAway` globally. Unlock still sticks while the \
-                protected app stays frontmost; quitting always clears unlock.
-                """
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            Toggle(
-                "Prompt authentication automatically",
-                isOn: viewModel.binding(\.automaticallyPromptAuthentication)
-            )
-            .help(
-                "When on, Touch ID / password appears as soon as you enter a protected app. When off, only the lock overlay appears until you click Unlock."
-            )
-            Text(
-                "When off, FreshLock shows the lock overlay only. Click Unlock to authenticate. Cancel returns to the overlay."
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            GracePeriodEditor(seconds: viewModel.binding(\.gracePeriodSeconds))
-            Text("Time before relock when switching away.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
             if defaultRelockKind.wrappedValue == .afterInactivity {
-                Text("Inactivity uses real keyboard and mouse idle time, not time since unlock.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SettingsRowNote(text: "Inactivity uses real keyboard and mouse idle time, not time since unlock.")
             }
+
+            Toggle(isOn: viewModel.binding(\.requireEveryLaunch)) {
+                SettingsRowLabel(
+                    symbol: "arrow.uturn.backward",
+                    title: "Relock when switching away (all apps)",
+                    subtitle: """
+                    Paranoid mode: applies to every app regardless of its own policy. \
+                    Unlock still sticks while you stay in the app; quitting always clears it.
+                    """
+                )
+            }
+
+            Toggle(isOn: viewModel.binding(\.automaticallyPromptAuthentication)) {
+                SettingsRowLabel(
+                    symbol: "touchid",
+                    title: "Prompt authentication automatically",
+                    subtitle: """
+                    On: Touch ID appears the moment you enter a protected app. \
+                    Off: the overlay waits until you click Unlock.
+                    """
+                )
+            }
+
+            GracePeriodEditor(seconds: viewModel.binding(\.gracePeriodSeconds))
+            SettingsRowNote(text: "Time before relock when switching away.")
         }
     }
 
+    // MARK: Shortcuts
+
     private var shortcutsSection: some View {
         Section {
-            LabeledContent("Lock All") {
+            LabeledContent {
                 ShortcutRecorderView(shortcut: viewModel.binding(\.lockAllShortcut))
                     .frame(width: 150, height: 26)
+            } label: {
+                SettingsRowLabel(symbol: "lock.fill", title: "Lock All")
             }
-            LabeledContent("Unlock All") {
+            LabeledContent {
                 ShortcutRecorderView(shortcut: viewModel.binding(\.unlockAllShortcut))
                     .frame(width: 150, height: 26)
+            } label: {
+                SettingsRowLabel(symbol: "lock.open.fill", title: "Unlock All")
             }
         } header: {
             Text("Global Shortcuts")
@@ -136,53 +191,77 @@ struct PreferencesView: View {
         }
     }
 
+    // MARK: Backup
+
     private var backupSection: some View {
         Section {
-            Button("Export configuration…", action: exportConfiguration)
-            Button("Import configuration…", action: importConfiguration)
+            Button(action: exportConfiguration) {
+                Label("Export configuration…", systemImage: "square.and.arrow.up")
+            }
+            Button(action: importConfiguration) {
+                Label("Import configuration…", systemImage: "square.and.arrow.down")
+            }
             if let backupStatus = viewModel.backupStatus {
                 Text(backupStatus)
                     .font(.caption)
-                    .foregroundStyle(viewModel.backupIsError ? .red : .secondary)
+                    .foregroundStyle(viewModel.backupIsError ? AnyShapeStyle(Color.red) : AnyShapeStyle(HierarchicalShapeStyle.secondary))
             }
         } header: {
-            Text("Backup")
+            Text("Configuration File")
         } footer: {
             Text("A single JSON file with your protected apps and preferences. It never contains passwords.")
         }
     }
 
+    // MARK: Advanced
+
     private var advancedSection: some View {
-        Section("Advanced") {
-            LabeledContent("Accessibility") {
-                if AccessibilityPermission.isTrusted {
-                    Text("Granted")
-                        .foregroundStyle(.secondary)
-                } else {
-                    Button("Open Settings…") {
-                        AccessibilityPermission.requestTrust()
-                        AccessibilityPermission.openSystemSettings()
+        Group {
+            Section("Permissions") {
+                LabeledContent {
+                    if AccessibilityPermission.isTrusted {
+                        Text("Granted")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button("Open Settings…") {
+                            AccessibilityPermission.requestTrust()
+                            AccessibilityPermission.openSystemSettings()
+                        }
                     }
+                } label: {
+                    SettingsRowLabel(
+                        symbol: "accessibility",
+                        title: "Accessibility",
+                        subtitle: "Required for reliable locking. Enable FreshLock under Privacy & Security → Accessibility."
+                    )
+                }
+                if !AccessibilityPermission.isTrusted {
+                    SettingsRowNote(text: "If a FreshLock toggle is already on, it may be a different build. Remove old entries and enable:")
+                    Text(AccessibilityPermission.runningBundlePathDisplay)
+                        .font(.system(.caption2, design: .monospaced))
+                        .textSelection(.enabled)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, Theme.settingsIconColumn + 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            if !AccessibilityPermission.isTrusted {
-                Text("Required for reliable locking. Enable the FreshLock entry for this app in System Settings → Privacy & Security → Accessibility.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("If a FreshLock toggle is already on, it may be a different build. Remove old entries and enable:")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(AccessibilityPermission.runningBundlePathDisplay)
-                    .font(.system(.caption2, design: .monospaced))
-                    .textSelection(.enabled)
-                    .foregroundStyle(.secondary)
-            }
-            Toggle("Developer mode", isOn: viewModel.binding(\.developerMode))
-            if viewModel.settings.developerMode {
-                enforcementSection
-            }
-            Button("Replay setup guide…") {
-                NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
+
+            Section("Developer") {
+                Toggle(isOn: viewModel.binding(\.developerMode)) {
+                    SettingsRowLabel(
+                        symbol: "hammer",
+                        title: "Developer mode",
+                        subtitle: "Show the Endpoint Security enforcement controls."
+                    )
+                }
+                if viewModel.settings.developerMode {
+                    enforcementSection
+                }
+                Button {
+                    NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
+                } label: {
+                    Label("Replay setup guide…", systemImage: "arrow.counterclockwise")
+                }
             }
         }
     }
@@ -232,6 +311,17 @@ struct PreferencesView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
+    }
+
+    // MARK: About
+
+    private var aboutPane: some View {
+        ScrollView {
+            AboutView()
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+        }
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     // MARK: Bindings
