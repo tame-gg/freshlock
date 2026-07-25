@@ -57,10 +57,6 @@ final class OverlayService: OverlayServiceProtocol {
     private var windowsByBundleID: [String: [NSWindow]] = [:]
     private var trackTimers: [String: Timer] = [:]
 
-    /// How much larger than the window to draw the cover, so resize edges (which
-    /// sit a few points outside the reported bounds) are also blocked.
-    private static let outset: CGFloat = 6
-
     func isShowingOverlay(for bundleID: String) -> Bool {
         contentByBundleID[bundleID] != nil
     }
@@ -112,17 +108,24 @@ final class OverlayService: OverlayServiceProtocol {
 
     /// Match overlay panels to the app's current windows. Called on show and on
     /// every tracking tick, so the cover follows move/resize live.
+    ///
+    /// The overlay is shown **only while the locked app is frontmost**. When the
+    /// user switches to a different (unlocked) app, the covered app naturally
+    /// goes behind it, so we hide the overlay — otherwise a top-most cover over
+    /// the locked app's screen region would also block whatever unlocked app is
+    /// there. Re-activating the locked app fires an activation event and the
+    /// coordinator re-locks it.
     private func placeOrUpdate(_ bundleID: String) {
         guard let content = contentByBundleID[bundleID], let pid = pidByBundleID[bundleID] else { return }
 
-        let frames = Self.windowFrames(pid: pid).map { $0.insetBy(dx: -Self.outset, dy: -Self.outset) }
         var windows = windowsByBundleID[bundleID] ?? []
+        let frames = Self.shouldCover(pid: pid) ? Self.windowFrames(pid: pid) : []
 
         guard !frames.isEmpty else {
-            // No visible window (still launching, or minimised): pull the cover
-            // until a window reappears. Tracking keeps running.
+            // Not the locked app's context, or no visible window yet: hide the
+            // cover (keep the windows for reuse). This is what keeps other apps
+            // usable when the user switches away.
             windows.forEach { $0.orderOut(nil) }
-            windowsByBundleID[bundleID] = []
             return
         }
 
@@ -130,14 +133,14 @@ final class OverlayService: OverlayServiceProtocol {
             windows.forEach { $0.orderOut(nil) }
             windows = frames.map { Self.makeOverlayWindow(frame: $0, content: content) }
             windowsByBundleID[bundleID] = windows
-            // Order front WITHOUT activating AppLock, so the Touch ID sheet keeps
-            // focus and can be completed.
-            windows.forEach { $0.orderFrontRegardless() }
         } else {
             for (window, frame) in zip(windows, frames) where window.frame != frame {
                 window.setFrame(frame, display: true)
             }
         }
+        // Order front WITHOUT activating AppLock, so the Touch ID sheet keeps
+        // focus and can be completed.
+        windows.forEach { $0.orderFrontRegardless() }
     }
 
     private func startTracking(_ bundleID: String) {
@@ -154,6 +157,23 @@ final class OverlayService: OverlayServiceProtocol {
             }
         }
         trackTimers[bundleID] = timer
+    }
+
+    /// Whether the overlay for `pid` should currently be shown. True when the
+    /// locked app is frontmost — or when the frontmost app is a *transient*
+    /// part of locking it: Apple's Touch ID sheet
+    /// (`LocalAuthentication.UIAgent`) or AppLock itself. Without this exception
+    /// the cover would vanish the instant the auth sheet appeared (the sheet
+    /// becomes the frontmost application).
+    private static func shouldCover(pid: pid_t) -> Bool {
+        guard let front = NSWorkspace.shared.frontmostApplication else { return false }
+        if front.processIdentifier == pid { return true }
+        switch front.bundleIdentifier {
+        case "com.apple.LocalAuthentication.UIAgent", "gg.tame.applock":
+            return true
+        default:
+            return false
+        }
     }
 
     // MARK: - Window geometry
@@ -192,14 +212,20 @@ final class OverlayService: OverlayServiceProtocol {
             backing: .buffered,
             defer: false
         )
-        window.contentView = NSHostingView(rootView: content)
+        let hosting = NSHostingView(rootView: content)
+        // Clear background so the overlay's rounded corners reveal the desktop /
+        // the window's own rounded corners instead of sharp square edges.
+        hosting.wantsLayer = true
+        window.contentView = hosting
         window.setFrame(frame, display: true)
         window.level = .screenSaver
         window.isOpaque = false
         window.backgroundColor = .clear
         window.hasShadow = false
         window.ignoresMouseEvents = false
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+        // Stay on the app's own Space only — NOT `.canJoinAllSpaces`, which would
+        // float the cover over other apps on other Spaces.
+        window.collectionBehavior = [.fullScreenAuxiliary]
         window.isReleasedWhenClosed = false
         window.hidesOnDeactivate = false
         window.orderFrontRegardless()

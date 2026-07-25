@@ -19,6 +19,9 @@ struct LockOverlayView: View {
     let onUnlock: () -> Void
     /// Invoked when the user backs out — the coordinator hides the app.
     let onCancel: () -> Void
+    /// Corner radius matching the covered macOS window, so the overlay has the
+    /// same rounded (continuous) corners rather than sharp rectangular ones.
+    var cornerRadius: CGFloat = 10
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -28,7 +31,7 @@ struct LockOverlayView: View {
             backdrop
             content
         }
-        .ignoresSafeArea()
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .onAppear {
             withAnimation(reduceMotion ? nil : .spring(duration: 0.4)) { appeared = true }
         }
