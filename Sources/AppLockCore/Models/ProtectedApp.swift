@@ -62,11 +62,16 @@ public struct ProtectedApp: Identifiable, Hashable, Sendable, Codable {
     }
 
     /// Convenience initialiser from a freshly-discovered app.
+    ///
+    /// A newly-created entry is **not** protected until the user explicitly
+    /// enables it — otherwise the first tap of the protection toggle would flip
+    /// a defaulted-on value back off.
     public init(from installed: InstalledApp, category: AppCategory = .other) {
         self.init(
             bundleIdentifier: installed.bundleIdentifier,
             name: installed.name,
             path: installed.path,
+            isEnabled: false,
             category: category
         )
     }

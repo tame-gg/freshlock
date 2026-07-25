@@ -17,6 +17,8 @@ struct LockOverlayView: View {
     let style: OverlayStyle
     /// Invoked when the user asks to authenticate (also triggered automatically).
     let onUnlock: () -> Void
+    /// Invoked when the user backs out — the coordinator hides the app.
+    let onCancel: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
@@ -44,28 +46,53 @@ struct LockOverlayView: View {
     }
 
     private var content: some View {
-        VStack(spacing: 20) {
-            icon
-                .resizable()
-                .frame(width: 96, height: 96)
-                .shadow(radius: 12, y: 6)
-                .scaleEffect(appeared ? 1 : 0.8)
-                .accessibilityHidden(true)
-
-            Text(appName)
-                .font(.title.weight(.semibold))
-
-            Label("Unlock with \(method.displayName)", systemImage: symbol)
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            Button(action: onUnlock) {
-                Text("Unlock")
-                    .frame(minWidth: 120)
+        VStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .fill(.thinMaterial)
+                    .frame(width: 128, height: 128)
+                Image(systemName: symbol)
+                    .font(.system(size: 44, weight: .semibold))
+                    .foregroundStyle(.tint)
+                    .symbolRenderingMode(.hierarchical)
             }
-            .controlSize(.large)
-            .buttonStyle(.borderedProminent)
-            .keyboardShortcut(.defaultAction)
+            .overlay(alignment: .bottomTrailing) {
+                icon
+                    .resizable()
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .shadow(radius: 4, y: 2)
+                    .offset(x: 6, y: 6)
+            }
+            .scaleEffect(appeared ? 1 : 0.85)
+            .shadow(radius: 16, y: 8)
+            .accessibilityHidden(true)
+
+            VStack(spacing: 4) {
+                Text(appName)
+                    .font(.title.weight(.bold))
+                Text("Locked · Unlock with \(method.displayName)")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 12) {
+                Button(action: onCancel) {
+                    Text("Cancel")
+                        .frame(minWidth: 90)
+                }
+                .controlSize(.large)
+                .keyboardShortcut(.cancelAction)
+
+                Button(action: onUnlock) {
+                    Label("Unlock", systemImage: symbol)
+                        .frame(minWidth: 110)
+                }
+                .controlSize(.large)
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 4)
         }
         .padding(40)
         .opacity(appeared ? 1 : 0)

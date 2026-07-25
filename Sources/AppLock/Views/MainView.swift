@@ -30,22 +30,29 @@ struct MainView: View {
     private var sidebar: some View {
         List(selection: $viewModel.sidebarSelection) {
             Section {
-                label("All Apps", systemImage: "square.grid.2x2", tag: .all)
-                label("Protected", systemImage: "lock.fill", tag: .protected)
-                label("Favourites", systemImage: "star.fill", tag: .favorites)
+                label("All Apps", systemImage: "square.grid.2x2.fill", tint: .gray, tag: .all)
+                label("Protected", systemImage: "lock.fill", tint: .blue, tag: .protected)
+                    .badge(viewModel.protectedCount)
+                label("Favourites", systemImage: "star.fill", tint: .yellow, tag: .favorites)
+                    .badge(viewModel.favoritesCount)
             }
             Section("Categories") {
                 ForEach(AppCategory.allCases, id: \.self) { category in
-                    label(category.displayName, systemImage: category.symbolName, tag: .category(category))
+                    label(category.displayName, systemImage: category.symbolName, tint: .accentColor, tag: .category(category))
                 }
             }
         }
-        .navigationSplitViewColumnWidth(min: 200, ideal: 220)
+        .navigationSplitViewColumnWidth(min: 210, ideal: 230)
         .navigationTitle("AppLock")
     }
 
-    private func label(_ title: String, systemImage: String, tag: SidebarItem) -> some View {
-        Label(title, systemImage: systemImage).tag(tag)
+    private func label(_ title: String, systemImage: String, tint: Color, tag: SidebarItem) -> some View {
+        Label {
+            Text(title)
+        } icon: {
+            Image(systemName: systemImage).foregroundStyle(tint)
+        }
+        .tag(tag)
     }
 
     // MARK: App list (content column)
@@ -60,21 +67,32 @@ struct MainView: View {
                 )
             } else {
                 List(selection: $viewModel.selectedAppID) {
-                    ForEach(viewModel.visibleApps) { app in
-                        AppRowView(
-                            app: app,
-                            isProtected: viewModel.isProtected(app.bundleIdentifier),
-                            isFavorite: viewModel.isFavorite(app.bundleIdentifier),
-                            onToggleProtection: { viewModel.toggleProtection(for: app) },
-                            onToggleFavorite: { viewModel.toggleFavorite(for: app) }
-                        )
-                        .tag(app.bundleIdentifier)
+                    if !viewModel.favoriteVisibleApps.isEmpty {
+                        Section("Favourites") {
+                            ForEach(viewModel.favoriteVisibleApps) { row(for: $0) }
+                        }
+                        Section("All Apps") {
+                            ForEach(viewModel.nonFavoriteVisibleApps) { row(for: $0) }
+                        }
+                    } else {
+                        ForEach(viewModel.visibleApps) { row(for: $0) }
                     }
                 }
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Search apps")
+        .searchable(text: $viewModel.searchText, placement: .toolbar, prompt: "Search apps")
         .navigationTitle("Apps")
+    }
+
+    private func row(for app: InstalledApp) -> some View {
+        AppRowView(
+            app: app,
+            isProtected: viewModel.isProtected(app.bundleIdentifier),
+            isFavorite: viewModel.isFavorite(app.bundleIdentifier),
+            onToggleProtection: { viewModel.toggleProtection(for: app) },
+            onToggleFavorite: { viewModel.toggleFavorite(for: app) }
+        )
+        .tag(app.bundleIdentifier)
     }
 
     // MARK: Detail (inspector column)

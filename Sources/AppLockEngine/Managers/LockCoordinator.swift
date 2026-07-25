@@ -138,14 +138,17 @@ final class LockCoordinator {
         let bundleID = app.bundleIdentifier
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first
         let icon = running?.icon ?? NSWorkspace.shared.icon(forFile: app.path)
+        let pid = running?.processIdentifier ?? -1
 
         overlay.showOverlay(
             for: bundleID,
+            pid: pid,
             appName: app.name,
             icon: icon,
             method: auth.availableMethod(),
             style: config.settings.overlayStyle,
-            onUnlock: { [weak self] in self?.authenticate(app: app, config: config) }
+            onUnlock: { [weak self] in self?.authenticate(app: app, config: config) },
+            onCancel: { [weak self] in self?.cancelAndHide(app: app) }
         )
 
         if config.settings.notifyOnProtectedLaunch {
@@ -170,12 +173,26 @@ final class LockCoordinator {
             case .success:
                 self.handleSuccess(app: app, config: config)
             case .cancelled:
-                // Leave the overlay up; the user can retry via the Unlock button.
-                break
+                // Cancelling authentication backs out of the app entirely.
+                self.cancelAndHide(app: app)
             case .failure:
                 self.handleFailure(app: app, config: config)
             }
         }
+    }
+
+    /// The user declined to authenticate: relock, remove the overlay, and hide
+    /// the protected app so it's no longer on screen (reversible — re-opening it
+    /// prompts again). Hiding rather than force-quitting avoids data loss.
+    private func cancelAndHide(app: ProtectedApp) {
+        let bundleID = app.bundleIdentifier
+        store.lock(bundleID)
+        overlay.dismissOverlay(for: bundleID)
+        authInFlight.remove(bundleID)
+        for running in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID) {
+            running.hide()
+        }
+        Log.lifecycle.info("Hid \(bundleID, privacy: .public) after cancel")
     }
 
     private func handleSuccess(app: ProtectedApp, config: Configuration) {

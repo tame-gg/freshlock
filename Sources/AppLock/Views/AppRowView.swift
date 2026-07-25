@@ -20,12 +20,23 @@ struct AppRowView: View {
         HStack(spacing: 12) {
             app.iconImage
                 .resizable()
-                .frame(width: 32, height: 32)
+                .frame(width: 36, height: 36)
+                .overlay(alignment: .bottomTrailing) {
+                    if isProtected {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(3)
+                            .background(Circle().fill(.blue))
+                            .overlay(Circle().stroke(Color(nsColor: .windowBackgroundColor), lineWidth: 1.5))
+                            .offset(x: 3, y: 3)
+                    }
+                }
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(app.name)
-                    .font(.body)
+                    .font(.body.weight(.medium))
                 Text(app.bundleIdentifier)
                     .font(.caption)
                     .foregroundStyle(.secondary)

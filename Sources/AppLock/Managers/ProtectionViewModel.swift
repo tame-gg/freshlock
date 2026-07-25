@@ -95,6 +95,21 @@ final class ProtectionViewModel: ObservableObject {
         return installedApps.first { $0.bundleIdentifier == id }
     }
 
+    /// Number of apps with protection enabled (for the sidebar badge).
+    var protectedCount: Int { configuration.enabledProtectedApps.count }
+
+    /// Number of favourited apps (for the sidebar badge).
+    var favoritesCount: Int { configuration.protectedApps.filter(\.isFavorite).count }
+
+    /// Visible apps split into favourites and the rest, for sectioned display.
+    var favoriteVisibleApps: [InstalledApp] {
+        visibleApps.filter { isFavorite($0.bundleIdentifier) }
+    }
+
+    var nonFavoriteVisibleApps: [InstalledApp] {
+        visibleApps.filter { !isFavorite($0.bundleIdentifier) }
+    }
+
     // MARK: Lookups
 
     func protectedApp(for bundleID: String) -> ProtectedApp? {
