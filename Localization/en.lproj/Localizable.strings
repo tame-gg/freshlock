@@ -63,6 +63,17 @@
 "Notify when a protected app launches" = "Notify when a protected app launches";
 "Overlay Style" = "Overlay Style";
 "Require authentication on every launch" = "Require authentication on every launch";
+"Grace period after unlock" = "Grace period after unlock";
+"Time before relock when switching away." = "Time before relock when switching away.";
+"Custom" = "Custom";
+"Seconds" = "Seconds";
+"Minutes" = "Minutes";
+"Hours" = "Hours";
+"15s" = "15s";
+"30s" = "30s";
+"1m" = "1m";
+"5m" = "5m";
+"15m" = "15m";
 "Grace period: %llds" = "Grace period: %llds";
 "Default inactivity timeout: %lld min" = "Default inactivity timeout: %lld min";
 "Developer Mode" = "Developer Mode";

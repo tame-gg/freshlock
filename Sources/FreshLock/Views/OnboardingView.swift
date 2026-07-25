@@ -221,6 +221,36 @@ struct OnboardingView: View {
         }
     }
 
+    private var gracePeriodPage: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            pageTitle(
+                "Grace period after unlock",
+                subtitle: "Time before relock when switching away. A short pause avoids re-prompts while you tab out briefly."
+            )
+
+            VStack(alignment: .leading, spacing: 14) {
+                GracePeriodEditor(
+                    seconds: Binding(
+                        get: { viewModel.gracePeriodSeconds },
+                        set: { viewModel.setGracePeriodSeconds($0) }
+                    ),
+                    radioStyle: true
+                )
+
+                Text("You can change this anytime in Preferences.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .freshLockGlass(
+                enabled: preferGlass,
+                in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
+            )
+        }
+    }
+
     private var donePage: some View {
         VStack(alignment: .leading, spacing: 20) {
             pageTitle(

@@ -59,6 +59,17 @@
 "Notify when a protected app launches" = "Notifier à l'ouverture d'une app protégée";
 "Overlay Style" = "Style de superposition";
 "Require authentication on every launch" = "Exiger l'authentification à chaque ouverture";
+"Grace period after unlock" = "Délai de grâce après déverrouillage";
+"Time before relock when switching away." = "Délai avant reverrouillage en changeant d'app.";
+"Custom" = "Personnalisé";
+"Seconds" = "Secondes";
+"Minutes" = "Minutes";
+"Hours" = "Heures";
+"15s" = "15s";
+"30s" = "30s";
+"1m" = "1m";
+"5m" = "5m";
+"15m" = "15m";
 "Grace period: %llds" = "Délai de grâce : %llds";
 "Default inactivity timeout: %lld min" = "Inactivité par défaut : %lld min";
 "Developer Mode" = "Mode développeur";
