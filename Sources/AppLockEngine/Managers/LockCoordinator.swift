@@ -33,6 +33,10 @@ final class LockCoordinator {
     private var lastFrontmostProtected: String?
     /// Bundle IDs with an in-flight auth prompt, to avoid double-prompting.
     private var authInFlight: Set<String> = []
+    /// Bundle IDs being closed after a cancelled auth. Their activation events
+    /// are ignored so cancelling doesn't immediately re-lock and re-prompt while
+    /// the app is quitting.
+    private var closing: Set<String> = []
 
     init(
         monitor: AppMonitorServiceProtocol,
@@ -102,12 +106,14 @@ final class LockCoordinator {
         switch event {
         case .launched(let bundleID, _), .activated(let bundleID, _):
             guard !Self.transientBundleIDs.contains(bundleID) else { return }
+            guard !closing.contains(bundleID) else { return }
             enforceSwitchAway(newFrontmost: bundleID, config: config)
             guard let app = config.protectedApp(for: bundleID), app.isEnabled else { return }
             lockIfNeeded(app, config: config)
         case .terminated(let bundleID):
             overlay.dismissOverlay(for: bundleID)
             authInFlight.remove(bundleID)
+            closing.remove(bundleID)
             failureCounts[bundleID] = nil
             // Relock on quit so the next launch always re-authenticates. This is
             // what makes `.everyLaunch` mean "once per launch".
@@ -199,25 +205,31 @@ final class LockCoordinator {
     /// shortly after.
     private func cancelAndClose(app: ProtectedApp) {
         let bundleID = app.bundleIdentifier
+        guard !closing.contains(bundleID) else { return }
         // Dismiss Apple's Touch ID sheet if it's still up (e.g. the user tapped
         // the overlay's Cancel button rather than the sheet's).
         auth.cancel()
         store.lock(bundleID)
         overlay.dismissOverlay(for: bundleID)
         authInFlight.remove(bundleID)
+        // Ignore this app's activations while it quits, so the app re-becoming
+        // frontmost as the sheet closes doesn't immediately re-lock and re-prompt.
+        closing.insert(bundleID)
 
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
         running.forEach { $0.terminate() }
         Log.lifecycle.info("Closing \(bundleID, privacy: .public) after cancel")
 
-        // Escalate to force-quit anything that ignored the polite request.
+        // Escalate to force-quit anything that ignored the polite request, then
+        // stop ignoring the app: if it somehow survived, protection resumes.
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(2))
-            guard self != nil else { return }
+            guard let self else { return }
             for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
             where !app.isTerminated {
                 app.forceTerminate()
             }
+            self.closing.remove(bundleID)
         }
     }
 

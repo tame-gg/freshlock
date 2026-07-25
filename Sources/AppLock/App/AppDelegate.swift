@@ -45,11 +45,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Reopening AppLock (Finder/Spotlight/Dock) surfaces the main window — the
-    /// way back when the menu-bar icon is hidden. The window is otherwise never
-    /// shown automatically, so launching at login stays silent.
+    /// Reopening AppLock (Finder/Spotlight/Dock). The window is never shown
+    /// automatically at launch. On reopen we only surface it when the menu-bar
+    /// icon is hidden — otherwise that would be the only way in. When the icon is
+    /// visible, opening the app just activates it; use the menu bar to open the
+    /// window, so it never pops up unexpectedly.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        MainActor.assumeIsolated { WindowManager.shared.showMain() }
+        MainActor.assumeIsolated {
+            let menuBarHidden = !UserDefaults.standard.bool(forKey: MenuBarPreference.key)
+            if menuBarHidden {
+                WindowManager.shared.showMain()
+            } else {
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
         return true
     }
 }

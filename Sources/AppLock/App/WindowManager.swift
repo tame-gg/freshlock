@@ -25,6 +25,7 @@ final class WindowManager {
     private let environment = AppEnvironment.shared
     private var mainController: NSWindowController?
     private var aboutController: NSWindowController?
+    private var prefsController: NSWindowController?
 
     /// Show (creating if needed) the main window and bring it to the front.
     func showMain() {
@@ -64,10 +65,28 @@ final class WindowManager {
         aboutController?.showWindow(nil)
     }
 
-    /// Open the standard Preferences (the SwiftUI `Settings` scene).
+    /// Open Preferences. Hosted in AppKit because the SwiftUI `Settings` scene
+    /// can't be opened reliably from code on this macOS (`showSettingsWindow:`
+    /// is a no-op here).
     func showPreferences() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        if let controller = prefsController {
+            controller.window?.makeKeyAndOrderFront(nil)
+            return
+        }
+        let view = PreferencesView(
+            store: environment.configurationStore,
+            loginItem: environment.helperLoginItem
+        )
+        let hosting = NSHostingController(rootView: view)
+        let window = Self.makeWindow(
+            title: "Preferences",
+            contentViewController: hosting,
+            size: NSSize(width: 500, height: 640),
+            minSize: NSSize(width: 500, height: 480)
+        )
+        prefsController = NSWindowController(window: window)
+        prefsController?.showWindow(nil)
     }
 
     // MARK: - Window construction
