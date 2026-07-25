@@ -7,8 +7,8 @@
 //  AppKit, which we keep out of `FreshLockCore`.
 //
 
-import FreshLockCore
 import AppKit
+import FreshLockCore
 import SwiftUI
 
 extension InstalledApp {

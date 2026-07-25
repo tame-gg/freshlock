@@ -94,7 +94,12 @@ public final class LocalAuthenticationService: AuthenticationServiceProtocol {
         }
 
         do {
-            let ok = try await context.evaluatePolicy(policy, localizedReason: reason)
+            // `evaluatePolicy` is nonisolated; `nonisolated(unsafe)` lets us send
+            // this MainActor-owned context across that boundary without racing —
+            // we still only touch `activeContexts` on the main actor, and
+            // `cancel()` invalidates the same instance.
+            nonisolated(unsafe) let evaluationContext = context
+            let ok = try await evaluationContext.evaluatePolicy(policy, localizedReason: reason)
             if ok {
                 let method = availableMethod()
                 Log.auth.info("Authentication succeeded via \(method.displayName)")

@@ -3,8 +3,8 @@
 //  FreshLockCoreTests
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import FreshLockCore
 
 @MainActor
@@ -83,7 +83,9 @@ struct UnlockStateStoreTests {
         store.grantUnlock("sleepy", scope: .untilSleep, sessionPID: 1)
         store.grantUnlock("loggy", scope: .untilLogout, sessionPID: 2)
         store.revokeGrants { scope in
-            if case .untilSleep = scope { return true }
+            if case .untilSleep = scope {
+                return true
+            }
             return false
         }
         #expect(store.isUnlocked("sleepy", pid: 1) == false)

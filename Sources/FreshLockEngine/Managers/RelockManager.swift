@@ -9,9 +9,9 @@
 //
 
 import AppKit
-import FreshLockCore
 import Combine
 import Foundation
+import FreshLockCore
 
 @MainActor
 final class RelockManager {
@@ -66,7 +66,9 @@ final class RelockManager {
 
     private func handleSleep() {
         store.revokeGrants { scope in
-            if case .untilSleep = scope { return true }
+            if case .untilSleep = scope {
+                return true
+            }
             return false
         }
         Log.lifecycle.debug("Revoked until-sleep grants on sleep")
@@ -80,7 +82,9 @@ final class RelockManager {
 
     private func handleSessionInactive() {
         store.revokeGrants { scope in
-            if case .untilSleep = scope { return true }
+            if case .untilSleep = scope {
+                return true
+            }
             return false
         }
     }

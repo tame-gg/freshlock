@@ -3,16 +3,23 @@
 //  FreshLockCoreTests
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import FreshLockCore
 
 struct ConfigurationTests {
     @Test func roundTripsThroughJSON() throws {
         var config = Configuration()
         config.protectedApps = [
-            ProtectedApp(bundleIdentifier: "com.apple.Safari", name: "Safari", path: "/Applications/Safari.app",
-                         isEnabled: true, isFavorite: true, category: .productivity, relockPolicy: .afterMinutes(5))
+            ProtectedApp(
+                bundleIdentifier: "com.apple.Safari",
+                name: "Safari",
+                path: "/Applications/Safari.app",
+                isEnabled: true,
+                isFavorite: true,
+                category: .productivity,
+                relockPolicy: .afterMinutes(5)
+            )
         ]
         config.settings.requireEveryLaunch = true
 

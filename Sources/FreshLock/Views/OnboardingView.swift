@@ -3,7 +3,7 @@
 //  FreshLock
 //
 //  The first-launch setup guide. A compact, paged flow that primes Accessibility
-//  (required for window covering), offers launch-at-login, and — importantly —
+//  (required for window covering), offers launch-at-login, and - importantly -
 //  states plainly what FreshLock is (a deterrent built on public APIs) and is not
 //  (OS-enforced).
 //
@@ -17,20 +17,26 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(32)
-                .transition(reduceMotion ? .opacity : .asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal: .move(edge: .leading).combined(with: .opacity)
-                ))
-                .id(viewModel.step)
+            ScrollView {
+                content
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .padding(.horizontal, 32)
+                    .padding(.top, 28)
+                    .padding(.bottom, 16)
+                    .transition(reduceMotion ? .opacity : .asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
+                    .id(viewModel.step)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
             footer
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
         }
-        .frame(width: 520, height: 460)
+        .frame(minWidth: 520, idealWidth: 560, minHeight: 520, idealHeight: 580)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: viewModel.step)
     }
 
@@ -53,14 +59,22 @@ struct OnboardingView: View {
         ) {
             VStack(alignment: .leading, spacing: 12) {
                 bullet("lock.fill", "Lock apps like Safari, Finder or System Settings.")
-                bullet("faceid", "Unlock with Apple's own authentication — FreshLock never sees your password.")
+                bullet("faceid", "Unlock with Apple's own authentication - FreshLock never sees your password.")
                 bullet("bolt.fill", "Lightweight and notification-driven; near-zero idle CPU.")
 
-                Text("Honest note: macOS has no public way to *block* an app from launching. FreshLock covers a protected app the instant it opens and requires authentication — a strong deterrent, not OS-enforced security.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 4)
+                Text(
+                    """
+                    Honest note: macOS has no public way to *block* an app from launching. \
+                    FreshLock covers a protected app the instant it opens and requires \
+                    authentication - a strong deterrent, not OS-enforced security.
+                    """
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 4)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -68,29 +82,48 @@ struct OnboardingView: View {
         pageScaffold(
             icon: "accessibility",
             title: "Allow Accessibility",
-            subtitle: "FreshLock uses Accessibility to detect protected windows and cover them without interrupting Touch ID."
+            subtitle:
+                """
+                FreshLock uses Accessibility to detect protected windows and cover \
+                them without interrupting Touch ID.
+                """
         ) {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
                     Image(systemName: viewModel.accessibilityTrusted
-                          ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .foregroundStyle(viewModel.accessibilityTrusted ? .green : .orange)
+                        .padding(.top, 2)
                     Text(viewModel.accessibilityTrusted
-                         ? "Accessibility is enabled"
-                         : "Accessibility is required for reliable locking")
-                    .font(.callout.weight(.medium))
+                        ? "Accessibility is enabled"
+                        : "Accessibility is required for app locking")
+                        .font(.callout.weight(.medium))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if !viewModel.accessibilityTrusted {
-                    Button("Enable Accessibility…") {
+                    Button("Open System Settings…") {
                         viewModel.requestAccessibility()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+
+                    Text(
+                        """
+                        Continue stays disabled until Accessibility is granted. \
+                        After enabling FreshLock in System Settings, return here.
+                        """
+                    )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("You can change this later in System Settings → Privacy & Security → Accessibility.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text("You can change this later in System Settings → Privacy & Security → Accessibility.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .onAppear { viewModel.refreshAccessibilityStatus() }
         }
     }
@@ -107,6 +140,7 @@ struct OnboardingView: View {
             ))
             .toggleStyle(.switch)
             .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -117,6 +151,7 @@ struct OnboardingView: View {
             subtitle: "Open FreshLock from the menu bar to choose which apps to protect."
         ) {
             bullet("menubar.arrow.up.rectangle", "Find FreshLock in your menu bar for quick actions.")
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -138,38 +173,44 @@ struct OnboardingView: View {
                 Button("Continue") { viewModel.next() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
+                    .disabled(!viewModel.canContinue)
             }
         }
     }
 
     // MARK: Building blocks
 
-    private func pageScaffold<Body: View>(
+    private func pageScaffold(
         icon: String,
         title: String,
         subtitle: String,
-        @ViewBuilder body: () -> Body
+        @ViewBuilder body: () -> some View
     ) -> some View {
         VStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 52))
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
-            Text(title).font(.title.bold())
+            Text(title)
+                .font(.title.bold())
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             Text(subtitle)
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             body()
                 .padding(.top, 8)
-            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func bullet(_ symbol: String, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: symbol).foregroundStyle(.tint).frame(width: 22)
             Text(text)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
     }
@@ -181,7 +222,7 @@ private struct PageDots: View {
     let index: Int
     var body: some View {
         HStack(spacing: 6) {
-            ForEach(0..<count, id: \.self) { i in
+            ForEach(0 ..< count, id: \.self) { i in
                 Circle()
                     .fill(i == index ? Color.accentColor : Color.secondary.opacity(0.35))
                     .frame(width: 7, height: 7)

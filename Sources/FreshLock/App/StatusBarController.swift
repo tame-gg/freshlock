@@ -34,7 +34,9 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         updateVisibility()
     }
 
-    @objc private func defaultsChanged() { updateVisibility() }
+    @objc private func defaultsChanged() {
+        updateVisibility()
+    }
 
     private var shouldShow: Bool {
         UserDefaults.standard.bool(forKey: MenuBarPreference.key)
@@ -90,10 +92,17 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     // MARK: - Actions
 
-    @objc private func lockAll() { environment.unlockStore.lockAll() }
+    @objc private func lockAll() {
+        environment.unlockStore.lockAll()
+    }
 
-    @objc private func unlockUntilSleep() { grantAll(.untilSleep) }
-    @objc private func unlockUntilLogout() { grantAll(.untilLogout) }
+    @objc private func unlockUntilSleep() {
+        grantAll(.untilSleep)
+    }
+
+    @objc private func unlockUntilLogout() {
+        grantAll(.untilLogout)
+    }
 
     private func grantAll(_ scope: UnlockScope) {
         for app in environment.configurationStore.configuration.enabledProtectedApps {
@@ -111,8 +120,21 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         }
     }
 
-    @objc private func openMain() { WindowManager.shared.showMain() }
-    @objc private func openPreferences() { WindowManager.shared.showPreferences() }
-    @objc private func openAbout() { WindowManager.shared.showAbout() }
-    @objc private func quit() { NSApp.terminate(nil) }
+    @objc private func openMain() {
+        WindowManager.shared.showMain()
+    }
+
+    @objc private func openPreferences() {
+        WindowManager.shared.showPreferences()
+    }
+
+    @objc private func openAbout() {
+        WindowManager.shared.showAbout()
+    }
+
+    /// Routes through `NSApp.terminate`, which hits AppDelegate's
+    /// `applicationShouldTerminate` LocalAuthentication gate.
+    @objc private func quit() {
+        NSApp.terminate(nil)
+    }
 }

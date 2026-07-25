@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import ServiceManagement
 import FreshLockCore
+import ServiceManagement
 
 @MainActor
 public protocol LoginItemServiceProtocol: AnyObject {

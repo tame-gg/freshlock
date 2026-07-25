@@ -7,8 +7,8 @@
 //  requested lazily on first use.
 //
 
-import FreshLockCore
 import Foundation
+import FreshLockCore
 import UserNotifications
 
 @MainActor
@@ -39,7 +39,9 @@ final class NotificationPresenter {
     func notifyProtectedLaunch(appName: String) {
         guard notificationsAvailable else { return }
         Task {
-            if !authorized { await requestAuthorizationIfNeeded() }
+            if !authorized {
+                await requestAuthorizationIfNeeded()
+            }
             guard authorized else { return }
             let content = UNMutableNotificationContent()
             content.title = "FreshLock"

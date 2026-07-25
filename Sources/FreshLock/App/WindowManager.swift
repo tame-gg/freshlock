@@ -56,11 +56,16 @@ final class WindowManager {
             return
         }
         let hosting = NSHostingController(rootView: AboutView())
+        let fitting = hosting.sizeThatFits(in: NSSize(width: 400, height: 10_000))
+        let contentSize = NSSize(
+            width: max(360, min(460, ceil(fitting.width))),
+            height: max(280, ceil(fitting.height))
+        )
         let window = Self.makeWindow(
             title: "About FreshLock",
             contentViewController: hosting,
-            size: NSSize(width: 380, height: 420),
-            minSize: NSSize(width: 380, height: 420),
+            size: contentSize,
+            minSize: NSSize(width: 360, height: 280),
             resizable: false
         )
         aboutController = NSWindowController(window: window)
@@ -101,7 +106,9 @@ final class WindowManager {
         resizable: Bool = true
     ) -> NSWindow {
         var style: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView]
-        if resizable { style.insert(.resizable) }
+        if resizable {
+            style.insert(.resizable)
+        }
         let window = NSWindow(contentViewController: contentViewController)
         window.styleMask = style
         window.title = title

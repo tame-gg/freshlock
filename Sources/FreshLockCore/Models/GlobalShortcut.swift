@@ -28,7 +28,9 @@ public struct GlobalShortcut: Codable, Hashable, Sendable {
     /// Carbon's flag constants.
     public struct ModifierSet: OptionSet, Codable, Hashable, Sendable {
         public let rawValue: Int
-        public init(rawValue: Int) { self.rawValue = rawValue }
+        public init(rawValue: Int) {
+            self.rawValue = rawValue
+        }
 
         public static let control = ModifierSet(rawValue: 1 << 0)
         public static let option = ModifierSet(rawValue: 1 << 1)

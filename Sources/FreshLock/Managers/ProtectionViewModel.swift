@@ -9,9 +9,9 @@
 //  through the store, so preferences and the list never fight over the document.
 //
 
-import FreshLockCore
 import Combine
 import Foundation
+import FreshLockCore
 import SwiftUI
 
 /// Sidebar selection identifying which slice of apps to show.
@@ -50,7 +50,9 @@ final class ProtectionViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    var configuration: Configuration { store.configuration }
+    var configuration: Configuration {
+        store.configuration
+    }
 
     // MARK: Lifecycle
 
@@ -68,25 +70,28 @@ final class ProtectionViewModel: ObservableObject {
     }
 
     /// True when the catalogue itself is empty (not merely filtered).
-    var isCatalogueEmpty: Bool { installedApps.isEmpty && !isLoadingCatalogue }
+    var isCatalogueEmpty: Bool {
+        installedApps.isEmpty && !isLoadingCatalogue
+    }
 
     /// True when filters/search hide everything but apps were discovered.
-    var isFilterEmpty: Bool { !installedApps.isEmpty && visibleApps.isEmpty }
+    var isFilterEmpty: Bool {
+        !installedApps.isEmpty && visibleApps.isEmpty
+    }
 
     // MARK: Derived data
 
     /// The apps to display for the current sidebar selection and search query.
     var visibleApps: [InstalledApp] {
-        let base: [InstalledApp]
-        switch sidebarSelection {
+        let base: [InstalledApp] = switch sidebarSelection {
         case .all:
-            base = installedApps
+            installedApps
         case .protected:
-            base = installedApps.filter { isProtected($0.bundleIdentifier) }
+            installedApps.filter { isProtected($0.bundleIdentifier) }
         case .favorites:
-            base = installedApps.filter { isFavorite($0.bundleIdentifier) }
-        case .category(let category):
-            base = installedApps.filter { protectedApp(for: $0.bundleIdentifier)?.category == category }
+            installedApps.filter { isFavorite($0.bundleIdentifier) }
+        case let .category(category):
+            installedApps.filter { protectedApp(for: $0.bundleIdentifier)?.category == category }
         }
 
         let filtered = searchText.isEmpty ? base : base.filter {
@@ -98,7 +103,9 @@ final class ProtectionViewModel: ObservableObject {
         return filtered.sorted {
             let lf = isFavorite($0.bundleIdentifier)
             let rf = isFavorite($1.bundleIdentifier)
-            if lf != rf { return lf }
+            if lf != rf {
+                return lf
+            }
             return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
@@ -110,10 +117,14 @@ final class ProtectionViewModel: ObservableObject {
     }
 
     /// Number of apps with protection enabled (for the sidebar badge).
-    var protectedCount: Int { configuration.enabledProtectedApps.count }
+    var protectedCount: Int {
+        configuration.enabledProtectedApps.count
+    }
 
     /// Number of favourited apps (for the sidebar badge).
-    var favoritesCount: Int { configuration.protectedApps.filter(\.isFavorite).count }
+    var favoritesCount: Int {
+        configuration.protectedApps.filter(\.isFavorite).count
+    }
 
     /// Visible apps split into favorites and the rest, for sectioned display.
     var favoriteVisibleApps: [InstalledApp] {
@@ -139,7 +150,9 @@ final class ProtectionViewModel: ObservableObject {
     }
 
     /// The global default, surfaced so the editor can label the "Default" option.
-    var defaultRelockPolicy: RelockPolicy { configuration.settings.defaultRelockPolicy }
+    var defaultRelockPolicy: RelockPolicy {
+        configuration.settings.defaultRelockPolicy
+    }
 
     // MARK: Mutations
 
@@ -171,7 +184,8 @@ final class ProtectionViewModel: ObservableObject {
             change(&entry)
             config.protectedApps.removeAll { $0.bundleIdentifier == app.bundleIdentifier }
             if entry.isEnabled || entry.isFavorite || entry.category != .other
-                || entry.relockPolicy != nil || entry.terminateAfterFailures != nil {
+                || entry.relockPolicy != nil || entry.terminateAfterFailures != nil
+            {
                 config.protectedApps.append(entry)
             }
         }

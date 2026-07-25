@@ -11,9 +11,9 @@
 //  cannot capture Swift context) can route back to the right closure.
 //
 
-import FreshLockCore
 import Carbon.HIToolbox
 import Foundation
+import FreshLockCore
 
 /// A registered global hot key handle.
 private struct HotKeyEntry {
@@ -115,10 +115,18 @@ public final class GlobalHotKeyService {
     /// Translate our portable modifier set into Carbon modifier flags.
     private static func carbonModifiers(_ mods: GlobalShortcut.ModifierSet) -> UInt32 {
         var carbon: UInt32 = 0
-        if mods.contains(.command) { carbon |= UInt32(cmdKey) }
-        if mods.contains(.option) { carbon |= UInt32(optionKey) }
-        if mods.contains(.control) { carbon |= UInt32(controlKey) }
-        if mods.contains(.shift) { carbon |= UInt32(shiftKey) }
+        if mods.contains(.command) {
+            carbon |= UInt32(cmdKey)
+        }
+        if mods.contains(.option) {
+            carbon |= UInt32(optionKey)
+        }
+        if mods.contains(.control) {
+            carbon |= UInt32(controlKey)
+        }
+        if mods.contains(.shift) {
+            carbon |= UInt32(shiftKey)
+        }
         return carbon
     }
 }

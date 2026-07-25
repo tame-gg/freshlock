@@ -12,8 +12,8 @@
 //  `.delete`/`.rename` to keep tracking the new inode.
 //
 
-import FreshLockCore
 import Foundation
+import FreshLockCore
 
 /// Fires a callback when the watched configuration file changes on disk.
 @MainActor
@@ -52,9 +52,9 @@ public final class ConfigurationFileWatcher {
             }
         }
         source?.setCancelHandler { [weak self] in
-            guard let self, self.fileDescriptor >= 0 else { return }
-            close(self.fileDescriptor)
-            self.fileDescriptor = -1
+            guard let self, fileDescriptor >= 0 else { return }
+            close(fileDescriptor)
+            fileDescriptor = -1
         }
         source?.resume()
         Log.settings.debug("Config watcher started")

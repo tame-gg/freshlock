@@ -1,6 +1,6 @@
 # tame-gg/homebrew-tap
 
-Homebrew tap for [FreshLock](https://github.com/tame-gg/freshlock).
+Homebrew tap for [FreshLock](https://github.com/tame-gg/freshlock) (source mirror).
 
 > **Note**: this directory is the *source* for the companion repository
 > `tame-gg/homebrew-tap`. In production it lives in its own repo so that
@@ -11,7 +11,14 @@ Homebrew tap for [FreshLock](https://github.com/tame-gg/freshlock).
 
 ```bash
 brew tap tame-gg/tap
+brew trust tame-gg/tap   # Homebrew 6+
 brew install --cask freshlock
+```
+
+Or:
+
+```bash
+brew install --cask tame-gg/tap/freshlock
 ```
 
 ## Upgrade

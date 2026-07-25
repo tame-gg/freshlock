@@ -18,14 +18,14 @@ import SwiftUI
 struct ShortcutRecorderView: NSViewRepresentable {
     @Binding var shortcut: GlobalShortcut?
 
-    func makeNSView(context: Context) -> RecorderNSView {
+    func makeNSView(context _: Context) -> RecorderNSView {
         let view = RecorderNSView()
         view.onCapture = { shortcut = $0 }
         view.onClear = { shortcut = nil }
         return view
     }
 
-    func updateNSView(_ nsView: RecorderNSView, context: Context) {
+    func updateNSView(_ nsView: RecorderNSView, context _: Context) {
         nsView.shortcut = shortcut
         nsView.needsDisplay = true
     }
@@ -41,12 +41,19 @@ final class RecorderNSView: NSView {
         didSet { needsDisplay = true }
     }
 
-    override var acceptsFirstResponder: Bool { true }
-    override var intrinsicContentSize: NSSize { NSSize(width: 140, height: 24) }
+    override var acceptsFirstResponder: Bool {
+        true
+    }
 
-    override func mouseDown(with event: NSEvent) {
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: 140, height: 24)
+    }
+
+    override func mouseDown(with _: NSEvent) {
         isRecording.toggle()
-        if isRecording { window?.makeFirstResponder(self) }
+        if isRecording {
+            window?.makeFirstResponder(self)
+        }
     }
 
     override func keyDown(with event: NSEvent) {
@@ -76,7 +83,7 @@ final class RecorderNSView: NSView {
         return super.resignFirstResponder()
     }
 
-    override func draw(_ dirtyRect: NSRect) {
+    override func draw(_: NSRect) {
         let radius: CGFloat = 5
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: radius, yRadius: radius)
         (isRecording ? NSColor.controlAccentColor.withAlphaComponent(0.15) : NSColor.controlBackgroundColor).setFill()

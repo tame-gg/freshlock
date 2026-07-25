@@ -7,9 +7,9 @@
 //  launch-at-login.
 //
 
+import Foundation
 import FreshLockCore
 import FreshLockEngine
-import Foundation
 
 @MainActor
 final class OnboardingViewModel: ObservableObject {
@@ -32,15 +32,36 @@ final class OnboardingViewModel: ObservableObject {
     init(loginItem: LoginItemServiceProtocol, onFinish: @escaping () -> Void) {
         self.loginItem = loginItem
         self.onFinish = onFinish
-        self.launchAtLoginEnabled = loginItem.isEnabled
+        launchAtLoginEnabled = loginItem.isEnabled
     }
 
     // MARK: Navigation
 
-    var canGoBack: Bool { step != .welcome }
-    var isLastStep: Bool { step == .done }
+    var canGoBack: Bool {
+        step != .welcome
+    }
+
+    var isLastStep: Bool {
+        step == .done
+    }
+
+    /// Whether Continue may advance past the current step. Accessibility is a
+    /// hard requirement: the user cannot leave that page until trusted.
+    var canContinue: Bool {
+        switch step {
+        case .accessibility:
+            return accessibilityTrusted
+        case .welcome, .launchAtLogin:
+            return true
+        case .done:
+            return false
+        }
+    }
 
     func next() {
+        refreshAccessibilityStatus()
+        guard canContinue else { return }
+
         if step == .accessibility {
             stopAccessibilityPoll()
         }
@@ -88,6 +109,13 @@ final class OnboardingViewModel: ObservableObject {
     }
 
     func finish() {
+        // Defense in depth: never mark onboarding complete without Accessibility.
+        refreshAccessibilityStatus()
+        guard accessibilityTrusted else {
+            step = .accessibility
+            startAccessibilityPoll()
+            return
+        }
         stopAccessibilityPoll()
         onFinish()
     }

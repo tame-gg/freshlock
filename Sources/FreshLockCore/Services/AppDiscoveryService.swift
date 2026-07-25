@@ -29,7 +29,9 @@ public struct AppDiscoveryService: AppDiscoveryServiceProtocol {
         self.searchPaths = searchPaths ?? Self.defaultSearchPaths(.default)
     }
 
-    private var fileManager: FileManager { .default }
+    private var fileManager: FileManager {
+        .default
+    }
 
     private static func defaultSearchPaths(_ fm: FileManager) -> [URL] {
         var paths = [

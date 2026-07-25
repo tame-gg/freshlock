@@ -30,7 +30,7 @@ final class HelperAppDelegate: NSObject, NSApplicationDelegate {
     private var engine: LockEngine?
     private var observers: [NSObjectProtocol] = []
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.accessory)
         observeMainApp()
         reconcile()
@@ -63,15 +63,17 @@ final class HelperAppDelegate: NSObject, NSApplicationDelegate {
 
     private func observeMainApp() {
         let center = NSWorkspace.shared.notificationCenter
-        for name in [NSWorkspace.didLaunchApplicationNotification,
-                     NSWorkspace.didTerminateApplicationNotification] {
+        for name in [
+            NSWorkspace.didLaunchApplicationNotification,
+            NSWorkspace.didTerminateApplicationNotification
+        ] {
             observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.reconcile() }
             })
         }
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
+    func applicationWillTerminate(_: Notification) {
         engine?.stop()
     }
 }

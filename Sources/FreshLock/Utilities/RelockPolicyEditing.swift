@@ -16,10 +16,10 @@ extension RelockPolicy {
     var editorLabel: String {
         switch self {
         case .everyLaunch: "Once per launch"
-        case .afterMinutes(let m): "After \(m) min"
+        case let .afterMinutes(m): "After \(m) min"
         case .afterSleep: "After sleep"
         case .afterScreenLock: "After screen lock"
-        case .afterInactivity(let m): "After \(m) min idle"
+        case let .afterInactivity(m): "After \(m) min idle"
         case .afterSwitchingAway: "When switching away"
         case .manualOnly: "Manual only"
         }

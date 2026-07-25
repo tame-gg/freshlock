@@ -21,6 +21,9 @@ opt_in_rules:
   - vertical_whitespace_closing_braces
   - unused_import
 
+analyzer_rules:
+  - unused_import
+
 disabled_rules:
   - todo # tracked via issues instead
 
@@ -40,7 +43,7 @@ file_length:
 
 identifier_name:
   min_length: 2
-  excluded: [id, x, y, e, m]
+  excluded: [id, x, y, e, m, i]
 
 force_cast: error
 force_try: error

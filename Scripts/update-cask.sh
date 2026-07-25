@@ -35,6 +35,11 @@ if [[ -n "${GH_TOKEN:-}" ]]; then
   TAP_REPO="${HOMEBREW_TAP_REPO:-tame-gg/homebrew-tap}"
   TMP="$(mktemp -d)"
   git clone "https://x-access-token:${GH_TOKEN}@github.com/${TAP_REPO}.git" "$TMP"
+  mkdir -p "$TMP/Casks"
+  # First publish: seed from the in-repo mirror if the tap is missing the cask.
+  if [[ ! -f "$TMP/Casks/freshlock.rb" ]]; then
+    cp "$ROOT/homebrew-tap/Casks/freshlock.rb" "$TMP/Casks/freshlock.rb"
+  fi
   bump "$TMP/Casks/freshlock.rb"
   git -C "$TMP" add Casks/freshlock.rb
   git -C "$TMP" -c user.name="tame-bot" -c user.email="bot@tame.gg" \
@@ -44,3 +49,4 @@ if [[ -n "${GH_TOKEN:-}" ]]; then
 else
   echo "ℹ️  GH_TOKEN not set — updated local mirror only."
 fi
+

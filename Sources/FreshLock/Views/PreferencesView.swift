@@ -2,9 +2,8 @@
 //  PreferencesView.swift
 //  FreshLock
 //
-//  The Preferences window, redesigned to match the app's koels.net dark theme:
-//  a single scrollable page of grouped, card-style sections rather than the
-//  cramped default tabbed Form. All controls bind to `SettingsViewModel`.
+//  Preferences as a native grouped Form. Includes the Liquid Glass preference
+//  (applied to FreshLock chrome when macOS 26+ APIs are available).
 //
 
 import AppKit
@@ -23,163 +22,152 @@ struct PreferencesView: View {
         _viewModel = StateObject(wrappedValue: SettingsViewModel(store: store, loginItem: loginItem))
     }
 
+    private var preferGlass: Bool {
+        viewModel.settings.preferLiquidGlass
+    }
+
     var body: some View {
-        ZStack {
-            Theme.background
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        MicroLabel("Preferences")
-                        Text("Settings").font(.system(size: 26, weight: .heavy)).foregroundStyle(Theme.textPrimary)
-                    }
-                    generalSection
-                    lockingSection
-                    shortcutsSection
-                    backupSection
-                    advancedSection
-                }
-                .padding(26)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        Form {
+            generalSection
+            appearanceSection
+            lockingSection
+            shortcutsSection
+            backupSection
+            advancedSection
         }
+        .formStyle(.grouped)
+        .tint(Theme.accent)
+        .environment(\.preferLiquidGlass, preferGlass)
         .frame(width: 500, height: 640)
-        .preferredColorScheme(.dark)
     }
 
     // MARK: Sections
 
     private var generalSection: some View {
-        SettingsSection("General") {
-            SettingsRow("Launch at login") {
-                toggle(viewModel.launchAtLogin)
-            }
+        Section("General") {
+            Toggle("Launch at login", isOn: viewModel.launchAtLogin)
             if let error = viewModel.loginItemError {
-                note(error, error: true)
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Show icon in menu bar",
-                        subtitle: showMenuBarIcon ? nil : "Reopen FreshLock from Finder or Spotlight to bring back its window.") {
-                toggle($showMenuBarIcon)
+            Toggle("Show icon in menu bar", isOn: $showMenuBarIcon)
+            if !showMenuBarIcon {
+                Text("Reopen FreshLock from Finder or Spotlight to bring back its window.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Notify when a protected app launches") {
-                toggle(viewModel.binding(\.notifyOnProtectedLaunch))
+            Toggle("Notify when a protected app launches", isOn: viewModel.binding(\.notifyOnProtectedLaunch))
+            Picker("Overlay style", selection: viewModel.binding(\.overlayStyle)) {
+                ForEach(OverlayStyle.allCases, id: \.self) { Text($0.displayName).tag($0) }
             }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Overlay style") {
-                Picker("", selection: viewModel.binding(\.overlayStyle)) {
-                    ForEach(OverlayStyle.allCases, id: \.self) { Text($0.displayName).tag($0) }
-                }
-                .labelsHidden().fixedSize().tint(Theme.textSecondary)
-            }
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section {
+            // Remains enabled on older OS so the preference persists; glass is a
+            // no-op until macOS 26+ (see LiquidGlass.swift).
+            Toggle("Use Liquid Glass", isOn: viewModel.binding(\.preferLiquidGlass))
+            Text(LiquidGlassSupport.availabilityNote)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        } header: {
+            Text("Appearance")
+        } footer: {
+            Text(
+                """
+                Controls FreshLock surfaces only. System chrome still follows macOS; \
+                on macOS 27 use System Settings → Appearance to adjust glass tint.
+                """
+            )
         }
     }
 
     private var lockingSection: some View {
-        SettingsSection("Locking") {
-            SettingsRow("Default relock",
-                        subtitle: "\u{201C}When switching away\u{201D} matches iOS — re-asks each time you return.") {
-                Picker("", selection: defaultRelockKind) {
-                    ForEach(PolicyKind.explicitCases, id: \.self) { Text($0.displayName).tag($0) }
-                }
-                .labelsHidden().fixedSize().tint(Theme.textSecondary)
+        Section("Locking") {
+            Picker("Default relock", selection: defaultRelockKind) {
+                ForEach(PolicyKind.explicitCases, id: \.self) { Text($0.displayName).tag($0) }
             }
+            Text("“When switching away” matches iOS — re-asks each time you return.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             if defaultRelockKind.wrappedValue.needsMinutes {
-                Divider().overlay(Theme.stroke)
-                SettingsRow("Minutes") {
-                    Stepper("\(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1...240)
-                        .fixedSize()
-                }
+                Stepper("Minutes: \(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1...240)
             }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Require authentication on every launch",
-                        subtitle: "Prompt on every activation, even if this process was already unlocked. Quitting always clears unlock regardless of this setting.") {
-                toggle(viewModel.binding(\.requireEveryLaunch))
-            }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Grace period") {
-                Stepper("\(viewModel.settings.gracePeriodSeconds)s",
-                        value: viewModel.binding(\.gracePeriodSeconds), in: 0...60).fixedSize()
-            }
+            Toggle("Require authentication on every launch", isOn: viewModel.binding(\.requireEveryLaunch))
+            Text(
+                """
+                Prompt on every activation, even if this process was already unlocked. \
+                Quitting always clears unlock regardless of this setting.
+                """
+            )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Stepper(
+                "Grace period: \(viewModel.settings.gracePeriodSeconds)s",
+                value: viewModel.binding(\.gracePeriodSeconds),
+                in: 0...60
+            )
         }
     }
 
     private var shortcutsSection: some View {
-        SettingsSection("Global Shortcuts") {
-            SettingsRow("Lock All") {
-                ShortcutRecorderView(shortcut: viewModel.binding(\.lockAllShortcut)).frame(width: 150, height: 26)
+        Section {
+            LabeledContent("Lock All") {
+                ShortcutRecorderView(shortcut: viewModel.binding(\.lockAllShortcut))
+                    .frame(width: 150, height: 26)
             }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Unlock All") {
-                ShortcutRecorderView(shortcut: viewModel.binding(\.unlockAllShortcut)).frame(width: 150, height: 26)
+            LabeledContent("Unlock All") {
+                ShortcutRecorderView(shortcut: viewModel.binding(\.unlockAllShortcut))
+                    .frame(width: 150, height: 26)
             }
-            note("Each shortcut needs at least one of ⌘/⌥/⌃. Press ⌫ while recording to clear.")
+        } header: {
+            Text("Global Shortcuts")
+        } footer: {
+            Text("Each shortcut needs at least one of ⌘/⌥/⌃. Press ⌫ while recording to clear.")
         }
     }
 
     private var backupSection: some View {
-        SettingsSection("Backup") {
-            SettingsRow("Export configuration") {
-                accentButton("Export…", action: exportConfiguration)
-            }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Import configuration") {
-                accentButton("Import…", action: importConfiguration)
-            }
+        Section {
+            Button("Export configuration…", action: exportConfiguration)
+            Button("Import configuration…", action: importConfiguration)
             if let backupStatus {
-                note(backupStatus, error: backupIsError)
+                Text(backupStatus)
+                    .font(.caption)
+                    .foregroundStyle(backupIsError ? .red : .secondary)
             }
-            note("A single JSON file with your protected apps and preferences. It never contains passwords.")
+        } header: {
+            Text("Backup")
+        } footer: {
+            Text("A single JSON file with your protected apps and preferences. It never contains passwords.")
         }
     }
 
     private var advancedSection: some View {
-        SettingsSection("Advanced") {
-            SettingsRow("Accessibility",
-                        subtitle: AccessibilityPermission.isTrusted
-                        ? "Granted — window covering uses Accessibility."
-                        : "Required for reliable locking. Open System Settings to enable FreshLock.") {
+        Section("Advanced") {
+            LabeledContent("Accessibility") {
                 if AccessibilityPermission.isTrusted {
                     Text("Granted")
-                        .font(.callout)
-                        .foregroundStyle(Theme.textSecondary)
+                        .foregroundStyle(.secondary)
                 } else {
-                    accentButton("Open Settings…") {
+                    Button("Open Settings…") {
                         AccessibilityPermission.requestTrust()
                         AccessibilityPermission.openSystemSettings()
                     }
                 }
             }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Developer mode") { toggle(viewModel.binding(\.developerMode)) }
-            Divider().overlay(Theme.stroke)
-            SettingsRow("Setup guide") {
-                accentButton("Replay…") {
-                    NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
-                }
+            if !AccessibilityPermission.isTrusted {
+                Text("Required for reliable locking. Open System Settings to enable FreshLock.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Toggle("Developer mode", isOn: viewModel.binding(\.developerMode))
+            Button("Replay setup guide…") {
+                NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
             }
         }
-    }
-
-    // MARK: Reusable controls
-
-    private func toggle(_ binding: Binding<Bool>) -> some View {
-        Toggle("", isOn: binding).labelsHidden().toggleStyle(.switch).tint(Theme.green)
-    }
-
-    private func accentButton(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.accent)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func note(_ text: String, error: Bool = false) -> some View {
-        Text(text)
-            .font(.system(size: 11))
-            .foregroundStyle(error ? Color.red : Theme.textMuted)
-            .padding(.top, 6)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Bindings
@@ -189,14 +177,20 @@ struct PreferencesView: View {
     private var defaultRelockKind: Binding<PolicyKind> {
         .init(
             get: { PolicyKind(from: relockPolicy.wrappedValue) },
-            set: { relockPolicy.wrappedValue = $0.makePolicy(minutes: defaultRelockMinutes.wrappedValue) ?? .everyLaunch }
+            set: { kind in
+                let minutes = defaultRelockMinutes.wrappedValue
+                relockPolicy.wrappedValue = kind.makePolicy(minutes: minutes) ?? .everyLaunch
+            }
         )
     }
 
     private var defaultRelockMinutes: Binding<Int> {
         .init(
             get: { relockPolicy.wrappedValue.minutes ?? 15 },
-            set: { relockPolicy.wrappedValue = PolicyKind(from: relockPolicy.wrappedValue).makePolicy(minutes: $0) ?? .everyLaunch }
+            set: { minutes in
+                let kind = PolicyKind(from: relockPolicy.wrappedValue)
+                relockPolicy.wrappedValue = kind.makePolicy(minutes: minutes) ?? .everyLaunch
+            }
         )
     }
 
@@ -232,57 +226,5 @@ struct PreferencesView: View {
     private func setStatus(_ message: String, isError: Bool) {
         backupStatus = message
         backupIsError = isError
-    }
-}
-
-// MARK: - Building blocks
-
-/// A titled card section in the koels dark style.
-private struct SettingsSection<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-
-    init(_ title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            MicroLabel(title)
-            VStack(alignment: .leading, spacing: 0) { content }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 4)
-                .background(Theme.card, in: .rect(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.stroke))
-        }
-    }
-}
-
-/// A single labelled row with a trailing control.
-private struct SettingsRow<Control: View>: View {
-    let title: String
-    let subtitle: String?
-    @ViewBuilder let control: Control
-
-    init(_ title: String, subtitle: String? = nil, @ViewBuilder control: () -> Control) {
-        self.title = title
-        self.subtitle = subtitle
-        self.control = control()
-    }
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 13, weight: .medium)).foregroundStyle(Theme.textPrimary)
-                if let subtitle {
-                    Text(subtitle).font(.system(size: 11)).foregroundStyle(Theme.textMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            Spacer(minLength: 12)
-            control
-        }
-        .padding(.vertical, 11)
     }
 }

@@ -28,10 +28,12 @@ public struct FileSettingsService: SettingsServiceProtocol {
     ///   `~/Library/Application Support/FreshLock`.
     public init(directory: URL? = nil) {
         let dir = directory ?? Self.defaultDirectory(.default)
-        self.storeURL = dir.appendingPathComponent("configuration.json")
+        storeURL = dir.appendingPathComponent("configuration.json")
     }
 
-    private var fileManager: FileManager { .default }
+    private var fileManager: FileManager {
+        .default
+    }
 
     private static func defaultDirectory(_ fm: FileManager) -> URL {
         let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first

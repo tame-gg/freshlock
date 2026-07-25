@@ -9,27 +9,43 @@
 //
 
 import AppKit
-import FreshLockCore
 import Carbon.HIToolbox
+import FreshLockCore
 
 extension GlobalShortcut.ModifierSet {
     /// Build our portable modifier set from AppKit modifier flags.
     init(_ flags: NSEvent.ModifierFlags) {
         var set = GlobalShortcut.ModifierSet()
-        if flags.contains(.command) { set.insert(.command) }
-        if flags.contains(.option) { set.insert(.option) }
-        if flags.contains(.control) { set.insert(.control) }
-        if flags.contains(.shift) { set.insert(.shift) }
+        if flags.contains(.command) {
+            set.insert(.command)
+        }
+        if flags.contains(.option) {
+            set.insert(.option)
+        }
+        if flags.contains(.control) {
+            set.insert(.control)
+        }
+        if flags.contains(.shift) {
+            set.insert(.shift)
+        }
         self = set
     }
 
     /// The glyphs, in Apple's canonical order.
     var glyphs: String {
         var out = ""
-        if contains(.control) { out += "⌃" }
-        if contains(.option) { out += "⌥" }
-        if contains(.shift) { out += "⇧" }
-        if contains(.command) { out += "⌘" }
+        if contains(.control) {
+            out += "⌃"
+        }
+        if contains(.option) {
+            out += "⌥"
+        }
+        if contains(.shift) {
+            out += "⇧"
+        }
+        if contains(.command) {
+            out += "⌘"
+        }
         return out
     }
 }
@@ -51,8 +67,12 @@ extension GlobalShortcut {
     /// A label for a virtual key code. Prefers named special keys, then the
     /// ANSI character table, then a generic fallback.
     static func keyLabel(for keyCode: UInt16) -> String {
-        if let special = specialKeys[Int(keyCode)] { return special }
-        if let ansi = ansiKeys[Int(keyCode)] { return ansi }
+        if let special = specialKeys[Int(keyCode)] {
+            return special
+        }
+        if let ansi = ansiKeys[Int(keyCode)] {
+            return ansi
+        }
         return "Key \(keyCode)"
     }
 

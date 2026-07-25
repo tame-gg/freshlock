@@ -47,6 +47,11 @@ public struct AppSettings: Codable, Hashable, Sendable {
     /// until sleep. `nil` when unassigned.
     public var unlockAllShortcut: GlobalShortcut?
 
+    /// Prefer Apple's Liquid Glass materials for FreshLock chrome when the OS
+    /// supports them (macOS 26+). Off uses classic system materials / solids.
+    /// Does not override the system Appearance tint slider on macOS 27.
+    public var preferLiquidGlass: Bool
+
     public init(
         launchAtLogin: Bool = false,
         gracePeriodSeconds: Int = 3,
@@ -57,7 +62,8 @@ public struct AppSettings: Codable, Hashable, Sendable {
         developerMode: Bool = false,
         defaultInactivityMinutes: Int = 5,
         lockAllShortcut: GlobalShortcut? = nil,
-        unlockAllShortcut: GlobalShortcut? = nil
+        unlockAllShortcut: GlobalShortcut? = nil,
+        preferLiquidGlass: Bool = true
     ) {
         self.launchAtLogin = launchAtLogin
         self.gracePeriodSeconds = gracePeriodSeconds
@@ -69,7 +75,55 @@ public struct AppSettings: Codable, Hashable, Sendable {
         self.defaultInactivityMinutes = defaultInactivityMinutes
         self.lockAllShortcut = lockAllShortcut
         self.unlockAllShortcut = unlockAllShortcut
+        self.preferLiquidGlass = preferLiquidGlass
     }
 
     public static let `default` = AppSettings()
+
+    // MARK: - Codable
+
+    enum CodingKeys: String, CodingKey {
+        case launchAtLogin
+        case gracePeriodSeconds
+        case defaultRelockPolicy
+        case overlayStyle
+        case notifyOnProtectedLaunch
+        case requireEveryLaunch
+        case developerMode
+        case defaultInactivityMinutes
+        case lockAllShortcut
+        case unlockAllShortcut
+        case preferLiquidGlass
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        launchAtLogin = try c.decodeIfPresent(Bool.self, forKey: .launchAtLogin) ?? false
+        gracePeriodSeconds = try c.decodeIfPresent(Int.self, forKey: .gracePeriodSeconds) ?? 3
+        defaultRelockPolicy = try c.decodeIfPresent(RelockPolicy.self, forKey: .defaultRelockPolicy) ?? .default
+        overlayStyle = try c.decodeIfPresent(OverlayStyle.self, forKey: .overlayStyle) ?? .default
+        notifyOnProtectedLaunch = try c.decodeIfPresent(Bool.self, forKey: .notifyOnProtectedLaunch) ?? false
+        requireEveryLaunch = try c.decodeIfPresent(Bool.self, forKey: .requireEveryLaunch) ?? false
+        developerMode = try c.decodeIfPresent(Bool.self, forKey: .developerMode) ?? false
+        defaultInactivityMinutes = try c.decodeIfPresent(Int.self, forKey: .defaultInactivityMinutes) ?? 5
+        lockAllShortcut = try c.decodeIfPresent(GlobalShortcut.self, forKey: .lockAllShortcut)
+        unlockAllShortcut = try c.decodeIfPresent(GlobalShortcut.self, forKey: .unlockAllShortcut)
+        // Older configs omit this key; default on so macOS 26+ picks up glass.
+        preferLiquidGlass = try c.decodeIfPresent(Bool.self, forKey: .preferLiquidGlass) ?? true
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(launchAtLogin, forKey: .launchAtLogin)
+        try c.encode(gracePeriodSeconds, forKey: .gracePeriodSeconds)
+        try c.encode(defaultRelockPolicy, forKey: .defaultRelockPolicy)
+        try c.encode(overlayStyle, forKey: .overlayStyle)
+        try c.encode(notifyOnProtectedLaunch, forKey: .notifyOnProtectedLaunch)
+        try c.encode(requireEveryLaunch, forKey: .requireEveryLaunch)
+        try c.encode(developerMode, forKey: .developerMode)
+        try c.encode(defaultInactivityMinutes, forKey: .defaultInactivityMinutes)
+        try c.encodeIfPresent(lockAllShortcut, forKey: .lockAllShortcut)
+        try c.encodeIfPresent(unlockAllShortcut, forKey: .unlockAllShortcut)
+        try c.encode(preferLiquidGlass, forKey: .preferLiquidGlass)
+    }
 }

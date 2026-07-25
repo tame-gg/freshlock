@@ -56,9 +56,19 @@ final class OnboardingPresenter {
         let hosting = NSHostingController(rootView: OnboardingView(viewModel: viewModel))
         let window = NSWindow(contentViewController: hosting)
         window.title = "Welcome to FreshLock"
-        window.styleMask = [.titled, .closable, .fullSizeContentView]
+        // First-run: no close button so the Accessibility gate cannot be skipped by
+        // dismissing the window. Replay (already completed) remains closable.
+        var styleMask: NSWindow.StyleMask = [.titled, .resizable, .fullSizeContentView]
+        if hasCompletedOnboarding {
+            styleMask.insert(.closable)
+        }
+        window.styleMask = styleMask
         window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
+        window.setContentSize(NSSize(width: 560, height: 580))
+        window.minSize = NSSize(width: 520, height: 480)
+        window.isReleasedWhenClosed = false
         window.center()
 
         let controller = NSWindowController(window: window)

@@ -3,8 +3,8 @@
 //  FreshLockCoreTests
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import FreshLockCore
 
 struct RelockPolicyTests {
@@ -28,8 +28,15 @@ struct RelockPolicyTests {
     }
 
     @Test func roundTripsThroughCodable() throws {
-        for policy in [RelockPolicy.everyLaunch, .afterMinutes(15), .afterSleep,
-                       .afterScreenLock, .afterInactivity(3), .afterSwitchingAway, .manualOnly] {
+        for policy in [
+            RelockPolicy.everyLaunch,
+            .afterMinutes(15),
+            .afterSleep,
+            .afterScreenLock,
+            .afterInactivity(3),
+            .afterSwitchingAway,
+            .manualOnly
+        ] {
             let data = try JSONEncoder().encode(policy)
             let decoded = try JSONDecoder().decode(RelockPolicy.self, from: data)
             #expect(decoded == policy)

@@ -25,7 +25,8 @@ enum ProtectedAppProcess {
 
         if let front = NSWorkspace.shared.frontmostApplication,
            front.bundleIdentifier == bundleID,
-           !front.isTerminated {
+           !front.isTerminated
+        {
             return front
         }
 
@@ -53,7 +54,9 @@ enum ProtectedAppProcess {
         var result: [String: Set<pid_t>] = [:]
         for id in bundleIDs {
             let pids = allPIDs(forBundleID: id)
-            if !pids.isEmpty { result[id] = pids }
+            if !pids.isEmpty {
+                result[id] = pids
+            }
         }
         return result
     }

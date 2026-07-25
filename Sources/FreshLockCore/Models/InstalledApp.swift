@@ -18,7 +18,9 @@ import Foundation
 public struct InstalledApp: Identifiable, Hashable, Sendable, Codable {
     /// Stable identity: the bundle identifier is the primary key throughout the
     /// app. Two bundles with the same identifier are treated as the same app.
-    public var id: String { bundleIdentifier }
+    public var id: String {
+        bundleIdentifier
+    }
 
     /// e.g. `com.apple.Safari`.
     public let bundleIdentifier: String
@@ -40,5 +42,7 @@ public struct InstalledApp: Identifiable, Hashable, Sendable, Codable {
     }
 
     /// File URL of the bundle, convenient for icon resolution.
-    public var url: URL { URL(fileURLWithPath: path) }
+    public var url: URL {
+        URL(fileURLWithPath: path)
+    }
 }

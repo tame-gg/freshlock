@@ -6,8 +6,8 @@
 //  so the test is hermetic and doesn't depend on what's installed on the host.
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import FreshLockCore
 
 struct AppDiscoveryServiceTests {

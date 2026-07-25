@@ -10,9 +10,9 @@
 //
 
 import AppKit
+import Foundation
 import FreshLockCore
 import FreshLockEngine
-import Foundation
 
 /// Owns the concrete service instances for the running GUI process.
 @MainActor
@@ -46,7 +46,8 @@ final class AppEnvironment {
         authService: AuthenticationServiceProtocol = LocalAuthenticationService(),
         discoveryService: AppDiscoveryServiceProtocol = AppDiscoveryService(),
         unlockStore: UnlockStateStore = UnlockStateStore(),
-        helperLoginItem: LoginItemServiceProtocol = LoginItemService(service: .agent(plistName: "gg.tame.freshlock.helper.plist")),
+        helperLoginItem: LoginItemServiceProtocol =
+            LoginItemService(service: .agent(plistName: "gg.tame.freshlock.helper.plist")),
         runEngineInProcess: Bool = true
     ) {
         self.settingsService = settingsService
@@ -56,8 +57,8 @@ final class AppEnvironment {
         self.helperLoginItem = helperLoginItem
         self.runEngineInProcess = runEngineInProcess
         let store = ConfigurationStore(settingsService: settingsService)
-        self.configurationStore = store
-        self.protectionViewModel = ProtectionViewModel(store: store, discoveryService: discoveryService)
+        configurationStore = store
+        protectionViewModel = ProtectionViewModel(store: store, discoveryService: discoveryService)
     }
 
     /// Boot whatever this process is responsible for.

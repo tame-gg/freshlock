@@ -61,7 +61,7 @@ public extension RelockPolicy {
     /// `.afterInactivity`); `nil` for the event- and launch-based cases.
     var minutes: Int? {
         switch self {
-        case .afterMinutes(let m), .afterInactivity(let m): m
+        case let .afterMinutes(m), let .afterInactivity(m): m
         default: nil
         }
     }
@@ -70,5 +70,7 @@ public extension RelockPolicy {
     /// re-prompting on every activation. All policies now cache the unlock for
     /// their window; the global `requireEveryLaunch` setting is the master
     /// override that forces authentication on every activation.
-    var grantsLastingUnlock: Bool { true }
+    var grantsLastingUnlock: Bool {
+        true
+    }
 }

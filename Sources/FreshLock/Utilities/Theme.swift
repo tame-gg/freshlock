@@ -2,72 +2,46 @@
 //  Theme.swift
 //  FreshLock
 //
-//  The visual language, inspired by koels.net: a deep navy canvas with a soft
-//  teal glow, big bold headings with a cyan→green gradient, bright-blue rounded
-//  accents, and small uppercase tracked micro-labels. Centralising it here keeps
-//  the redesigned views consistent.
+//  Fluent native macOS visual language: system materials, semantic label colors,
+//  and a quiet brand accent. Avoids custom navy canvases and cyan→green
+//  marketing gradients so Liquid Glass / system chrome can read correctly.
 //
 
+import AppKit
 import SwiftUI
 
 enum Theme {
-    // MARK: Canvas
-    static let base = Color(hex: 0x0B0F17)
-    static let baseElevated = Color(hex: 0x0E131E)
-    static let card = Color(hex: 0x141A26)
-    static let cardHover = Color(hex: 0x18202F)
-    static let stroke = Color.white.opacity(0.07)
-    static let strokeStrong = Color.white.opacity(0.12)
+    /// Quiet lock-adjacent accent; desaturated enough to sit with system chrome.
+    static let accent = Color(nsColor: .systemTeal)
 
-    // MARK: Text
-    static let textPrimary = Color(hex: 0xE7ECF5)
-    static let textSecondary = Color(hex: 0x9AA5B6)
-    static let textMuted = Color(hex: 0x5E6a7c)
+    /// Protected / success emphasis (tonal, not neon).
+    static let protected = Color(nsColor: .systemGreen)
 
-    // MARK: Accent
-    static let accent = Color(hex: 0x5AA9FF)
-    static let cyan = Color(hex: 0x7DE3FF)
-    static let green = Color(hex: 0x6EE7B7)
-
-    /// The signature cyan→green wordmark gradient.
-    static let brandGradient = LinearGradient(
-        colors: [cyan, green],
-        startPoint: .leading, endPoint: .trailing
-    )
-
-    /// The page background: navy with a subtle teal radial glow, koels-style.
-    static var background: some View {
-        ZStack {
-            base
-            RadialGradient(
-                colors: [green.opacity(0.10), .clear],
-                center: .init(x: 0.35, y: 0.9), startRadius: 20, endRadius: 620
-            )
-            RadialGradient(
-                colors: [accent.opacity(0.08), .clear],
-                center: .init(x: 0.9, y: 0.05), startRadius: 20, endRadius: 500
-            )
-        }
-        .ignoresSafeArea()
+    static var windowBackground: Color {
+        Color(nsColor: .windowBackgroundColor)
     }
+
+    static var controlBackground: Color {
+        Color(nsColor: .controlBackgroundColor)
+    }
+
+    static var separator: Color {
+        Color(nsColor: .separatorColor)
+    }
+
+    /// Standard continuous corner used for inset surfaces.
+    static let cornerRadius: CGFloat = 10
 }
 
-/// A small uppercase, letter-spaced label with a leading dash — the koels.net
-/// section marker ("— APP PROTECTION").
-struct MicroLabel: View {
-    let text: String
-    init(_ text: String) { self.text = text }
+/// Environment flag mirroring `AppSettings.preferLiquidGlass`.
+private struct PreferLiquidGlassKey: EnvironmentKey {
+    static let defaultValue = true
+}
 
-    var body: some View {
-        HStack(spacing: 8) {
-            Rectangle()
-                .fill(Theme.textMuted)
-                .frame(width: 18, height: 1)
-            Text(text.uppercased())
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .tracking(2)
-                .foregroundStyle(Theme.textMuted)
-        }
+extension EnvironmentValues {
+    var preferLiquidGlass: Bool {
+        get { self[PreferLiquidGlassKey.self] }
+        set { self[PreferLiquidGlassKey.self] = newValue }
     }
 }
 

@@ -17,9 +17,12 @@ let iconset = root.appendingPathComponent("Packaging/AppIcon.iconset")
 try? FileManager.default.createDirectory(at: iconset, withIntermediateDirectories: true)
 
 func hex(_ v: UInt32) -> NSColor {
-    NSColor(srgbRed: CGFloat((v >> 16) & 0xFF) / 255,
-            green: CGFloat((v >> 8) & 0xFF) / 255,
-            blue: CGFloat(v & 0xFF) / 255, alpha: 1)
+    NSColor(
+        srgbRed: CGFloat((v >> 16) & 0xFF) / 255,
+        green: CGFloat((v >> 8) & 0xFF) / 255,
+        blue: CGFloat(v & 0xFF) / 255,
+        alpha: 1
+    )
 }
 
 func drawIcon(size: CGFloat) -> NSImage {
@@ -40,9 +43,13 @@ func drawIcon(size: CGFloat) -> NSImage {
 
     // Soft teal glow bottom-left.
     let glow = NSGradient(colors: [hex(0x6EE7B7).withAlphaComponent(0.22), .clear])!
-    glow.draw(fromCenter: CGPoint(x: tile.minX + tile.width * 0.3, y: tile.minY + tile.height * 0.2), radius: 0,
-              toCenter: CGPoint(x: tile.minX + tile.width * 0.3, y: tile.minY + tile.height * 0.2), radius: tile.width * 0.7,
-              options: [])
+    glow.draw(
+        fromCenter: CGPoint(x: tile.minX + tile.width * 0.3, y: tile.minY + tile.height * 0.2),
+        radius: 0,
+        toCenter: CGPoint(x: tile.minX + tile.width * 0.3, y: tile.minY + tile.height * 0.2),
+        radius: tile.width * 0.7,
+        options: []
+    )
 
     // Subtle inner hairline.
     hex(0xFFFFFF).withAlphaComponent(0.06).setStroke()
@@ -57,11 +64,14 @@ func drawIcon(size: CGFloat) -> NSImage {
     let bodyH = size * 0.30
     let bodyX = (size - bodyW) / 2
     let bodyY = size * 0.17
-    let body = NSBezierPath(roundedRect: CGRect(x: bodyX, y: bodyY, width: bodyW, height: bodyH),
-                            xRadius: size * 0.06, yRadius: size * 0.06)
+    let body = NSBezierPath(
+        roundedRect: CGRect(x: bodyX, y: bodyY, width: bodyW, height: bodyH),
+        xRadius: size * 0.06,
+        yRadius: size * 0.06
+    )
 
     // Shackle: a clean, tall U arching above the body.
-    let archR = bodyW * 0.30            // arch radius = half the leg span
+    let archR = bodyW * 0.30 // arch radius = half the leg span
     let legBottom = bodyY + bodyH * 0.45 // starts inside the body (hidden by it)
     let archCenterY = bodyY + bodyH + size * 0.055
     let legX1 = size / 2 - archR
@@ -71,8 +81,13 @@ func drawIcon(size: CGFloat) -> NSImage {
     shackle.lineCapStyle = .round
     shackle.move(to: CGPoint(x: legX1, y: legBottom))
     shackle.line(to: CGPoint(x: legX1, y: archCenterY))
-    shackle.appendArc(withCenter: CGPoint(x: size / 2, y: archCenterY),
-                      radius: archR, startAngle: 180, endAngle: 0, clockwise: true)
+    shackle.appendArc(
+        withCenter: CGPoint(x: size / 2, y: archCenterY),
+        radius: archR,
+        startAngle: 180,
+        endAngle: 0,
+        clockwise: true
+    )
     shackle.line(to: CGPoint(x: legX2, y: legBottom))
 
     hex(0x7DE3FF).setStroke()
@@ -87,19 +102,35 @@ func drawIcon(size: CGFloat) -> NSImage {
     let holeR = size * 0.035
     let holeC = CGPoint(x: size / 2, y: bodyY + bodyH * 0.58)
     NSBezierPath(ovalIn: CGRect(x: holeC.x - holeR, y: holeC.y - holeR, width: holeR * 2, height: holeR * 2)).fill()
-    let slot = NSBezierPath(roundedRect: CGRect(x: holeC.x - size * 0.014, y: bodyY + bodyH * 0.18,
-                                                width: size * 0.028, height: bodyH * 0.40),
-                            xRadius: size * 0.014, yRadius: size * 0.014)
+    let slot = NSBezierPath(
+        roundedRect: CGRect(
+            x: holeC.x - size * 0.014,
+            y: bodyY + bodyH * 0.18,
+            width: size * 0.028,
+            height: bodyH * 0.40
+        ),
+        xRadius: size * 0.014,
+        yRadius: size * 0.014
+    )
     slot.fill()
 
     image.unlockFocus()
     return image
 }
 
-func writePNG(_ image: NSImage, pixels: Int, name: String) throws {
-    let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
-                              bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                              colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+func writePNG(_: NSImage, pixels: Int, name: String) throws {
+    let rep = NSBitmapImageRep(
+        bitmapDataPlanes: nil,
+        pixelsWide: pixels,
+        pixelsHigh: pixels,
+        bitsPerSample: 8,
+        samplesPerPixel: 4,
+        hasAlpha: true,
+        isPlanar: false,
+        colorSpaceName: .deviceRGB,
+        bytesPerRow: 0,
+        bitsPerPixel: 0
+    )!
     rep.size = NSSize(width: pixels, height: pixels)
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
@@ -116,5 +147,8 @@ let variants: [(Int, String)] = [
     (256, "icon_256x256.png"), (512, "icon_256x256@2x.png"),
     (512, "icon_512x512.png"), (1024, "icon_512x512@2x.png")
 ]
-for (px, name) in variants { try writePNG(NSImage(), pixels: px, name: name) }
+for (px, name) in variants {
+    try writePNG(NSImage(), pixels: px, name: name)
+}
+
 print("Wrote \(variants.count) PNGs to \(iconset.path)")

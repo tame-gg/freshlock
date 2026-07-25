@@ -9,8 +9,8 @@
 //  atomically through the injected `SettingsServiceProtocol`.
 //
 
-import FreshLockCore
 import Foundation
+import FreshLockCore
 
 @MainActor
 final class ConfigurationStore: ObservableObject {
@@ -21,7 +21,7 @@ final class ConfigurationStore: ObservableObject {
 
     init(settingsService: SettingsServiceProtocol) {
         self.settingsService = settingsService
-        self.configuration = (try? settingsService.load()) ?? .empty
+        configuration = (try? settingsService.load()) ?? .empty
     }
 
     /// Apply an in-place change and persist. All mutations funnel through here.
@@ -46,7 +46,7 @@ final class ConfigurationStore: ObservableObject {
     /// Load and adopt a configuration document from disk.
     func importConfiguration(from url: URL) throws {
         let data = try Data(contentsOf: url)
-        replace(with: try Configuration.decoded(from: data))
+        try replace(with: Configuration.decoded(from: data))
     }
 
     // MARK: - Persistence

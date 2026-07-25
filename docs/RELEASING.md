@@ -35,7 +35,21 @@ On a `v*.*.*` tag, `.github/workflows/release.yml`:
 3. Creates a GitHub Release with auto-generated notes and uploads the zip +
    checksum.
 4. Bumps the Homebrew cask (`Scripts/update-cask.sh`) and pushes to
-   `tame-gg/homebrew-tap` (if `HOMEBREW_TAP_TOKEN` is configured).
+   `tame-gg/homebrew-tap` (if `HOMEBREW_TAP_TOKEN` is configured). On first
+   publish the script seeds `Casks/freshlock.rb` from the in-repo mirror if
+   the tap is missing it.
+
+## Install from Homebrew (after a release)
+
+```bash
+brew tap tame-gg/tap
+brew trust tame-gg/tap   # Homebrew 6+
+brew install --cask freshlock
+```
+
+`brew info --cask freshlock` and `brew search freshlock` should resolve the
+cask once the tap is trusted. A successful install also needs a GitHub Release
+asset at `FreshLock.zip` for that version (created by this workflow).
 
 ## Required repository secrets (all optional)
 

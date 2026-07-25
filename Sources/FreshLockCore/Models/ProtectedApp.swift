@@ -12,7 +12,9 @@ import Foundation
 
 /// A single entry in the user's protection list.
 public struct ProtectedApp: Identifiable, Hashable, Sendable, Codable {
-    public var id: String { bundleIdentifier }
+    public var id: String {
+        bundleIdentifier
+    }
 
     /// Primary key — matches `InstalledApp.bundleIdentifier`.
     public let bundleIdentifier: String

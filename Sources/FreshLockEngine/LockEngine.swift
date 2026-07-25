@@ -10,8 +10,8 @@
 //  up a `LockEngine`, but in production only one instance runs the engine.
 //
 
-import FreshLockCore
 import Foundation
+import FreshLockCore
 
 /// A ready-to-run locking engine. Construct it with the shared core services
 /// and a configuration provider, then call ``start()``.
@@ -55,8 +55,8 @@ public final class LockEngine {
         self.monitor = monitor
         self.accessibility = accessibility
         self.overlay = overlay
-        self.hotKeys = GlobalHotKeyService()
-        self.coordinator = LockCoordinator(
+        hotKeys = GlobalHotKeyService()
+        coordinator = LockCoordinator(
             monitor: monitor,
             auth: authService,
             overlay: overlay,
@@ -64,9 +64,9 @@ public final class LockEngine {
             store: unlockStore,
             configProvider: configProvider
         )
-        self.relockManager = RelockManager(store: unlockStore)
+        relockManager = RelockManager(store: unlockStore)
         if let configFileURL {
-            self.watcher = ConfigurationFileWatcher(url: configFileURL) { [weak self] in
+            watcher = ConfigurationFileWatcher(url: configFileURL) { [weak self] in
                 self?.reloadShortcuts()
             }
         }
@@ -105,11 +105,13 @@ public final class LockEngine {
 
         let settings = configProvider().settings
         if let lockAll = settings.lockAllShortcut,
-           let id = hotKeys.register(lockAll, handler: { [weak self] in self?.coordinator.lockAllNow() }) {
+           let id = hotKeys.register(lockAll, handler: { [weak self] in self?.coordinator.lockAllNow() })
+        {
             registeredHotKeyIDs.append(id)
         }
         if let unlockAll = settings.unlockAllShortcut,
-           let id = hotKeys.register(unlockAll, handler: { [weak self] in self?.coordinator.unlockAllNow() }) {
+           let id = hotKeys.register(unlockAll, handler: { [weak self] in self?.coordinator.unlockAllNow() })
+        {
             registeredHotKeyIDs.append(id)
         }
     }

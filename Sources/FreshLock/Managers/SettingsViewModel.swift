@@ -11,10 +11,10 @@
 //  — most visibly, changing the overlay style turned "Launch at Login" off.
 //
 
-import FreshLockCore
-import FreshLockEngine
 import Combine
 import Foundation
+import FreshLockCore
+import FreshLockEngine
 import SwiftUI
 
 @MainActor
@@ -37,7 +37,9 @@ final class SettingsViewModel: ObservableObject {
     }
 
     /// Read-only snapshot for display-only values.
-    var settings: AppSettings { store.configuration.settings }
+    var settings: AppSettings {
+        store.configuration.settings
+    }
 
     /// A binding to a single settings field. The setter writes **only** that
     /// field through the shared store, so unrelated preferences are never

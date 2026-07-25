@@ -2,9 +2,9 @@
 //  LockOverlayView.swift
 //  FreshLock
 //
-//  The SwiftUI content shown inside a lock overlay window: a blurred backdrop,
-//  the protected app's icon and name, and the "Unlock with …" prompt. It hosts
-//  no password field — authentication is delegated to Apple's native sheet.
+//  Lock overlay content: system blur or solid backdrop, unlock prompt. On
+//  macOS 26+ the prompt panel can use Liquid Glass when the blur style is
+//  selected; older systems keep NSVisualEffectView materials.
 //
 
 import FreshLockCore
@@ -61,12 +61,10 @@ struct LockOverlayView: View {
                 icon
                     .resizable()
                     .frame(width: 44, height: 44)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .shadow(radius: 4, y: 2)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .offset(x: 6, y: 6)
             }
             .scaleEffect(appeared ? 1 : 0.85)
-            .shadow(radius: 16, y: 8)
             .accessibilityHidden(true)
 
             VStack(spacing: 4) {
@@ -90,12 +88,13 @@ struct LockOverlayView: View {
                         .frame(minWidth: 110)
                 }
                 .controlSize(.large)
-                .buttonStyle(.borderedProminent)
+                .modifier(UnlockButtonStyle())
                 .keyboardShortcut(.defaultAction)
             }
             .padding(.top, 4)
         }
         .padding(40)
+        .modifier(OverlayPanelChrome(useGlass: style == .blur))
         .opacity(appeared ? 1 : 0)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(appName) is locked. Unlock with \(method.displayName).")
@@ -111,12 +110,40 @@ struct LockOverlayView: View {
     }
 }
 
+/// Glass panel on macOS 26+ for blur overlays; material card otherwise.
+private struct OverlayPanelChrome: ViewModifier {
+    let useGlass: Bool
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *), useGlass {
+            content
+                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else if useGlass {
+            content
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else {
+            content
+        }
+    }
+}
+
+/// Prefer `.glassProminent` when available; otherwise bordered prominent.
+private struct UnlockButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content.buttonStyle(.glassProminent)
+        } else {
+            content.buttonStyle(.borderedProminent)
+        }
+    }
+}
+
 /// A SwiftUI wrapper around `NSVisualEffectView` for the blurred backdrop.
 private struct VisualEffectBlur: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode
 
-    func makeNSView(context: Context) -> NSVisualEffectView {
+    func makeNSView(context _: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = material
         view.blendingMode = blendingMode
@@ -124,7 +151,7 @@ private struct VisualEffectBlur: NSViewRepresentable {
         return view
     }
 
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+    func updateNSView(_ nsView: NSVisualEffectView, context _: Context) {
         nsView.material = material
         nsView.blendingMode = blendingMode
     }

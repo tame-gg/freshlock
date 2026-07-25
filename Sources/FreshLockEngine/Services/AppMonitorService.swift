@@ -17,9 +17,9 @@
 //
 
 import AppKit
-import FreshLockCore
 import Combine
 import Foundation
+import FreshLockCore
 
 /// A high-level lifecycle event about a running application.
 /// Bundle ID is the persistent app identity; PID identifies the live process
@@ -47,7 +47,9 @@ final class AppMonitorService: AppMonitorServiceProtocol {
     private var observers: [NSObjectProtocol] = []
     private let workspace: NSWorkspace
 
-    var events: AnyPublisher<AppLifecycleEvent, Never> { subject.eraseToAnyPublisher() }
+    var events: AnyPublisher<AppLifecycleEvent, Never> {
+        subject.eraseToAnyPublisher()
+    }
 
     init(workspace: NSWorkspace = .shared) {
         self.workspace = workspace

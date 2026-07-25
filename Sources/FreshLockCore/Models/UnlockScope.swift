@@ -4,7 +4,7 @@
 //
 //  Describes the lifetime of a temporary unlock. An unlock is always bound to
 //  a concrete process ID (`sessionPID`). When that process exits, the grant is
- //  invalid — a relaunch is a new session and must re-authenticate.
+//  invalid — a relaunch is a new session and must re-authenticate.
 //
 
 import Foundation
@@ -22,7 +22,7 @@ public enum UnlockScope: Codable, Hashable, Sendable {
         switch self {
         case .untilSleep: "Until Sleep"
         case .untilLogout: "Until Logout"
-        case .forDuration(let seconds): "For \(Int(seconds / 60)) min"
+        case let .forDuration(seconds): "For \(Int(seconds / 60)) min"
         }
     }
 }
@@ -48,10 +48,10 @@ public struct UnlockGrant: Hashable, Sendable {
         self.grantedAt = grantedAt
         self.sessionPID = sessionPID
         switch scope {
-        case .forDuration(let seconds):
-            self.expiresAt = grantedAt.addingTimeInterval(seconds)
+        case let .forDuration(seconds):
+            expiresAt = grantedAt.addingTimeInterval(seconds)
         case .untilSleep, .untilLogout:
-            self.expiresAt = nil
+            expiresAt = nil
         }
     }
 

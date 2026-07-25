@@ -3,8 +3,8 @@
 //  FreshLockCoreTests
 //
 
-import Testing
 import Foundation
+import Testing
 @testable import FreshLockCore
 
 struct GlobalShortcutTests {
@@ -23,11 +23,33 @@ struct GlobalShortcutTests {
         var settings = AppSettings()
         settings.lockAllShortcut = GlobalShortcut(keyCode: 37, modifiers: [.command, .option])
         settings.unlockAllShortcut = GlobalShortcut(keyCode: 49, modifiers: [.control])
+        settings.preferLiquidGlass = false
 
         let data = try JSONEncoder().encode(settings)
         let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
         #expect(decoded == settings)
         #expect(decoded.lockAllShortcut?.modifiers.contains(.command) == true)
+        #expect(decoded.preferLiquidGlass == false)
+    }
+
+    @Test func preferLiquidGlassDefaultsWhenMissing() throws {
+        // Legacy configs omit the key; decode should default to true.
+        let json = Data(
+            """
+            {
+              "launchAtLogin": false,
+              "gracePeriodSeconds": 3,
+              "defaultRelockPolicy": "everyLaunch",
+              "overlayStyle": "blur",
+              "notifyOnProtectedLaunch": false,
+              "requireEveryLaunch": false,
+              "developerMode": false,
+              "defaultInactivityMinutes": 5
+            }
+            """.utf8
+        )
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: json)
+        #expect(decoded.preferLiquidGlass == true)
     }
 
     @Test func modifierSetIsAnOptionSet() {

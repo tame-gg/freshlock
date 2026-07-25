@@ -44,8 +44,13 @@ real rather than aspirational.
 ```
 
 The two processes never talk directly — they coordinate purely through the
-shared JSON document, which the helper re-reads on every event. The GUI can
-quit and protection continues.
+shared JSON document, which the helper re-reads on every event. Quitting the
+GUI requires `deviceOwnerAuthentication` (Touch ID / Apple Watch / password)
+via `applicationShouldTerminate`; cancel or failure aborts terminate so the
+GUI and in-process engine keep running. After an authenticated GUI quit, the
+helper — if registered as a login item — detects the GUI is gone and starts
+its own `LockEngine`, so protection can continue without the settings UI.
+Standalone/dev runs without a helper stop protecting when the GUI exits.
 
 **Global shortcuts** live in whichever process runs the engine (`GlobalHotKeyService`,
 Carbon `RegisterEventHotKey`). Because a shortcut edited in the GUI must reach the

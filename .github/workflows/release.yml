@@ -38,7 +38,7 @@ jobs:
           generate_release_notes: true
 
       - name: Bump Homebrew cask
+        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        if: ${{ env.GH_TOKEN != '' }}
         run: Scripts/update-cask.sh "${GITHUB_REF_NAME#v}" dist/FreshLock.zip.sha256

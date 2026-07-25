@@ -17,9 +17,9 @@
 //
 
 import AppKit
-import FreshLockCore
 import ApplicationServices
 import Foundation
+import FreshLockCore
 
 /// Host / system bundle IDs that participate in the lock flow but are not
 /// themselves protected targets. Kept in one place so overlay covering and
@@ -42,7 +42,9 @@ enum FreshLockIdentity {
 @MainActor
 public enum AccessibilityPermission {
     /// Whether this process is currently trusted for Accessibility.
-    public static var isTrusted: Bool { AXIsProcessTrusted() }
+    public static var isTrusted: Bool {
+        AXIsProcessTrusted()
+    }
 
     /// Prompt the user (system sheet) to grant Accessibility, if not already
     /// trusted. Returns the post-prompt trust state.
@@ -61,7 +63,9 @@ public enum AccessibilityPermission {
             "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_Accessibility"
         ]
         for raw in urls {
-            if let url = URL(string: raw), NSWorkspace.shared.open(url) { return }
+            if let url = URL(string: raw), NSWorkspace.shared.open(url) {
+                return
+            }
         }
     }
 }
@@ -98,7 +102,9 @@ private final class AXObservation: @unchecked Sendable {
 final class AccessibilityService: AccessibilityServiceProtocol {
     private var observations: [pid_t: AXObservation] = [:]
 
-    var isTrusted: Bool { AccessibilityPermission.isTrusted }
+    var isTrusted: Bool {
+        AccessibilityPermission.isTrusted
+    }
 
     func startWatching(pid: pid_t, onChange: @escaping @MainActor () -> Void) {
         stopWatching(pid: pid)
@@ -190,7 +196,8 @@ final class AccessibilityService: AccessibilityServiceProtocol {
             kAXWindowsAttribute as CFString,
             &windowsRef
         ) == .success,
-        let windows = windowsRef as? [AXUIElement] else {
+            let windows = windowsRef as? [AXUIElement]
+        else {
             return []
         }
 
@@ -200,7 +207,9 @@ final class AccessibilityService: AccessibilityServiceProtocol {
             // Ignore tiny utility / chrome fragments; match OverlayService filter.
             guard frame.width >= 80, frame.height >= 80 else { continue }
             // Skip minimized / hidden windows when AX reports them.
-            if Self.isMinimized(window) { continue }
+            if Self.isMinimized(window) {
+                continue
+            }
             frames.append(frame)
         }
         return frames
@@ -214,11 +223,11 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         guard AXUIElementCopyAttributeValue(
             element, kAXPositionAttribute as CFString, &positionRef
         ) == .success,
-        AXUIElementCopyAttributeValue(
-            element, kAXSizeAttribute as CFString, &sizeRef
-        ) == .success,
-        let positionValue = positionRef,
-        let sizeValue = sizeRef else { return nil }
+            AXUIElementCopyAttributeValue(
+                element, kAXSizeAttribute as CFString, &sizeRef
+            ) == .success,
+            let positionValue = positionRef,
+            let sizeValue = sizeRef else { return nil }
 
         var position = CGPoint.zero
         var size = CGSize.zero
@@ -227,7 +236,8 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         let positionAX = unsafeDowncast(positionValue as AnyObject, to: AXValue.self)
         let sizeAX = unsafeDowncast(sizeValue as AnyObject, to: AXValue.self)
         guard AXValueGetValue(positionAX, .cgPoint, &position),
-              AXValueGetValue(sizeAX, .cgSize, &size) else {
+              AXValueGetValue(sizeAX, .cgSize, &size)
+        else {
             return nil
         }
         // AX reports global coordinates with the origin at the top-left of the
@@ -244,16 +254,16 @@ final class AccessibilityService: AccessibilityServiceProtocol {
         guard AXUIElementCopyAttributeValue(
             element, kAXMinimizedAttribute as CFString, &ref
         ) == .success,
-        let value = ref as? Bool else { return false }
+            let value = ref as? Bool else { return false }
         return value
     }
 }
 
 /// C callback bridge. Hop to the main actor before invoking the observation.
 private func axObserverCallback(
-    _ observer: AXObserver,
-    _ element: AXUIElement,
-    _ notification: CFString,
+    _: AXObserver,
+    _: AXUIElement,
+    _: CFString,
     _ refcon: UnsafeMutableRawPointer?
 ) {
     guard let refcon else { return }
