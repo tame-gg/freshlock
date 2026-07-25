@@ -39,7 +39,7 @@ let package = Package(
         // "the helper does the protecting" is a real, buildable arrangement.
         .target(
             name: "FreshLockEngine",
-            dependencies: ["FreshLockCore"],
+            dependencies: ["FreshLockCore", "FreshLockEnforce"],
             path: "Sources/FreshLockEngine",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
@@ -56,7 +56,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "FreshLock",
-            dependencies: ["FreshLockCore", "FreshLockEngine"],
+            dependencies: ["FreshLockCore", "FreshLockEngine", "FreshLockEnforce"],
             path: "Sources/FreshLock",
             swiftSettings: [
                 .swiftLanguageMode(.v6)

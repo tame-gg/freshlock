@@ -78,6 +78,38 @@ struct UnlockStateStoreTests {
         #expect(store.isUnlocked("a", pid: 1) == false)
     }
 
+    @Test func inactivityGrantDoesNotExpireByWallClock() {
+        var now = Date(timeIntervalSince1970: 0)
+        let store = UnlockStateStore { now }
+        store.grantUnlock("a", scope: .untilInactivity(300), sessionPID: 1)
+        #expect(store.isUnlocked("a", pid: 1))
+        now = Date(timeIntervalSince1970: 10_000)
+        // Idle expiry is handled by RelockManager via CGEventSource, not wall clock.
+        #expect(store.isUnlocked("a", pid: 1))
+    }
+
+    @Test func gracePeriodTracksGrantedAt() {
+        var now = Date(timeIntervalSince1970: 100)
+        let store = UnlockStateStore { now }
+        store.grantUnlock("a", scope: .untilSleep, sessionPID: 1)
+        let grant = store.grants["a"]!
+        #expect(grant.isWithinGracePeriod(5, asOf: now))
+        now = Date(timeIntervalSince1970: 104)
+        #expect(grant.isWithinGracePeriod(5, asOf: now))
+        now = Date(timeIntervalSince1970: 106)
+        #expect(grant.isWithinGracePeriod(5, asOf: now) == false)
+        #expect(grant.isWithinGracePeriod(0, asOf: now) == false)
+    }
+
+    @Test func revokeInactivityScope() {
+        let store = UnlockStateStore()
+        store.grantUnlock("idle", scope: .untilInactivity(60), sessionPID: 1)
+        store.grantUnlock("awake", scope: .untilSleep, sessionPID: 2)
+        store.revokeGrants { $0.inactivityThreshold != nil }
+        #expect(store.isUnlocked("idle", pid: 1) == false)
+        #expect(store.isUnlocked("awake", pid: 2))
+    }
+
     @Test func revokeMatchingScope() {
         let store = UnlockStateStore()
         store.grantUnlock("sleepy", scope: .untilSleep, sessionPID: 1)

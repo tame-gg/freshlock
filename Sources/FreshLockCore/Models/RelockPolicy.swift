@@ -3,8 +3,9 @@
 //  FreshLockCore
 //
 //  Describes *when* a previously-unlocked application should become locked
-//  again. The policy is evaluated by `RelockManager`; the model itself is a
-//  pure, `Codable` value type so it can be persisted and unit-tested.
+//  again. Event-based policies are evaluated by `RelockManager`; switch-away
+//  and duration policies are applied by `LockCoordinator`. The model itself is
+//  a pure, `Codable` value type so it can be persisted and unit-tested.
 //
 
 import Foundation
@@ -29,6 +30,7 @@ public enum RelockPolicy: Codable, Hashable, Sendable {
     case afterScreenLock
 
     /// Relock after `minutes` of user inactivity (no keyboard/mouse input).
+    /// Tracked via system idle time (`CGEventSource`), not wall-clock since unlock.
     case afterInactivity(Int)
 
     /// Relock as soon as the user switches focus away from the protected app.

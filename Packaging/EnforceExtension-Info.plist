@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Info.plist template for FreshLockEnforce.systemextension.
+  Info.plist for FreshLockEnforce.systemextension (Endpoint Security).
 
-  Not assembled by Scripts/build-app.sh yet. Requires:
+  Assemble with Scripts/build-systemextension.sh. Optional embed into the host
+  app via EMBED_SYSTEM_EXTENSION=1 on Scripts/build-app.sh (off by default).
+
+  Requires:
   • Apple-granted com.apple.developer.endpoint-security.client
   • Host com.apple.developer.system-extension.install
-  • Proper .systemextension packaging + user/MDM approval
+  • User or MDM approval + Full Disk Access
+  • Developer ID signing (not typical Mac App Store)
 
   See docs/ENFORCEMENT.md.
 -->
@@ -31,8 +35,15 @@
     <key>LSMinimumSystemVersion</key>
     <string>15.0</string>
     <key>NSSystemExtensionUsageDescription</key>
-    <string>FreshLock Enforce can deny launches of apps you marked as protected until you authenticate. This uses Apple's Endpoint Security framework. A local administrator can still uninstall FreshLock.</string>
+    <string>FreshLock Enforce can deny launches of apps you marked as protected until you authenticate. This uses Apple's Endpoint Security system extension APIs. A local administrator can still uninstall FreshLock. Classic kernel extensions (kexts) are not used.</string>
     <key>NSEndpointSecurityEarlyBoot</key>
     <false/>
+    <key>NSEndpointSecurityMachServiceName</key>
+    <string>gg.tame.freshlock.enforce.xpc</string>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.system_extension.endpoint_security</string>
+    </dict>
 </dict>
 </plist>

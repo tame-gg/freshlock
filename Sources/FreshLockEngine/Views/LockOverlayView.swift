@@ -76,6 +76,8 @@ struct LockOverlayView: View {
                 }
                 .controlSize(.large)
                 .keyboardShortcut(.cancelAction)
+                .accessibilityLabel("Quit \(appName)")
+                .accessibilityHint("Closes the protected app")
 
                 Button(action: onUnlock) {
                     Label("Unlock", systemImage: symbol)
@@ -84,13 +86,15 @@ struct LockOverlayView: View {
                 .controlSize(.large)
                 .modifier(UnlockButtonStyle())
                 .keyboardShortcut(.defaultAction)
+                .accessibilityLabel("Unlock \(appName)")
+                .accessibilityHint("Authenticate with \(method.displayName)")
             }
             .padding(.top, 4)
         }
         .padding(40)
         .modifier(OverlayPanelChrome(useGlass: style == .blur))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(appName) is locked. Unlock with \(method.displayName), or quit.")
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(appName) is locked")
     }
 
     private var symbol: String {

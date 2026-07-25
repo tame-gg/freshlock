@@ -11,6 +11,9 @@ import Foundation
 /// Mach service name reserved for the enforce control channel.
 public enum EnforceXPCConstants {
     public static let machServiceName = "gg.tame.freshlock.enforce.xpc"
+
+    /// Same as ``EnforceGatePaths/extensionBundleIdentifier``.
+    public static let extensionBundleIdentifier = EnforceGatePaths.extensionBundleIdentifier
 }
 
 /// Host → extension: push policy / allowlist updates.

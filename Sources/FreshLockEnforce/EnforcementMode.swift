@@ -31,19 +31,29 @@ public struct EnforcementCapabilities: Sendable, Equatable {
     /// be created (privileged + FDA). Scaffolding reports `false` until then.
     public let endpointSecurityAvailable: Bool
 
+    /// Whether a `.systemextension` bundle is embedded in the host app.
+    public let systemExtensionEmbedded: Bool
+
     /// Human-readable reason ES is unavailable (entitlement, FDA, privilege, …).
     public let endpointSecurityUnavailableReason: String?
 
     public init(
         overlayDeterrentAvailable: Bool = true,
         endpointSecurityAvailable: Bool = false,
+        systemExtensionEmbedded: Bool = false,
         endpointSecurityUnavailableReason: String? = "Endpoint Security client not entitled or not installed"
     ) {
         self.overlayDeterrentAvailable = overlayDeterrentAvailable
         self.endpointSecurityAvailable = endpointSecurityAvailable
+        self.systemExtensionEmbedded = systemExtensionEmbedded
         self.endpointSecurityUnavailableReason = endpointSecurityUnavailableReason
     }
 
     /// Default for current shipping builds: overlays only.
     public static let phase0Only = EnforcementCapabilities()
+
+    /// Active enforcement mode implied by capabilities (never claims ES without it).
+    public var activeMode: EnforcementMode {
+        endpointSecurityAvailable ? .endpointSecurityExecGate : .overlayDeterrent
+    }
 }

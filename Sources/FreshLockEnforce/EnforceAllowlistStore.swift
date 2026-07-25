@@ -3,7 +3,7 @@
 //  FreshLockEnforce
 //
 //  On-disk unlock allowlist shared between the host/helper (writes after LA)
-//  and the future ES system extension (reads on AUTH_EXEC). File-based so the
+//  and the ES system extension (reads on AUTH_EXEC). File-based so the
 //  extension can start before XPC is up; XPC can mirror the same state later.
 //
 //  This is not a secret store — it only lists which signing IDs may exec.
@@ -19,16 +19,16 @@ public struct EnforceAllowlistStore: Sendable {
         self.fileURL = fileURL
     }
 
-    /// Default location beside FreshLock's configuration.
+    /// Default location beside FreshLock's configuration (user Application Support).
     public static func defaultURL(
         fileManager: FileManager = .default
     ) -> EnforceAllowlistStore {
-        let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let dir = support.appendingPathComponent("FreshLock", isDirectory: true)
-        return EnforceAllowlistStore(
-            fileURL: dir.appendingPathComponent("enforce-allowlist.json", isDirectory: false)
-        )
+        EnforceAllowlistStore(fileURL: EnforceGatePaths.userAllowlistURL(fileManager: fileManager))
+    }
+
+    /// Machine-shared path for a privileged system extension + host.
+    public static func sharedLibraryURL() -> EnforceAllowlistStore {
+        EnforceAllowlistStore(fileURL: EnforceGatePaths.sharedAllowlistURL)
     }
 
     public func load() throws -> UnlockAllowlist {

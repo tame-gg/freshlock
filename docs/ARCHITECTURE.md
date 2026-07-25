@@ -95,7 +95,9 @@ NSWorkspace didLaunch / didActivate
 ```
 
 `RelockManager` observes sleep / screen-lock / session events and revokes the
-matching grants in `UnlockStateStore`, driving auto-relock without any polling.
+matching grants in `UnlockStateStore`. Grants with an inactivity scope are
+checked on a light timer against real keyboard/mouse idle time. Together these
+drive auto-relock without busy-polling.
 
 ### Why the host must not activate before Touch ID
 

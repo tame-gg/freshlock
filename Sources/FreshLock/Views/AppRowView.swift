@@ -57,6 +57,8 @@ struct AppRowView: View {
                     lineWidth: 1
                 )
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(app.name)\(isProtected ? ", protected" : "")")
     }
 
     private var icon: some View {
@@ -86,6 +88,7 @@ struct AppRowView: View {
             }
             .buttonStyle(.borderless)
             .help(isFavorite ? "Remove from favorites" : "Add to favorites")
+            .accessibilityLabel(isFavorite ? "Remove \(app.name) from favorites" : "Add \(app.name) to favorites")
 
             Button {
                 showOptions.wrappedValue = true
@@ -95,6 +98,7 @@ struct AppRowView: View {
             }
             .buttonStyle(.borderless)
             .help("Options")
+            .accessibilityLabel("Options for \(app.name)")
             .popover(isPresented: showOptions, arrowEdge: .bottom) {
                 AppOptionsPopover(viewModel: viewModel, app: app)
             }

@@ -4,13 +4,14 @@
 //
 //  Entry point for the Endpoint Security enforce client.
 //
-//  In production this binary would live inside a `.systemextension` bundle
-//  under FreshLock.app. Today it is a scaffold you can `swift build` and run
-//  only in privileged/entitled environments (typically SIP-off for unsigned
-//  ES clients during development).
+//  In production this binary lives inside a `.systemextension` bundle under
+//  FreshLock.app/Contents/Library/SystemExtensions/. Build it with
+//  Scripts/build-systemextension.sh (optionally embed via EMBED_SYSTEM_EXTENSION=1).
 //
-//  Default behaviour without entitlement: log a clear failure and exit 0 so
-//  accidental runs are not treated as crashes.
+//  Without Apple's managed ES entitlement (or FDA / privilege), es_new_client
+//  fails: we log clearly and exit 0 so accidental runs are not treated as crashes.
+//  That is fail-clean, not fail-closed — without an ES client there is no kernel
+//  gate to hold. Phase 0 overlays remain the shipping deterrent.
 //
 
 import Foundation
@@ -22,35 +23,65 @@ enum FreshLockEnforceExtensionMain {
     private static let log = Logger(subsystem: "gg.tame.freshlock.enforce", category: "main")
 
     static func main() {
-        log.notice("FreshLockEnforceExtension starting (Phase 1 scaffolding - not shipping enforcement)")
+        log.notice("FreshLockEnforceExtension starting")
 
-        let store = EnforceAllowlistStore.defaultURL()
-        // Locked set starts empty until the host pushes policy / we read config.
-        // An empty locked set means ALLOW-all - safe default for an unfinished wire-up.
-        let policy = ExecGatePolicy(lockedSigningIDs: [])
-        let client = EndpointSecurityClient(policy: policy, allowlistStore: store)
+        let allowlistStore = Self.resolveAllowlistStore()
+        let lockedStore = Self.resolveLockedStore()
+        let lockedIDs = (try? lockedStore.load()) ?? []
+        let policy = ExecGatePolicy(lockedSigningIDs: lockedIDs)
+        if lockedIDs.isEmpty {
+            log.notice("Locked set empty — AUTH_EXEC would ALLOW-all until the host publishes protected apps")
+        }
+
+        let client = EndpointSecurityClient(policy: policy, allowlistStore: allowlistStore, lockedStore: lockedStore)
 
         do {
             try client.start()
         } catch let error as ESClientStartError {
+            // Fail clean: entitlement / FDA / privilege missing. Do not crash.
             log.error("ES client unavailable: \(error.description, privacy: .public)")
-            log.error("Phase 1 is not active. See docs/ENFORCEMENT.md and docs/THREAT_MODEL.md.")
-            // Exit successfully: scaffolding is present; entitlement is not.
+            log.error("Phase 1 not active. Kernel kexts are not used; see docs/ENFORCEMENT.md.")
             exit(EXIT_SUCCESS)
         } catch {
             log.error("ES client failed: \(String(describing: error), privacy: .public)")
             exit(EXIT_FAILURE)
         }
 
-        // Reload allowlist periodically until XPC control plane is wired.
+        // Reload locked set + allowlist until XPC control plane is fully wired.
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
         timer.schedule(deadline: .now() + 1, repeating: 1)
         timer.setEventHandler {
-            client.reloadAllowlist()
+            client.reloadFromDisk()
         }
         timer.resume()
 
-        log.notice("ES AUTH_EXEC gate running - Ctrl+C to stop")
+        log.notice("ES AUTH_EXEC gate running — Ctrl+C to stop (standalone) or unload sysext")
         dispatchMain()
+    }
+
+    /// Prefer machine-shared paths when readable (sysext as root); else user domain.
+    private static func resolveAllowlistStore() -> EnforceAllowlistStore {
+        let shared = EnforceAllowlistStore.sharedLibraryURL()
+        if FileManager.default.isReadableFile(atPath: shared.fileURL.path)
+            || FileManager.default.fileExists(atPath: shared.fileURL.deletingLastPathComponent().path)
+        {
+            // Use shared if the directory exists or the process can create it (root).
+            if FileManager.default.isWritableFile(atPath: "/Library/Application Support")
+                || FileManager.default.fileExists(atPath: shared.fileURL.path)
+            {
+                return shared
+            }
+        }
+        return .defaultURL()
+    }
+
+    private static func resolveLockedStore() -> EnforceLockedSetStore {
+        let shared = EnforceLockedSetStore.sharedLibraryURL()
+        if FileManager.default.isWritableFile(atPath: "/Library/Application Support")
+            || FileManager.default.fileExists(atPath: shared.fileURL.path)
+        {
+            return shared
+        }
+        return .defaultURL()
     }
 }

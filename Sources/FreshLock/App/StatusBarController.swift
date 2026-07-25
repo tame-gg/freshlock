@@ -16,6 +16,7 @@
 
 import AppKit
 import FreshLockCore
+import FreshLockEngine
 
 @MainActor
 final class StatusBarController: NSObject, NSMenuDelegate {
@@ -93,30 +94,52 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     // MARK: - Actions
 
     @objc private func lockAll() {
-        environment.unlockStore.lockAll()
+        if let engine = environment.engine {
+            engine.lockAllNow()
+        } else {
+            environment.unlockStore.lockAll()
+        }
     }
 
+    /// Requires LocalAuthentication — same posture as Unlock All / overlay unlock.
     @objc private func unlockUntilSleep() {
-        grantAll(.untilSleep)
+        if let engine = environment.engine {
+            engine.unlockUntilSleepNow()
+            return
+        }
+        // No in-process engine (unusual): still gate on LA before granting.
+        authenticateThenGrant(.untilSleep)
     }
 
     @objc private func unlockUntilLogout() {
-        grantAll(.untilLogout)
+        if let engine = environment.engine {
+            engine.unlockUntilLogoutNow()
+            return
+        }
+        authenticateThenGrant(.untilLogout)
     }
 
-    private func grantAll(_ scope: UnlockScope) {
-        for app in environment.configurationStore.configuration.enabledProtectedApps {
-            // Only grant for processes that are actually running — a PID-less
-            // unlock would survive quit/relaunch and break the lock model.
-            // Prefer frontmost / newest instance (never `.first`).
-            guard let pid = NSRunningApplication
-                .runningApplications(withBundleIdentifier: app.bundleIdentifier)
-                .filter({ !$0.isTerminated })
-                .sorted(by: { ($0.launchDate ?? .distantPast) > ($1.launchDate ?? .distantPast) })
-                .first?
-                .processIdentifier
-            else { continue }
-            environment.unlockStore.grantUnlock(app.bundleIdentifier, scope: scope, sessionPID: pid)
+    private func authenticateThenGrant(_ scope: UnlockScope) {
+        Task { @MainActor in
+            let result = await environment.authService.authenticate(
+                reason: scope == .untilLogout
+                    ? "unlock protected apps until logout"
+                    : "unlock protected apps until sleep"
+            )
+            guard case .success = result else { return }
+            for app in environment.configurationStore.configuration.enabledProtectedApps {
+                // Only grant for processes that are actually running — a PID-less
+                // unlock would survive quit/relaunch and break the lock model.
+                // Prefer frontmost / newest instance (never `.first`).
+                guard let pid = NSRunningApplication
+                    .runningApplications(withBundleIdentifier: app.bundleIdentifier)
+                    .filter({ !$0.isTerminated })
+                    .sorted(by: { ($0.launchDate ?? .distantPast) > ($1.launchDate ?? .distantPast) })
+                    .first?
+                    .processIdentifier
+                else { continue }
+                environment.unlockStore.grantUnlock(app.bundleIdentifier, scope: scope, sessionPID: pid)
+            }
         }
     }
 

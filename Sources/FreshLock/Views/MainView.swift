@@ -51,11 +51,14 @@ struct MainView: View {
                     Text("FreshLock")
                         .font(.title2.weight(.semibold))
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 8)
                 Text("\(viewModel.protectedCount) protected")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+                    .accessibilityLabel("\(viewModel.protectedCount) apps protected")
 
                 Button {
                     WindowManager.shared.showPreferences()
@@ -68,6 +71,8 @@ struct MainView: View {
             }
 
             searchField
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Search apps")
 
             Picker("Filter", selection: $viewModel.sidebarSelection) {
                 Text("All").tag(SidebarItem.all)
@@ -76,6 +81,7 @@ struct MainView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .accessibilityLabel("Filter apps")
         }
     }
 
@@ -126,18 +132,9 @@ struct MainView: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label(
-                viewModel.isCatalogueEmpty ? "No Applications" : "No Matches",
-                systemImage: viewModel.isCatalogueEmpty ? "app.dashed" : "magnifyingglass"
-            )
+            Label(emptyTitle, systemImage: emptySymbol)
         } description: {
-            if viewModel.isCatalogueEmpty {
-                Text(viewModel.catalogueError ?? "Check /Applications and try again.")
-            } else if viewModel.isFilterEmpty {
-                Text("Try clearing search or switching to All.")
-            } else {
-                Text("No apps match.")
-            }
+            Text(emptyDescription)
         } actions: {
             if viewModel.isCatalogueEmpty {
                 Button("Scan Again") {
@@ -152,5 +149,42 @@ struct MainView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyTitle: String {
+        if viewModel.isCatalogueEmpty { return "No Applications" }
+        if !viewModel.searchText.isEmpty { return "No Matches" }
+        switch viewModel.sidebarSelection {
+        case .protected: return "Nothing Protected Yet"
+        case .favorites: return "No Favorites"
+        default: return "No Matches"
+        }
+    }
+
+    private var emptySymbol: String {
+        if viewModel.isCatalogueEmpty { return "app.dashed" }
+        if !viewModel.searchText.isEmpty { return "magnifyingglass" }
+        switch viewModel.sidebarSelection {
+        case .protected: return "lock.open"
+        case .favorites: return "star"
+        default: return "magnifyingglass"
+        }
+    }
+
+    private var emptyDescription: String {
+        if viewModel.isCatalogueEmpty {
+            return viewModel.catalogueError ?? "Check /Applications and try again."
+        }
+        if !viewModel.searchText.isEmpty {
+            return "Try a different search or clear the filter."
+        }
+        switch viewModel.sidebarSelection {
+        case .protected:
+            return "Flip the switch on any app in All to protect it behind Touch ID."
+        case .favorites:
+            return "Star apps you use often so they float to the top of All."
+        default:
+            return "Try clearing search or switching to All."
+        }
     }
 }

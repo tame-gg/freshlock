@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
 
 struct PreferencesView: View {
     @ObservedObject var viewModel: SettingsViewModel
+    @StateObject private var systemExtensionRegistrar = SystemExtensionRegistrar()
 
     private var preferGlass: Bool {
         viewModel.settings.preferLiquidGlass
@@ -102,6 +103,19 @@ struct PreferencesView: View {
                 value: viewModel.binding(\.gracePeriodSeconds),
                 in: 0 ... 60
             )
+            Text(
+                """
+                After a successful unlock, wait this long before "when switching away" \
+                relocks. Softens focus flicker without weakening lock-on-quit.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            if defaultRelockKind.wrappedValue == .afterInactivity {
+                Text("Inactivity uses real keyboard and mouse idle time, not time since unlock.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -157,9 +171,59 @@ struct PreferencesView: View {
                     .foregroundStyle(.secondary)
             }
             Toggle("Developer mode", isOn: viewModel.binding(\.developerMode))
+            if viewModel.settings.developerMode {
+                enforcementSection
+            }
             Button("Replay setup guide…") {
                 NotificationCenter.default.post(name: OnboardingPresenter.replayNotification, object: nil)
             }
+        }
+    }
+
+    private var enforcementSection: some View {
+        Group {
+            Divider()
+            Text("Endpoint Security (Phase 1)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(
+                """
+                System Extensions (Endpoint Security AUTH_EXEC) are the supported \
+                path for kernel-held launch denial. Classic kernel extensions (kexts) \
+                are deprecated and not used. Shipping builds still use overlays unless \
+                Apple grants the ES entitlement and the extension is embedded.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            LabeledContent("Extension embedded") {
+                Text(systemExtensionRegistrar.isExtensionEmbedded ? "Yes" : "No")
+                    .foregroundStyle(.secondary)
+            }
+            LabeledContent("Registration") {
+                Text(systemExtensionRegistrar.status.displayText)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+            HStack {
+                Button("Activate system extension…") {
+                    systemExtensionRegistrar.activate()
+                }
+                .disabled(systemExtensionRegistrar.status == .submitting)
+                Button("Deactivate") {
+                    systemExtensionRegistrar.deactivate()
+                }
+                .disabled(systemExtensionRegistrar.status == .submitting)
+            }
+            Text(
+                """
+                Build with EMBED_SYSTEM_EXTENSION=1 Scripts/build-app.sh, sign with \
+                host + ES entitlements, grant Full Disk Access, then activate. Admins \
+                can still uninstall. See docs/ENFORCEMENT.md.
+                """
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 

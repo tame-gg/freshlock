@@ -147,21 +147,37 @@ final class LockCoordinator {
     }
 
     func unlockAllNow() {
+        authenticateAndGrantAll(scope: .untilSleep, reason: "unlock your protected apps")
+    }
+
+    /// Menu-bar / API path: require LocalAuthentication, then grant until sleep.
+    func unlockUntilSleepNow() {
+        authenticateAndGrantAll(scope: .untilSleep, reason: "unlock protected apps until sleep")
+    }
+
+    /// Menu-bar / API path: require LocalAuthentication, then grant until logout.
+    func unlockUntilLogoutNow() {
+        authenticateAndGrantAll(scope: .untilLogout, reason: "unlock protected apps until logout")
+    }
+
+    private func authenticateAndGrantAll(scope: UnlockScope, reason: String) {
         let config = configProvider()
         Task { [weak self] in
             guard let self else { return }
             await armHostForTouchID()
-            let result = await auth.authenticate(reason: "unlock your protected apps")
+            let result = await auth.authenticate(reason: reason)
             guard case .success = result else { return }
+            var granted = 0
             for app in config.enabledProtectedApps {
                 guard let pid = livePID(for: app.bundleIdentifier) else { continue }
-                store.grantUnlock(app.bundleIdentifier, scope: .untilSleep, sessionPID: pid)
+                store.grantUnlock(app.bundleIdentifier, scope: scope, sessionPID: pid)
                 overlay.dismissOverlay(for: app.bundleIdentifier)
                 securing.remove(app.bundleIdentifier)
                 awaitingManualUnlock.remove(app.bundleIdentifier)
                 stopKeepingVisible(app.bundleIdentifier)
+                granted += 1
             }
-            Log.lifecycle.info("Unlock All granted")
+            Log.lifecycle.info("Authenticated unlock (\(scope.displayName)) granted for \(granted) apps")
         }
     }
 
@@ -227,7 +243,12 @@ extension LockCoordinator {
            let prevApp = config.protectedApp(for: previous)
         {
             let policy = prevApp.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
-            if case .afterSwitchingAway = policy {
+            // Grace period softens focus flicker: skip switch-away relock briefly
+            // after a successful unlock so apps that resign/regain focus don't
+            // immediately re-prompt.
+            if case .afterSwitchingAway = policy,
+               !isWithinGracePeriod(previous, config: config)
+            {
                 store.lock(previous)
             }
             if securing.contains(previous) || overlay.isShowingOverlay(for: previous) {
@@ -490,7 +511,7 @@ extension LockCoordinator {
         let policy = app.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
         let scope: UnlockScope = switch policy {
         case let .afterMinutes(m): .forDuration(TimeInterval(m * 60))
-        case let .afterInactivity(m): .forDuration(TimeInterval(m * 60))
+        case let .afterInactivity(m): .untilInactivity(TimeInterval(m * 60))
         case .everyLaunch: .untilLogout
         default: .untilSleep
         }
@@ -526,5 +547,11 @@ extension LockCoordinator {
             keepVisible(bundleID)
             overlay.pinCover(for: bundleID)
         }
+    }
+
+    /// True when a live grant for this bundle is still inside the settings grace window.
+    private func isWithinGracePeriod(_ bundleID: String, config: Configuration) -> Bool {
+        guard let grant = store.grants[bundleID], !grant.isTimeExpired() else { return false }
+        return grant.isWithinGracePeriod(config.settings.gracePeriodSeconds)
     }
 }

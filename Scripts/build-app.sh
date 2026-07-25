@@ -11,8 +11,11 @@
 #   Scripts/build-app.sh [output-dir]
 #
 # Environment:
-#   CONFIGURATION   debug|release (default: release)
-#   ARCH            arm64|x86_64|universal (default: universal)
+#   CONFIGURATION            debug|release (default: release)
+#   ARCH                     arm64|x86_64|universal (default: universal)
+#   EMBED_SYSTEM_EXTENSION   0|1 (default: 0) — embed Phase 1 .systemextension
+#                            Requires Apple ES entitlement to *activate* on SIP-on.
+#                            Off by default so Phase 0 shipping stays entitlement-free.
 #
 set -euo pipefail
 
@@ -20,6 +23,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUTPUT_DIR="${1:-$ROOT/dist}"
 CONFIGURATION="${CONFIGURATION:-release}"
 ARCH="${ARCH:-universal}"
+EMBED_SYSTEM_EXTENSION="${EMBED_SYSTEM_EXTENSION:-0}"
 
 APP_NAME="FreshLock"
 BUNDLE="$OUTPUT_DIR/$APP_NAME.app"
@@ -68,6 +72,23 @@ copy_localizations "$HELPER/Contents/Resources"
 # launchd agent plist that SMAppService registers to keep the helper alive.
 cp "$ROOT/Packaging/gg.tame.freshlock.helper.plist" \
    "$BUNDLE/Contents/Library/LaunchAgents/gg.tame.freshlock.helper.plist"
+
+# --- Optional Phase 1 Endpoint Security system extension (off by default) ---
+if [[ "$EMBED_SYSTEM_EXTENSION" == "1" ]]; then
+  echo "▶ Embedding system extension (EMBED_SYSTEM_EXTENSION=1)…"
+  CONFIGURATION="$CONFIGURATION" ARCH="$ARCH" \
+    "$ROOT/Scripts/build-systemextension.sh" "$OUTPUT_DIR"
+  SYSEXT_SRC="$OUTPUT_DIR/gg.tame.freshlock.enforce.systemextension"
+  SYSEXT_DST="$BUNDLE/Contents/Library/SystemExtensions/gg.tame.freshlock.enforce.systemextension"
+  mkdir -p "$BUNDLE/Contents/Library/SystemExtensions"
+  rm -rf "$SYSEXT_DST"
+  cp -R "$SYSEXT_SRC" "$SYSEXT_DST"
+  echo "   Embedded $SYSEXT_DST"
+  echo "   Note: host entitlements in Packaging/FreshLock-SystemExtension-Host.entitlements"
+  echo "   are required to activate; default Phase 0 signing does not merge them."
+else
+  echo "▶ Skipping system extension embed (set EMBED_SYSTEM_EXTENSION=1 to include)"
+fi
 
 # Copy an app icon if present (Scripts/generate-icon.sh produces AppIcon.icns).
 if [[ -f "$ROOT/Packaging/AppIcon.icns" ]]; then

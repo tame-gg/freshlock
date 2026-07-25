@@ -7,17 +7,26 @@ Read [THREAT_MODEL.md](THREAT_MODEL.md) first. This file is the engineering plan
 
 ---
 
+## Kernel extensions vs System Extensions (answer to "can't we make a kext?")
+
+| Mechanism | Status on modern macOS | Fit for FreshLock |
+|-----------|------------------------|-------------------|
+| **Kernel extension (kext)** | Deprecated / heavily restricted. Third-party kexts are not a viable shipping path on current macOS (user approval era ended; SIP + notarization + Apple policy). | **Wrong vehicle.** We will not ship a kext. |
+| **System Extension** (Endpoint Security) | Supported public API. Userland client; **kernel holds** `AUTH_EXEC` until allow/deny. | **Correct vehicle.** This is what Phase 1 builds. |
+| NetworkExtension / DriverKit | Supported, but wrong plane (network / device I/O). | Not used for app locking. |
+
+**System Extensions exist for this class of problem:** defensive security products get a privileged userland agent with kernel-enforced AUTH decisions. That *is* what we can and should build. It is not a classic kext, and it is **not** MagSafe admin-proof: an admin can still uninstall the host, revoke Full Disk Access, or deactivate the extension on an unsupervised Mac.
+
+---
+
 ## Ceiling (honest)
 
 | Goal | Public-API result |
 |------|-------------------|
-| Kernel-held deny of locked app **exec** | **Yes** - `ES_EVENT_TYPE_AUTH_EXEC` via Endpoint Security |
-| Third-party code in the kernel | **No** - ES clients are userland; kernel only holds the gate |
-| Admins cannot uninstall / revoke | **No** on personally owned Macs |
+| Kernel-held deny of locked app **exec** | **Yes** - `ES_EVENT_TYPE_AUTH_EXEC` via Endpoint Security system extension |
+| Third-party code in the kernel (kext) | **No** - deprecated; ES clients are userland |
+| Admins cannot uninstall / revoke | **No** on personally owned / unsupervised Macs |
 | Mac App Store distribution of ES AUTH client | **Not realistic** |
-
-NetworkExtension and DriverKit are the wrong planes (network / device I/O).
-They are not used for app locking.
 
 ---
 
@@ -27,33 +36,58 @@ See [ARCHITECTURE.md](ARCHITECTURE.md). Userland only:
 
 `NSWorkspace` → overlay → `LocalAuthentication` → PID-scoped grant.
 
+`Scripts/build-app.sh` default path does **not** embed a system extension.
+
 ---
 
-## Phase 1 (scaffolded in-tree)
+## Phase 1 (in-tree; not shipping by default)
 
 ### Code layout
 
 | Path | Role |
 |------|------|
-| `Sources/FreshLockEnforce/` | Pure policy: signing-ID matching, allow/deny decisions, unlock allowlist snapshot. Unit-tested; no ES link required. |
-| `Sources/FreshLockEnforceExtension/` | ES client scaffolding: `es_new_client`, subscribe `AUTH_EXEC`, respond allow/deny. Links `EndpointSecurity`. |
-| `Packaging/EnforceExtension-*.plist` / entitlements | Bundle metadata for a future `.systemextension` |
+| `Sources/FreshLockEnforce/` | Pure policy: signing-ID matching, allow/deny, allowlist + locked-set stores, paths. Unit-tested; no ES link. |
+| `Sources/FreshLockEnforceExtension/` | ES client: `es_new_client`, `AUTH_EXEC`, allow/deny. Links `EndpointSecurity`. Exits cleanly if not entitled. |
+| `Sources/FreshLockEngine/Services/EnforcePolicySync.swift` | After LA unlock / config change, writes locked set + allowlist the extension reads. |
+| `Sources/FreshLock/Managers/SystemExtensionRegistrar.swift` | `OSSystemExtensionRequest` activate/deactivate scaffolding (Preferences → Developer mode). |
+| `Packaging/EnforceExtension-*` | `.systemextension` Info.plist + entitlements |
+| `Scripts/build-systemextension.sh` | Assembles `gg.tame.freshlock.enforce.systemextension` |
+| `EMBED_SYSTEM_EXTENSION=1` | Optional flag on `Scripts/build-app.sh` to embed the sysext (off by default) |
 
-`Scripts/build-app.sh` does **not** embed the system extension yet. Shipping Phase 0
-is unchanged until Apple grants the entitlement and packaging is wired.
+### Build / test the extension (no Apple approval required to *compile*)
+
+```bash
+# Policy unit tests (no entitlement)
+swift test
+
+# Build the ES client binary
+swift build --product FreshLockEnforceExtension
+
+# Assemble a real .systemextension bundle
+Scripts/build-systemextension.sh
+
+# Optional: embed into the app (still won't AUTH without entitlement + FDA + approval)
+EMBED_SYSTEM_EXTENSION=1 Scripts/build-app.sh
+
+# Default Phase 0 app build (unchanged for users without the entitlement)
+Scripts/build-app.sh
+```
+
+Standalone run of the extension binary without entitlement / root / FDA: logs
+`ES client unavailable` and **exits 0** (fail-clean). There is no kernel gate to
+"fail closed" without a successful `es_new_client`.
 
 ### Policy algorithm (AUTH_EXEC)
 
-1. Extract target identity from `es_process_t` (`signing_id`, `team_id`, optional `cdhash`).
-2. If signing ID is **not** in the protected/locked set → `ALLOW` (cached when safe).
+1. Extract target identity from `es_process_t` (`signing_id`, `team_id`, optional path).
+2. If signing ID is **not** in the protected/locked set → `ALLOW` (cache when safe).
 3. If signing ID is protected **and** present on the unlock allowlist → `ALLOW`.
 4. Otherwise → `DENY` (kernel never starts the image).
-5. Always `ALLOW` FreshLock's own signing ID and critical platform paths as needed;
-   mute self-generated noise via ES mute APIs.
+5. Always `ALLOW` FreshLock's own signing IDs; mute noisy system path prefixes.
 
-Unlock still happens in the host/helper via LocalAuthentication. On success the
-host updates the allowlist the extension reads (file and/or XPC - see
-`EnforceAllowlistStore` / `EnforceControlXPC`).
+Unlock still happens in the host/helper via LocalAuthentication. On success,
+`EnforcePolicySync` updates the allowlist files the extension reloads
+(`enforce-allowlist.json` / `enforce-locked.json` under Application Support).
 
 ### Identity caveat
 
@@ -63,27 +97,29 @@ usually have `signing_id` equal to `CFBundleIdentifier`. Helpers, scripts,
 deny list can leak. Phase 1 docs and code call this out; do not claim perfect
 coverage of every launch path on day one.
 
-### Prerequisites to activate
+### Prerequisites to activate (SIP-on)
 
 1. Request Apple entitlement:
    [System Extension request](https://developer.apple.com/contact/request/system-extension/)
    for `com.apple.developer.endpoint-security.client`.
-2. Host entitlement: `com.apple.developer.system-extension.install`.
+2. Host entitlement: `com.apple.developer.system-extension.install`
+   (`Packaging/FreshLock-SystemExtension-Host.entitlements`).
 3. Package as Endpoint Security system extension; user (or MDM) approval.
 4. Full Disk Access for the extension / host as required by TCC.
 5. Developer ID signing + notarization.
-6. Wire `LockCoordinator` grant/revoke to the allowlist the ES client consults.
+6. Unlock grants already sync to the allowlist via `EnforcePolicySync`.
 7. Optionally set `NSEndpointSecurityEarlyBoot` so non-platform exec waits at boot.
 
 Development without the entitlement typically requires SIP off (and possibly
 AMFI boot-args). That is for developers only - never a user instruction for
 "more security."
 
-### Entitlement risk
+### Entitlement status
 
-Apple targets ES at EDR/AV-class products. A consumer app locker may be
-**declined**. Treat Phase 1 as contingent; do not advertise it as shipping until
-approved and tested on SIP-on machines.
+**Not granted in-tree.** Entitlement plists are ready; Apple must whitelist the
+team. Consumer "app locker" use may be **declined**. Treat Phase 1 as contingent;
+do not advertise kernel enforcement as shipping until approved and tested on
+SIP-on machines.
 
 ---
 

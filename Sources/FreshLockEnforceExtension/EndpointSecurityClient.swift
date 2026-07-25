@@ -6,8 +6,9 @@
 //  IDs only. No private APIs. Does not run without Apple's managed entitlement
 //  on SIP-on systems.
 //
-//  IMPORTANT: This is scaffolding. It is not embedded in FreshLock.app yet and
-//  must not be described as shipping kernel enforcement.
+//  IMPORTANT: Not embedded in the default FreshLock.app build. Requires
+//  Scripts/build-systemextension.sh (+ optional EMBED_SYSTEM_EXTENSION=1) and
+//  Apple's com.apple.developer.endpoint-security.client entitlement.
 //
 
 import EndpointSecurity
@@ -63,18 +64,31 @@ final class EndpointSecurityClient: @unchecked Sendable {
     private let lock = NSLock()
     private var evaluator: ExecGateEvaluator
     private let allowlistStore: EnforceAllowlistStore
+    private let lockedStore: EnforceLockedSetStore
 
-    init(policy: ExecGatePolicy, allowlistStore: EnforceAllowlistStore) {
+    init(
+        policy: ExecGatePolicy,
+        allowlistStore: EnforceAllowlistStore,
+        lockedStore: EnforceLockedSetStore
+    ) {
         self.allowlistStore = allowlistStore
+        self.lockedStore = lockedStore
         let allowlist = (try? allowlistStore.load()) ?? UnlockAllowlist()
         evaluator = ExecGateEvaluator(policy: policy, allowlist: allowlist)
     }
 
     func reloadAllowlist() {
+        reloadFromDisk()
+    }
+
+    /// Reload locked signing IDs and unlock allowlist from disk.
+    func reloadFromDisk() {
         lock.lock()
         defer { lock.unlock() }
         let allowlist = (try? allowlistStore.load()) ?? UnlockAllowlist()
+        let locked = (try? lockedStore.load()) ?? evaluator.policy.lockedSigningIDs
         evaluator.allowlist = allowlist
+        evaluator.policy.lockedSigningIDs = locked
     }
 
     func updatePolicy(_ policy: ExecGatePolicy) {
@@ -105,7 +119,8 @@ final class EndpointSecurityClient: @unchecked Sendable {
 
         // Reduce noise from common system helpers (program-path prefix mute).
         _ = es_mute_path(newClient, "/usr/libexec", ES_MUTE_PATH_TYPE_PREFIX)
-        log.info("ES AUTH_EXEC client subscribed (scaffolding)")
+        _ = es_mute_path(newClient, "/System", ES_MUTE_PATH_TYPE_PREFIX)
+        log.info("ES AUTH_EXEC client subscribed")
     }
 
     func stop() {
@@ -133,23 +148,17 @@ final class EndpointSecurityClient: @unchecked Sendable {
         let identity = Self.identity(from: message.pointee.event.exec.target)
         lock.lock()
         let decision = evaluator.decision(for: identity)
+        let isLocked = evaluator.policy.lockedSigningIDs.contains(identity.signingID)
         lock.unlock()
 
         let auth: es_auth_result_t = (decision == .allow) ? ES_AUTH_RESULT_ALLOW : ES_AUTH_RESULT_DENY
-        // Cache allows for non-locked binaries; never cache DENY aggressively across
-        // unlock state changes — pass false on deny so a later unlock can allow.
-        let cache = decision == .allow && !lockedContains(identity.signingID)
+        // Cache allows for non-locked binaries; never cache DENY so a later unlock can allow.
+        let cache = decision == .allow && !isLocked
         es_respond_auth_result(client, message, auth, cache)
 
         if decision == .deny {
             log.info("Denied exec signing_id=\(identity.signingID, privacy: .public)")
         }
-    }
-
-    private func lockedContains(_ signingID: String) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return evaluator.policy.lockedSigningIDs.contains(signingID)
     }
 
     private static func identity(from process: UnsafePointer<es_process_t>?) -> ProcessIdentity {

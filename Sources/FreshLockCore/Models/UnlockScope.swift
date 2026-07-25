@@ -15,15 +15,25 @@ public enum UnlockScope: Codable, Hashable, Sendable {
     case untilSleep
     /// Valid until logout (and only while `sessionPID` lives).
     case untilLogout
-    /// Valid for a fixed duration (and only while `sessionPID` lives).
+    /// Valid for a fixed wall-clock duration (and only while `sessionPID` lives).
     case forDuration(TimeInterval)
+    /// Valid until the user has been idle (no keyboard/mouse input) for the
+    /// given interval. Unlike ``forDuration``, the clock resets on each input.
+    case untilInactivity(TimeInterval)
 
     public var displayName: String {
         switch self {
         case .untilSleep: "Until Sleep"
         case .untilLogout: "Until Logout"
         case let .forDuration(seconds): "For \(Int(seconds / 60)) min"
+        case let .untilInactivity(seconds): "After \(Int(seconds / 60)) min idle"
         }
+    }
+
+    /// Idle threshold for ``untilInactivity``; `nil` for other scopes.
+    public var inactivityThreshold: TimeInterval? {
+        if case let .untilInactivity(seconds) = self { return seconds }
+        return nil
     }
 }
 
@@ -50,7 +60,7 @@ public struct UnlockGrant: Hashable, Sendable {
         switch scope {
         case let .forDuration(seconds):
             expiresAt = grantedAt.addingTimeInterval(seconds)
-        case .untilSleep, .untilLogout:
+        case .untilSleep, .untilLogout, .untilInactivity:
             expiresAt = nil
         }
     }
@@ -58,6 +68,12 @@ public struct UnlockGrant: Hashable, Sendable {
     public func isTimeExpired(asOf now: Date = Date()) -> Bool {
         guard let expiresAt else { return false }
         return now >= expiresAt
+    }
+
+    /// Whether this grant is still inside the post-unlock grace window.
+    public func isWithinGracePeriod(_ seconds: Int, asOf now: Date = Date()) -> Bool {
+        guard seconds > 0 else { return false }
+        return now.timeIntervalSince(grantedAt) < TimeInterval(seconds)
     }
 
     /// Valid only for this exact running process.

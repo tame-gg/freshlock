@@ -12,6 +12,7 @@
 
 import Foundation
 import FreshLockCore
+import FreshLockEnforce
 
 /// A ready-to-run locking engine. Construct it with the shared core services
 /// and a configuration provider, then call ``start()``.
@@ -23,6 +24,7 @@ public final class LockEngine {
     private let coordinator: LockCoordinator
     private let relockManager: RelockManager
     private let hotKeys: GlobalHotKeyService
+    private let enforceSync: EnforcePolicySync
     private let configProvider: @Sendable () -> Configuration
     private var watcher: ConfigurationFileWatcher?
     /// Ids of the currently-registered global shortcuts, for re-registration.
@@ -65,9 +67,14 @@ public final class LockEngine {
             configProvider: configProvider
         )
         relockManager = RelockManager(store: unlockStore)
+        enforceSync = EnforcePolicySync(
+            unlockStore: unlockStore,
+            configProvider: configProvider
+        )
         if let configFileURL {
             watcher = ConfigurationFileWatcher(url: configFileURL) { [weak self] in
                 self?.reloadShortcuts()
+                self?.enforceSync.publish()
             }
         }
     }
@@ -78,6 +85,7 @@ public final class LockEngine {
         started = true
         relockManager.start()
         coordinator.start()
+        enforceSync.start()
         reloadShortcuts()
         watcher?.start()
         Log.lifecycle.info("Lock engine started")
@@ -114,5 +122,23 @@ public final class LockEngine {
         {
             registeredHotKeyIDs.append(id)
         }
+    }
+
+    // MARK: - Menu / shortcut entry points (always auth-gated where unlocking)
+
+    public func lockAllNow() {
+        coordinator.lockAllNow()
+    }
+
+    public func unlockAllNow() {
+        coordinator.unlockAllNow()
+    }
+
+    public func unlockUntilSleepNow() {
+        coordinator.unlockUntilSleepNow()
+    }
+
+    public func unlockUntilLogoutNow() {
+        coordinator.unlockUntilLogoutNow()
     }
 }

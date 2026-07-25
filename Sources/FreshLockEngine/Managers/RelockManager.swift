@@ -4,12 +4,15 @@
 //
 //  Translates system events into relock actions against the `UnlockStateStore`.
 //  It observes sleep, wake, screen-lock and session events using public
-//  notification centres (no polling), and revokes the unlock grants whose scope
-//  or policy says they should end.
+//  notification centres (no polling for those), and revokes unlock grants whose
+//  scope or policy says they should end.
+//
+//  Idle (``.untilInactivity``) grants are checked on a light timer using
+//  `CGEventSource` — real keyboard/mouse idle, not wall-clock time since unlock.
 //
 
 import AppKit
-import Combine
+import CoreGraphics
 import Foundation
 import FreshLockCore
 
@@ -18,6 +21,7 @@ final class RelockManager {
     private let store: UnlockStateStore
     private var observers: [NSObjectProtocol] = []
     private var distributedObservers: [NSObjectProtocol] = []
+    private var inactivityTimer: Timer?
 
     init(store: UnlockStateStore) {
         self.store = store
@@ -50,6 +54,7 @@ final class RelockManager {
             MainActor.assumeIsolated { self?.handleScreenLock() }
         })
 
+        startInactivityPolling()
         Log.lifecycle.info("Relock manager started")
     }
 
@@ -60,6 +65,8 @@ final class RelockManager {
         let distributed = DistributedNotificationCenter.default()
         distributedObservers.forEach(distributed.removeObserver)
         distributedObservers.removeAll()
+        inactivityTimer?.invalidate()
+        inactivityTimer = nil
     }
 
     // MARK: - Handlers
@@ -87,5 +94,33 @@ final class RelockManager {
             }
             return false
         }
+    }
+
+    // MARK: - Real input inactivity
+
+    private func startInactivityPolling() {
+        inactivityTimer?.invalidate()
+        // 5s is enough for minute-scale idle thresholds without measurable CPU.
+        inactivityTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.revokeIdleGrants() }
+        }
+    }
+
+    private func revokeIdleGrants() {
+        let idle = SystemIdle.secondsSinceLastInput()
+        store.revokeGrants { scope in
+            guard let threshold = scope.inactivityThreshold else { return false }
+            return idle >= threshold
+        }
+    }
+}
+
+/// System-wide seconds since the last keyboard or mouse event.
+enum SystemIdle {
+    /// `kCGAnyInputEventType` — any input in the combined session.
+    private static let anyInput = CGEventType(rawValue: ~UInt32(0))!
+
+    static func secondsSinceLastInput() -> CFTimeInterval {
+        CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)
     }
 }
