@@ -3,9 +3,9 @@
 //  generate-icon.swift
 //  FreshLock dock / app icon for macOS Sequoia–Tahoe.
 //
-//  Soft single-hue teal field + crisp white lock silhouette. Subtle material
-//  depth only (same-hue tonal wash, soft top sheen). No navy canvas, no
-//  cyan→green marketing gradient, no radial glow blob.
+//  Soft single-hue teal field + white shield-lock silhouette (lock + shield
+//  fused into one mark). Subtle same-hue material depth only. No navy canvas,
+//  no cyan→green marketing gradient, no radial glow blob.
 //
 //  Usage: swift Scripts/generate-icon.swift
 //  Writes Packaging/AppIcon.iconset/*.png and Packaging/AppIcon.icns
@@ -31,12 +31,53 @@ func hex(_ v: UInt32, alpha: CGFloat = 1) -> NSColor {
     )
 }
 
-// Soft teal field (hue held; value only shifts for material depth).
-let fieldTop = hex(0x5EBFC8)
-let fieldBottom = hex(0x3A97A2)
-// Keyhole / punch uses the deeper field tone so the cut reads clean.
-let punch = hex(0x2F7F8A)
-let lockWhite = hex(0xFFFFFF)
+// Soft teal field: hue held, value shifts for material depth (not multi-hue marketing).
+let fieldTop = hex(0x62C2CB)
+let fieldBottom = hex(0x348F9A)
+let punch = hex(0x2A7882)
+let mark = hex(0xFFFFFF)
+
+/// Soft shield body (FreshLock = lock + shield), y-up AppKit coords.
+func shieldBody(in size: CGFloat) -> NSBezierPath {
+    let cx = size / 2
+    let top = size * 0.40
+    let bottom = size * 0.12
+    let halfW = size * 0.235
+    let left = cx - halfW
+    let right = cx + halfW
+    let topR = size * 0.065
+    let path = NSBezierPath()
+
+    // Top edge with rounded corners, then sides taper into a soft tip.
+    path.move(to: CGPoint(x: left + topR, y: top))
+    path.line(to: CGPoint(x: right - topR, y: top))
+    path.appendArc(
+        withCenter: CGPoint(x: right - topR, y: top - topR),
+        radius: topR,
+        startAngle: 90,
+        endAngle: 0,
+        clockwise: true
+    )
+    path.curve(
+        to: CGPoint(x: cx, y: bottom),
+        controlPoint1: CGPoint(x: right, y: top - size * 0.22),
+        controlPoint2: CGPoint(x: right - size * 0.02, y: bottom + size * 0.10)
+    )
+    path.curve(
+        to: CGPoint(x: left, y: top - topR),
+        controlPoint1: CGPoint(x: left + size * 0.02, y: bottom + size * 0.10),
+        controlPoint2: CGPoint(x: left, y: top - size * 0.22)
+    )
+    path.appendArc(
+        withCenter: CGPoint(x: left + topR, y: top - topR),
+        radius: topR,
+        startAngle: 180,
+        endAngle: 90,
+        clockwise: true
+    )
+    path.close()
+    return path
+}
 
 func drawIcon(size: CGFloat) -> NSImage {
     let image = NSImage(size: NSSize(width: size, height: size))
@@ -46,53 +87,35 @@ func drawIcon(size: CGFloat) -> NSImage {
     // Full-bleed field. System applies the Dock squircle mask.
     NSGradient(colors: [fieldTop, fieldBottom])!.draw(in: bounds, angle: -90)
 
-    // Soft top sheen: directional material light across the upper face,
-    // not a radial glow parked behind the mark.
+    // Soft top sheen: directional material light, not a halo behind the mark.
     if size >= 48 {
-        let sheenRect = NSRect(x: 0, y: size * 0.52, width: size, height: size * 0.48)
         NSGradient(colors: [
-            NSColor.white.withAlphaComponent(0.22),
+            NSColor.white.withAlphaComponent(0.20),
             NSColor.white.withAlphaComponent(0.0)
-        ])!.draw(in: sheenRect, angle: -90)
+        ])!.draw(
+            in: NSRect(x: 0, y: size * 0.55, width: size, height: size * 0.45),
+            angle: -90
+        )
     }
 
-    // Lock geometry: optically centered, bold enough for 16–32pt Dock.
-    let bodyW = size * 0.40
-    let bodyH = size * 0.30
-    let bodyX = (size - bodyW) / 2
-    let bodyY = size * 0.20
-    let corner = size * 0.072
-
-    let archR = bodyW * 0.295
-    let stroke = size * 0.070
-    let legBottom = bodyY + bodyH * 0.42
-    let archCenterY = bodyY + bodyH + size * 0.048
     let cx = size / 2
+    let bodyTop = size * 0.40
+    let halfW = size * 0.235
+
+    // Shackle arching above the shield.
+    let archR = halfW * 0.72
+    let stroke = size * 0.068
+    let legInset = size * 0.018
+    let legBottom = bodyTop - size * 0.02
+    let archCenterY = bodyTop + size * 0.095
     let legX1 = cx - archR
     let legX2 = cx + archR
 
-    // Tight contact shadow under the lock (large sizes only).
-    if size >= 128 {
-        let shadow = NSBezierPath(
-            roundedRect: NSRect(
-                x: bodyX + size * 0.02,
-                y: bodyY - size * 0.018,
-                width: bodyW - size * 0.04,
-                height: size * 0.04
-            ),
-            xRadius: size * 0.02,
-            yRadius: size * 0.02
-        )
-        hex(0x1A5A63, alpha: 0.28).setFill()
-        shadow.fill()
-    }
-
-    // Shackle (white).
     let shackle = NSBezierPath()
     shackle.lineWidth = stroke
     shackle.lineCapStyle = .round
     shackle.lineJoinStyle = .round
-    shackle.move(to: CGPoint(x: legX1, y: legBottom))
+    shackle.move(to: CGPoint(x: legX1, y: legBottom - legInset))
     shackle.line(to: CGPoint(x: legX1, y: archCenterY))
     shackle.appendArc(
         withCenter: CGPoint(x: cx, y: archCenterY),
@@ -101,23 +124,19 @@ func drawIcon(size: CGFloat) -> NSImage {
         endAngle: 0,
         clockwise: true
     )
-    shackle.line(to: CGPoint(x: legX2, y: legBottom))
-    lockWhite.setStroke()
+    shackle.line(to: CGPoint(x: legX2, y: legBottom - legInset))
+    mark.setStroke()
     shackle.stroke()
 
-    // Body (white).
-    let body = NSBezierPath(
-        roundedRect: NSRect(x: bodyX, y: bodyY, width: bodyW, height: bodyH),
-        xRadius: corner,
-        yRadius: corner
-    )
-    lockWhite.setFill()
+    // Shield body.
+    let body = shieldBody(in: size)
+    mark.setFill()
     body.fill()
 
-    // Keyhole punch. Scale up slightly at tiny sizes so it survives.
-    let holeScale: CGFloat = size < 32 ? 1.25 : 1.0
-    let holeR = size * 0.038 * holeScale
-    let holeC = CGPoint(x: cx, y: bodyY + bodyH * 0.60)
+    // Keyhole punch (scaled up at tiny sizes for legibility).
+    let holeScale: CGFloat = size < 32 ? 1.3 : (size < 64 ? 1.1 : 1.0)
+    let holeR = size * 0.040 * holeScale
+    let holeC = CGPoint(x: cx, y: size * 0.318)
     punch.setFill()
     NSBezierPath(ovalIn: NSRect(
         x: holeC.x - holeR,
@@ -126,19 +145,18 @@ func drawIcon(size: CGFloat) -> NSImage {
         height: holeR * 2
     )).fill()
 
-    let slotW = size * 0.030 * holeScale
-    let slotH = bodyH * 0.38
-    let slot = NSBezierPath(
+    let slotW = size * 0.032 * holeScale
+    let slotH = size * 0.095
+    NSBezierPath(
         roundedRect: NSRect(
             x: cx - slotW / 2,
-            y: bodyY + bodyH * 0.16,
+            y: size * 0.195,
             width: slotW,
             height: slotH
         ),
         xRadius: slotW / 2,
         yRadius: slotW / 2
-    )
-    slot.fill()
+    ).fill()
 
     image.unlockFocus()
     return image

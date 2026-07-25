@@ -66,12 +66,7 @@ struct OnboardingView: View {
     /// Compact lockup shared across pages - real app icon, no icon-in-tile.
     private var brandChrome: some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(nsImage: Self.brandAppIcon)
-                .resizable()
-                .interpolation(.high)
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 40, height: 40)
-                .accessibilityHidden(true)
+            AppBrandIcon(size: 40)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("FreshLock")
@@ -328,22 +323,6 @@ struct OnboardingView: View {
         .background(.bar)
     }
 
-    // MARK: App icon
-
-    /// Packaged AppIcon when available; otherwise the running app’s icon.
-    private static var brandAppIcon: NSImage {
-        if let named = NSImage(named: "AppIcon"), named.isValid {
-            return named
-        }
-        if let path = Bundle.main.path(forResource: "AppIcon", ofType: "icns"),
-           let fromBundle = NSImage(contentsOfFile: path) {
-            return fromBundle
-        }
-        if let appIcon = NSApp.applicationIconImage, appIcon.isValid {
-            return appIcon
-        }
-        return NSImage(named: NSImage.applicationIconName) ?? NSImage()
-    }
 }
 
 // MARK: - Step indicator

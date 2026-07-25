@@ -39,15 +39,33 @@ enum FreshLockIdentity {
 }
 
 /// Public Accessibility permission helpers for the GUI (onboarding / Preferences).
+///
+/// Trust is always evaluated for the **currently running process** via
+/// `AXIsProcessTrusted`. System Settings can show a different FreshLock.app
+/// (another path or code signature) as enabled while this process remains
+/// untrusted — common when switching between Xcode, `dist/`, and `/Applications`.
 @MainActor
 public enum AccessibilityPermission {
-    /// Whether this process is currently trusted for Accessibility.
+    /// Whether **this** process is currently trusted for Accessibility.
     public static var isTrusted: Bool {
-        AXIsProcessTrusted()
+        // Prefer the options API with prompt disabled so we never accidentally
+        // surface a sheet from a status poll / foreground refresh.
+        let options = ["AXTrustedCheckOptionPrompt": false] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
     }
 
-    /// Prompt the user (system sheet) to grant Accessibility, if not already
-    /// trusted. Returns the post-prompt trust state.
+    /// Absolute path of the running app bundle (TCC identity tip for developers).
+    public static var runningBundlePath: String {
+        Bundle.main.bundlePath
+    }
+
+    /// Home-abbreviated bundle path for UI copy (`~/…`).
+    public static var runningBundlePathDisplay: String {
+        (runningBundlePath as NSString).abbreviatingWithTildeInPath
+    }
+
+    /// Prompt TCC for **this** binary (system sheet / Settings registration), then
+    /// return the post-prompt trust state. Does not open System Settings itself.
     @discardableResult
     public static func requestTrust() -> Bool {
         // Use the documented option key string rather than the HIServices global
