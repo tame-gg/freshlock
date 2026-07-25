@@ -14,7 +14,7 @@ jobs:
     name: Build & Test
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select Xcode
         run: |
@@ -45,7 +45,7 @@ jobs:
     name: SwiftLint & SwiftFormat
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install tools
         run: brew install swiftlint swiftformat
@@ -61,7 +61,7 @@ jobs:
     runs-on: macos-15
     needs: [build-test]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build app bundle
         run: CONFIGURATION=release ARCH=universal Scripts/build-app.sh
