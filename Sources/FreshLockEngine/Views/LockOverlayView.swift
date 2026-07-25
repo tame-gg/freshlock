@@ -107,7 +107,6 @@ struct LockOverlayView: View {
 private struct OverlayPanelChrome: ViewModifier {
     let useGlass: Bool
 
-    @ViewBuilder
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *), useGlass {
             content
@@ -123,7 +122,6 @@ private struct OverlayPanelChrome: ViewModifier {
 
 /// Prefer `.glassProminent` when available; otherwise bordered prominent.
 private struct UnlockButtonStyle: ViewModifier {
-    @ViewBuilder
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *) {
             content.buttonStyle(.glassProminent)

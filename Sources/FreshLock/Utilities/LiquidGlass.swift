@@ -31,7 +31,11 @@ import SwiftUI
 enum LiquidGlassSupport {
     /// Runtime check: glass APIs exist on this OS.
     static var isAvailable: Bool {
-        if #available(macOS 26.0, *) { true } else { false }
+        if #available(macOS 26.0, *) {
+            true
+        } else {
+            false
+        }
     }
 
     /// Short footnote for Preferences.
@@ -56,18 +60,18 @@ extension View {
             // `.interactive()` adds pointer-responsive glass on macOS 26+;
             // macOS 27 further tunes this for mouse (see NSGlassEffectView).
             let glass = interactive ? Glass.regular.interactive() : Glass.regular
-            self.glassEffect(glass, in: shape)
+            glassEffect(glass, in: shape)
         } else {
-            self.background(.regularMaterial, in: shape)
+            background(.regularMaterial, in: shape)
         }
     }
 
     /// Toolbar / header cluster wrapped so sibling glass shapes can morph.
     @ViewBuilder
-    func freshLockGlassContainer<Content: View>(
+    func freshLockGlassContainer(
         enabled: Bool,
         spacing: CGFloat = 16,
-        @ViewBuilder content: () -> Content
+        @ViewBuilder content: () -> some View
     ) -> some View {
         if #available(macOS 26.0, *), enabled {
             GlassEffectContainer(spacing: spacing) {

@@ -83,10 +83,10 @@ struct OnboardingView: View {
             icon: "accessibility",
             title: "Allow Accessibility",
             subtitle:
-                """
-                FreshLock uses Accessibility to detect protected windows and cover \
-                them without interrupting Touch ID.
-                """
+            """
+            FreshLock uses Accessibility to detect protected windows and cover \
+            them without interrupting Touch ID.
+            """
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 8) {
@@ -113,9 +113,9 @@ struct OnboardingView: View {
                         After enabling FreshLock in System Settings, return here.
                         """
                     )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text("You can change this later in System Settings → Privacy & Security → Accessibility.")
                         .font(.caption)

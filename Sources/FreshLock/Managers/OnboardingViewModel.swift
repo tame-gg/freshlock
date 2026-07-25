@@ -50,11 +50,11 @@ final class OnboardingViewModel: ObservableObject {
     var canContinue: Bool {
         switch step {
         case .accessibility:
-            return accessibilityTrusted
+            accessibilityTrusted
         case .welcome, .launchAtLogin:
-            return true
+            true
         case .done:
-            return false
+            false
         }
     }
 

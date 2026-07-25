@@ -105,7 +105,7 @@ struct MainView: View {
 
     private var list: some View {
         Group {
-            if viewModel.isLoadingCatalogue && viewModel.installedApps.isEmpty {
+            if viewModel.isLoadingCatalogue, viewModel.installedApps.isEmpty {
                 ProgressView("Scanning applications…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.visibleApps.isEmpty {

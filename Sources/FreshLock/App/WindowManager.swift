@@ -57,7 +57,7 @@ final class WindowManager {
             return
         }
         let hosting = NSHostingController(rootView: AboutView())
-        let fitting = hosting.sizeThatFits(in: NSSize(width: 400, height: 10_000))
+        let fitting = hosting.sizeThatFits(in: NSSize(width: 400, height: 10000))
         let contentSize = NSSize(
             width: max(360, min(460, ceil(fitting.width))),
             height: max(280, ceil(fitting.height))

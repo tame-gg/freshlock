@@ -33,16 +33,8 @@ enum Theme {
     static let cornerRadius: CGFloat = 10
 }
 
-/// Environment flag mirroring `AppSettings.preferLiquidGlass`.
-private struct PreferLiquidGlassKey: EnvironmentKey {
-    static let defaultValue = true
-}
-
 extension EnvironmentValues {
-    var preferLiquidGlass: Bool {
-        get { self[PreferLiquidGlassKey.self] }
-        set { self[PreferLiquidGlassKey.self] = newValue }
-    }
+    @Entry var preferLiquidGlass: Bool = true
 }
 
 extension Color {

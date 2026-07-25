@@ -86,7 +86,7 @@ struct PreferencesView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if defaultRelockKind.wrappedValue.needsMinutes {
-                Stepper("Minutes: \(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1...240)
+                Stepper("Minutes: \(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1 ... 240)
             }
             Toggle("Require authentication on every launch", isOn: viewModel.binding(\.requireEveryLaunch))
             Text(
@@ -95,12 +95,12 @@ struct PreferencesView: View {
                 Quitting always clears unlock regardless of this setting.
                 """
             )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .font(.caption)
+            .foregroundStyle(.secondary)
             Stepper(
                 "Grace period: \(viewModel.settings.gracePeriodSeconds)s",
                 value: viewModel.binding(\.gracePeriodSeconds),
-                in: 0...60
+                in: 0 ... 60
             )
         }
     }
@@ -165,19 +165,27 @@ struct PreferencesView: View {
 
     // MARK: Bindings
 
-    private var relockPolicy: Binding<RelockPolicy> { viewModel.binding(\.defaultRelockPolicy) }
+    private var relockPolicy: Binding<RelockPolicy> {
+        viewModel.binding(\.defaultRelockPolicy)
+    }
 
     private var defaultRelockKind: Binding<PolicyKind> {
         .init(
             get: { PolicyKind(from: relockPolicy.wrappedValue) },
-            set: { relockPolicy.wrappedValue = $0.makePolicy(minutes: defaultRelockMinutes.wrappedValue) ?? .everyLaunch }
+            set: { kind in
+                let minutes = defaultRelockMinutes.wrappedValue
+                relockPolicy.wrappedValue = kind.makePolicy(minutes: minutes) ?? .everyLaunch
+            }
         )
     }
 
     private var defaultRelockMinutes: Binding<Int> {
         .init(
             get: { relockPolicy.wrappedValue.minutes ?? 15 },
-            set: { relockPolicy.wrappedValue = PolicyKind(from: relockPolicy.wrappedValue).makePolicy(minutes: $0) ?? .everyLaunch }
+            set: { minutes in
+                let kind = PolicyKind(from: relockPolicy.wrappedValue)
+                relockPolicy.wrappedValue = kind.makePolicy(minutes: minutes) ?? .everyLaunch
+            }
         )
     }
 

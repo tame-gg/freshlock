@@ -28,28 +28,28 @@ enum ESClientStartError: Error, CustomStringConvertible {
     var description: String {
         switch self {
         case .notEntitled:
-            return "Missing com.apple.developer.endpoint-security.client (Apple must grant this)"
+            "Missing com.apple.developer.endpoint-security.client (Apple must grant this)"
         case .notPrivileged:
-            return "ES client must run as root / in a system extension"
+            "ES client must run as root / in a system extension"
         case .notPermitted:
-            return "Full Disk Access / TCC not granted for Endpoint Security"
+            "Full Disk Access / TCC not granted for Endpoint Security"
         case .invalidArgument:
-            return "es_new_client invalid argument"
+            "es_new_client invalid argument"
         case .tooManyClients:
-            return "Too many ES clients on this Mac"
-        case .unknown(let code):
-            return "es_new_client failed with code \(code.rawValue)"
+            "Too many ES clients on this Mac"
+        case let .unknown(code):
+            "es_new_client failed with code \(code.rawValue)"
         }
     }
 
     static func from(_ result: es_new_client_result_t) -> ESClientStartError {
         switch result {
-        case ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED: return .notEntitled
-        case ES_NEW_CLIENT_RESULT_ERR_NOT_PRIVILEGED: return .notPrivileged
-        case ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED: return .notPermitted
-        case ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT: return .invalidArgument
-        case ES_NEW_CLIENT_RESULT_ERR_TOO_MANY_CLIENTS: return .tooManyClients
-        default: return .unknown(result)
+        case ES_NEW_CLIENT_RESULT_ERR_NOT_ENTITLED: .notEntitled
+        case ES_NEW_CLIENT_RESULT_ERR_NOT_PRIVILEGED: .notPrivileged
+        case ES_NEW_CLIENT_RESULT_ERR_NOT_PERMITTED: .notPermitted
+        case ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT: .invalidArgument
+        case ES_NEW_CLIENT_RESULT_ERR_TOO_MANY_CLIENTS: .tooManyClients
+        default: .unknown(result)
         }
     }
 }
@@ -64,7 +64,7 @@ final class EndpointSecurityClient: @unchecked Sendable {
     init(policy: ExecGatePolicy, allowlistStore: EnforceAllowlistStore) {
         self.allowlistStore = allowlistStore
         let allowlist = (try? allowlistStore.load()) ?? UnlockAllowlist()
-        self.evaluator = ExecGateEvaluator(policy: policy, allowlist: allowlist)
+        evaluator = ExecGateEvaluator(policy: policy, allowlist: allowlist)
     }
 
     func reloadAllowlist() {

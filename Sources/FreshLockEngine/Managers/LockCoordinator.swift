@@ -218,7 +218,7 @@ final class LockCoordinator {
 
 @MainActor
 extension LockCoordinator {
-    fileprivate func enforceSwitchAway(newFrontmost bundleID: String, config: Configuration) {
+    private func enforceSwitchAway(newFrontmost bundleID: String, config: Configuration) {
         if FreshLockIdentity.transientFrontmostBundleIDs.contains(bundleID) {
             return
         }
@@ -252,7 +252,7 @@ extension LockCoordinator {
 
     // MARK: - Secure + auth
 
-    fileprivate func clearSecuringUI(for bundleID: String, lock: Bool = true) {
+    private func clearSecuringUI(for bundleID: String, lock: Bool = true) {
         if lock {
             store.lock(bundleID)
         }
@@ -261,7 +261,7 @@ extension LockCoordinator {
         stopKeepingVisible(bundleID)
     }
 
-    fileprivate func beginSecuring(_ app: ProtectedApp, config: Configuration, pid: pid_t) {
+    private func beginSecuring(_ app: ProtectedApp, config: Configuration, pid: pid_t) {
         let bundleID = app.bundleIdentifier
         let requireEveryLaunch = config.settings.requireEveryLaunch
         let policy = app.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
