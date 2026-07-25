@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Entitlements for AppLock.
+
+  AppLock is intentionally *not* sandboxed: monitoring other applications'
+  launches (NSWorkspace notifications) and drawing overlays above them requires
+  running outside the App Sandbox. The Hardened Runtime is enabled so the app
+  can still be notarized for distribution.
+-->
+<plist version="1.0">
+<dict>
+    <!-- Hardened Runtime is on; no special exceptions are required for our
+         public-API usage (LocalAuthentication, NSWorkspace, Accessibility). -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+</dict>
+</plist>
