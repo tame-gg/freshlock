@@ -64,6 +64,15 @@ struct PreferencesView: View {
 
     private var lockingTab: some View {
         Form {
+            Picker("Default relock", selection: defaultRelockKind) {
+                ForEach(PolicyKind.explicitCases, id: \.self) { Text($0.displayName).tag($0) }
+            }
+            if defaultRelockKind.wrappedValue.needsMinutes {
+                Stepper("After \(defaultRelockMinutes.wrappedValue) min", value: defaultRelockMinutes, in: 1...240)
+            }
+            Text("Applies to apps set to \u{201C}Default\u{201D}. \u{201C}Once per launch\u{201D} prompts only when you open an app, not each time you switch back.")
+                .font(.caption).foregroundStyle(.secondary)
+
             Toggle("Require authentication on every launch", isOn: $viewModel.settings.requireEveryLaunch)
             Stepper(
                 "Grace period: \(viewModel.settings.gracePeriodSeconds)s",
@@ -76,6 +85,24 @@ struct PreferencesView: View {
                 in: 1...120
             )
         }
+    }
+
+    /// The global default relock policy, mapped to the flat `PolicyKind` picker
+    /// (there is no "Default" option here — this *is* the default).
+    private var defaultRelockKind: Binding<PolicyKind> {
+        .init(
+            get: { PolicyKind(from: viewModel.settings.defaultRelockPolicy) },
+            set: { viewModel.settings.defaultRelockPolicy =
+                $0.makePolicy(minutes: defaultRelockMinutes.wrappedValue) ?? .everyLaunch }
+        )
+    }
+
+    private var defaultRelockMinutes: Binding<Int> {
+        .init(
+            get: { viewModel.settings.defaultRelockPolicy.minutes ?? 15 },
+            set: { viewModel.settings.defaultRelockPolicy =
+                PolicyKind(from: viewModel.settings.defaultRelockPolicy).makePolicy(minutes: $0) ?? .everyLaunch }
+        )
     }
 
     // MARK: Shortcuts

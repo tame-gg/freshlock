@@ -15,11 +15,16 @@ struct RelockPolicyTests {
         #expect(RelockPolicy.everyLaunch.minutes == nil)
     }
 
-    @Test func lastingUnlockSemantics() {
-        #expect(RelockPolicy.everyLaunch.grantsLastingUnlock == false)
-        #expect(RelockPolicy.afterMinutes(5).grantsLastingUnlock)
-        #expect(RelockPolicy.manualOnly.grantsLastingUnlock)
-        #expect(RelockPolicy.afterSwitchingAway.grantsLastingUnlock)
+    @Test func allPoliciesGrantLastingUnlock() {
+        // Every policy caches its unlock for its own window; the global
+        // requireEveryLaunch setting is the only "prompt every activation" path.
+        for policy in [RelockPolicy.everyLaunch, .afterMinutes(5), .manualOnly, .afterSwitchingAway] {
+            #expect(policy.grantsLastingUnlock)
+        }
+    }
+
+    @Test func defaultIsOncePerLaunch() {
+        #expect(RelockPolicy.default == .everyLaunch)
     }
 
     @Test func roundTripsThroughCodable() throws {

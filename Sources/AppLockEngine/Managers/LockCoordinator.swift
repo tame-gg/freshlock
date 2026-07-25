@@ -98,8 +98,10 @@ final class LockCoordinator {
         case .terminated(let bundleID):
             overlay.dismissOverlay(for: bundleID)
             authInFlight.remove(bundleID)
-            // A terminated app relocks unless it holds a lasting grant.
             failureCounts[bundleID] = nil
+            // Relock on quit so the next launch always re-authenticates. This is
+            // what makes `.everyLaunch` mean "once per launch".
+            store.lock(bundleID)
         }
     }
 
@@ -215,12 +217,12 @@ final class LockCoordinator {
         switch policy {
         case .afterMinutes(let m): scope = .forDuration(TimeInterval(m * 60))
         case .afterInactivity(let m): scope = .forDuration(TimeInterval(m * 60))
-        case .everyLaunch: scope = .forDuration(0) // effectively immediate relock
+        // `.everyLaunch` stays unlocked until the app quits; the `.terminated`
+        // handler revokes the grant so the next launch re-prompts.
+        case .everyLaunch: scope = .untilLogout
         default: scope = .untilSleep
         }
-        if policy.grantsLastingUnlock {
-            store.grantUnlock(bundleID, scope: scope)
-        }
+        store.grantUnlock(bundleID, scope: scope)
         overlay.dismissOverlay(for: bundleID)
     }
 

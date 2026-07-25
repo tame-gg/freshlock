@@ -15,7 +15,7 @@ extension RelockPolicy {
     /// describe the inherited default.
     var editorLabel: String {
         switch self {
-        case .everyLaunch: "Every launch"
+        case .everyLaunch: "Once per launch"
         case .afterMinutes(let m): "After \(m) min"
         case .afterSleep: "After sleep"
         case .afterScreenLock: "After screen lock"
@@ -50,7 +50,7 @@ enum PolicyKind: Hashable, CaseIterable {
     var displayName: String {
         switch self {
         case .useDefault: "Default"
-        case .everyLaunch: "Every launch"
+        case .everyLaunch: "Once per launch"
         case .afterMinutes: "After N minutes"
         case .afterSleep: "After sleep"
         case .afterScreenLock: "After screen lock"

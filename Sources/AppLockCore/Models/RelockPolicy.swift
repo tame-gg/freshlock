@@ -14,8 +14,9 @@ import Foundation
 /// Each case maps directly to a user-facing "Auto Relock" option. Associated
 /// values carry the parameter (minutes) where the option is configurable.
 public enum RelockPolicy: Codable, Hashable, Sendable {
-    /// Always require authentication on every launch/activation. Never grants a
-    /// lasting unlock. This is the most secure option.
+    /// Authenticate once when the app is opened, then stay unlocked until the
+    /// app quits (or the Mac sleeps). Switching away and back does not re-prompt.
+    /// The relock happens on app termination.
     case everyLaunch
 
     /// Relock once `minutes` have elapsed since the successful unlock.
@@ -36,8 +37,9 @@ public enum RelockPolicy: Codable, Hashable, Sendable {
     /// Never relock automatically; only a manual "Lock" action relocks.
     case manualOnly
 
-    /// A sensible default that balances security and convenience.
-    public static let `default`: RelockPolicy = .afterSwitchingAway
+    /// A sensible default that balances security and convenience: authenticate
+    /// once per app launch rather than on every switch-away (far fewer prompts).
+    public static let `default`: RelockPolicy = .everyLaunch
 }
 
 public extension RelockPolicy {
@@ -64,12 +66,9 @@ public extension RelockPolicy {
         }
     }
 
-    /// Whether this policy can ever produce a lasting (cached) unlock. When
-    /// `false`, the app must authenticate every single time it is activated.
-    var grantsLastingUnlock: Bool {
-        switch self {
-        case .everyLaunch: false
-        default: true
-        }
-    }
+    /// Whether this policy can produce a lasting (cached) unlock rather than
+    /// re-prompting on every activation. All policies now cache the unlock for
+    /// their window; the global `requireEveryLaunch` setting is the master
+    /// override that forces authentication on every activation.
+    var grantsLastingUnlock: Bool { true }
 }
