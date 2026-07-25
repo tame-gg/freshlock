@@ -158,15 +158,15 @@ struct MainView: View {
     private var sectionHeader: String {
         switch viewModel.sidebarSelection {
         case .all:
-            return viewModel.searchText.isEmpty ? "Applications" : "Results"
+            viewModel.searchText.isEmpty ? "Applications" : "Results"
         case .protected:
-            return "Protected apps"
+            "Protected apps"
         case .favorites:
-            return "Favorites"
+            "Favorites"
         case .settings:
-            return "Settings"
-        case .category(let category):
-            return category.displayName
+            "Settings"
+        case let .category(category):
+            category.displayName
         }
     }
 
@@ -192,8 +192,12 @@ struct MainView: View {
     }
 
     private var emptyTitle: String {
-        if viewModel.isCatalogueEmpty { return "No Applications" }
-        if !viewModel.searchText.isEmpty { return "No Matches" }
+        if viewModel.isCatalogueEmpty {
+            return "No Applications"
+        }
+        if !viewModel.searchText.isEmpty {
+            return "No Matches"
+        }
         switch viewModel.sidebarSelection {
         case .protected: return "Nothing Protected Yet"
         case .favorites: return "No Favorites"
@@ -202,8 +206,12 @@ struct MainView: View {
     }
 
     private var emptySymbol: String {
-        if viewModel.isCatalogueEmpty { return "app.dashed" }
-        if !viewModel.searchText.isEmpty { return "magnifyingglass" }
+        if viewModel.isCatalogueEmpty {
+            return "app.dashed"
+        }
+        if !viewModel.searchText.isEmpty {
+            return "magnifyingglass"
+        }
         switch viewModel.sidebarSelection {
         case .protected: return "lock.open"
         case .favorites: return "star"
@@ -242,8 +250,8 @@ extension SidebarItem {
         case .all: "All"
         case .protected: "Protected"
         case .favorites: "Favorites"
-        case .settings(let pane): pane.title
-        case .category(let category): category.displayName
+        case let .settings(pane): pane.title
+        case let .category(category): category.displayName
         }
     }
 
@@ -252,8 +260,8 @@ extension SidebarItem {
         case .all: "square.grid.2x2"
         case .protected: "lock.fill"
         case .favorites: "star.fill"
-        case .settings(let pane): pane.symbolName
-        case .category(let category): category.symbolName
+        case let .settings(pane): pane.symbolName
+        case let .category(category): category.symbolName
         }
     }
 }

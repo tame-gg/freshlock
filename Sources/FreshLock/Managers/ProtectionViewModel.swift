@@ -25,7 +25,9 @@ enum SidebarItem: Hashable {
 
     /// The settings page this selection shows, or `nil` for a library filter.
     var settingsPane: SettingsPane? {
-        if case let .settings(pane) = self { return pane }
+        if case let .settings(pane) = self {
+            return pane
+        }
         return nil
     }
 }

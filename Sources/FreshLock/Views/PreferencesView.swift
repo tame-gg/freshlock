@@ -215,9 +215,9 @@ struct PreferencesView: View {
 
     // MARK: Advanced
 
+    @ViewBuilder
     private var advancedSection: some View {
-        Group {
-            Section("Permissions") {
+        Section("Permissions") {
                 LabeledContent {
                     if AccessibilityPermission.isTrusted {
                         Text("Granted")
