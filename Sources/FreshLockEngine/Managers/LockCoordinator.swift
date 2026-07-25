@@ -252,7 +252,15 @@ extension LockCoordinator {
 
     // MARK: - Secure + auth
 
-    private func beginSecuring(_ app: ProtectedApp, config: Configuration, pid: pid_t) {
+    fileprivate func clearSecuringUI(for bundleID: String, lock: Bool = true) {
+        if lock {
+            store.lock(bundleID)
+        }
+        overlay.dismissOverlay(for: bundleID)
+        stopKeepingVisible(bundleID)
+    }
+
+    fileprivate func beginSecuring(_ app: ProtectedApp, config: Configuration, pid: pid_t) {
         let bundleID = app.bundleIdentifier
         let requireEveryLaunch = config.settings.requireEveryLaunch
         let policy = app.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
@@ -295,15 +303,12 @@ extension LockCoordinator {
         try? await Task.sleep(for: .milliseconds(50))
 
         guard let currentPID = livePID(for: bundleID) else {
-            store.lock(bundleID)
-            overlay.dismissOverlay(for: bundleID)
-            stopKeepingVisible(bundleID)
+            clearSecuringUI(for: bundleID)
             return
         }
 
         if !config.settings.requireEveryLaunch, store.isUnlocked(bundleID, pid: currentPID) {
-            stopKeepingVisible(bundleID)
-            overlay.dismissOverlay(for: bundleID)
+            clearSecuringUI(for: bundleID, lock: false)
             return
         }
 
@@ -338,14 +343,11 @@ extension LockCoordinator {
 
         guard !closing.contains(bundleID) else { return }
         guard livePID(for: bundleID) != nil else {
-            store.lock(bundleID)
-            overlay.dismissOverlay(for: bundleID)
-            stopKeepingVisible(bundleID)
+            clearSecuringUI(for: bundleID)
             return
         }
         if !config.settings.requireEveryLaunch, store.isUnlocked(bundleID, pid: currentPID) {
-            overlay.dismissOverlay(for: bundleID)
-            stopKeepingVisible(bundleID)
+            clearSecuringUI(for: bundleID, lock: false)
             return
         }
 
