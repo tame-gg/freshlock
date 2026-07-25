@@ -100,8 +100,8 @@ final class EndpointSecurityClient: @unchecked Sendable {
             throw ESClientStartError.unknown(ES_NEW_CLIENT_RESULT_ERR_INVALID_ARGUMENT)
         }
 
-        // Avoid drowning in our own activity.
-        _ = es_mute_path_literal(newClient, "/usr/libexec/", ES_MUTE_PATH_TYPE_PREFIX)
+        // Reduce noise from common system helpers (program-path prefix mute).
+        _ = es_mute_path(newClient, "/usr/libexec", ES_MUTE_PATH_TYPE_PREFIX)
         log.info("ES AUTH_EXEC client subscribed (scaffolding)")
     }
 
@@ -153,14 +153,15 @@ final class EndpointSecurityClient: @unchecked Sendable {
         guard let process else {
             return ProcessIdentity(signingID: "")
         }
-        let signing = process.pointee.signing_id
-        let team = process.pointee.team_id
-        let signingID = String(cString: signing.data)
-        let teamID = team.length > 0 ? String(cString: team.data) : nil
-        var path: String?
-        if let exe = process.pointee.executable {
-            path = String(cString: exe.pointee.path.data)
-        }
+        let signingID = stringToken(process.pointee.signing_id) ?? ""
+        let teamID = stringToken(process.pointee.team_id)
+        let pathToken = process.pointee.executable.pointee.path
+        let path = stringToken(pathToken)
         return ProcessIdentity(signingID: signingID, teamID: teamID, executablePath: path)
+    }
+
+    private static func stringToken(_ token: es_string_token_t) -> String? {
+        guard token.length > 0, let data = token.data else { return nil }
+        return String(cString: data)
     }
 }

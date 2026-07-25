@@ -12,7 +12,6 @@ import SwiftUI
 struct AppRowView: View {
     @ObservedObject var viewModel: ProtectionViewModel
     let app: InstalledApp
-    @Environment(\.preferLiquidGlass) private var preferGlass
 
     @State private var hovering = false
     @State private var showOptions = false
@@ -42,16 +41,13 @@ struct AppRowView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .freshLockGlass(
-            enabled: preferGlass,
-            in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
-        )
+        .background(.quaternary.opacity(hovering ? 0.55 : 0.35), in: RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Theme.cornerRadius, style: .continuous)
                 .strokeBorder(
                     isProtected
                         ? Theme.protected.opacity(0.45)
-                        : (hovering ? Theme.separator : Theme.separator.opacity(0.35)),
+                        : Theme.separator.opacity(hovering ? 0.7 : 0.35),
                     lineWidth: 1
                 )
         }

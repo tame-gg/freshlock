@@ -24,18 +24,12 @@ struct LockOverlayView: View {
     /// same rounded (continuous) corners rather than sharp rectangular ones.
     var cornerRadius: CGFloat = 10
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var appeared = false
-
     var body: some View {
         ZStack {
             backdrop
             content
         }
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .onAppear {
-            withAnimation(reduceMotion ? nil : .spring(duration: 0.4)) { appeared = true }
-        }
     }
 
     @ViewBuilder private var backdrop: some View {
@@ -65,7 +59,6 @@ struct LockOverlayView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .offset(x: 6, y: 6)
             }
-            .scaleEffect(appeared ? 1 : 0.85)
             .accessibilityHidden(true)
 
             VStack(spacing: 4) {
@@ -96,7 +89,6 @@ struct LockOverlayView: View {
         }
         .padding(40)
         .modifier(OverlayPanelChrome(useGlass: style == .blur))
-        .opacity(appeared ? 1 : 0)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(appName) is locked. Unlock with \(method.displayName), or quit.")
     }
@@ -115,6 +107,7 @@ struct LockOverlayView: View {
 private struct OverlayPanelChrome: ViewModifier {
     let useGlass: Bool
 
+    @ViewBuilder
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *), useGlass {
             content
@@ -130,6 +123,7 @@ private struct OverlayPanelChrome: ViewModifier {
 
 /// Prefer `.glassProminent` when available; otherwise bordered prominent.
 private struct UnlockButtonStyle: ViewModifier {
+    @ViewBuilder
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *) {
             content.buttonStyle(.glassProminent)

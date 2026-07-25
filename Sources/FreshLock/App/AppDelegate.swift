@@ -17,6 +17,7 @@
 import AppKit
 import FreshLockCore
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Retained for the lifetime of the app so onboarding can be replayed.
     private var onboarding: OnboardingPresenter?
@@ -77,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    /// Closing the last window must not quit — FreshLock is a menu-bar utility.
+    /// Closing the last window must not quit - FreshLock is a menu-bar utility.
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
     }

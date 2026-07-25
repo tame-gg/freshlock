@@ -16,6 +16,8 @@ Sources/
     Services/             # AppMonitor, Accessibility, Overlay, LoginItem, …
     Managers/             # LockCoordinator, RelockManager
     Views/                # LockOverlayView + NSVisualEffect bridge
+  FreshLockEnforce/         # Pure AUTH_EXEC policy (Phase 1; no ES link)
+  FreshLockEnforceExtension/# ES client scaffolding (not embedded in .app yet)
   FreshLock/                # GUI executable (SwiftUI settings + menu bar)
     App/                  # @main, DI container, AppDelegate
     Managers/             # View models
@@ -29,7 +31,8 @@ Tests/FreshLockCoreTests/   # swift-testing unit tests
 portable and trivially testable (`swift test`). `FreshLockEngine` holds the
 AppKit-dependent locking machinery and is linked by **both** the GUI and the
 helper — that shared library is what makes "the helper does the protecting"
-real rather than aspirational.
+real rather than aspirational. `FreshLockEnforce` holds pure exec-gate policy
+for a future Endpoint Security path; see [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ## Two processes, one configuration
 
@@ -43,12 +46,12 @@ real rather than aspirational.
 └────────────────────┘                                       └────────────────────┘
 ```
 
-The two processes never talk directly — they coordinate purely through the
+The two processes never talk directly; they coordinate purely through the
 shared JSON document, which the helper re-reads on every event. Quitting the
 GUI requires `deviceOwnerAuthentication` (Touch ID / Apple Watch / password)
 via `applicationShouldTerminate`; cancel or failure aborts terminate so the
 GUI and in-process engine keep running. After an authenticated GUI quit, the
-helper — if registered as a login item — detects the GUI is gone and starts
+helper (if registered as a login item) detects the GUI is gone and starts
 its own `LockEngine`, so protection can continue without the settings UI.
 Standalone/dev runs without a helper stop protecting when the GUI exits.
 
@@ -133,18 +136,23 @@ forces a new prompt on every activation of a still-running process.
 
 ## Threat model & macOS limitations (honest)
 
-FreshLock is a **deterrent built on public APIs**, not a sandbox escape or a
-kernel enforcement layer. Concretely:
+**Authoritative write-up:** [THREAT_MODEL.md](THREAT_MODEL.md). Engineering plan for
+stronger enforcement: [ENFORCEMENT.md](ENFORCEMENT.md).
 
-| Goal | What macOS allows publicly | FreshLock's approach |
-|------|----------------------------|--------------------|
-| Detect a launch | `NSWorkspace` notifications *after* launch begins | React on the notification, immediately cover |
-| Detect windows | Accessibility (`AXObserver`) window notifications | Event-driven re-cover; CGWindowList fallback |
-| Prevent a launch | ❌ No public pre-launch veto | Not possible; we cover + require auth instead |
-| Freeze another app's UI | ❌ Not permitted | Non-activating overlay intercepts interaction |
-| Read another app's password | ❌ Never; nor do we want to | Use LocalAuthentication only |
-| Hide content from Mission Control / Spaces / Exposé | ❌ No public API to exclude another app's window from previews | Overlay while frontmost; no hide during auth (see above) |
-| Guarantee no frame is drawn | ❌ Race between OS draw and our overlay | Cover within a frame or two via AX + overlay |
+FreshLock **today (Phase 0)** is a **userland deterrent**: overlays +
+LocalAuthentication. That is **not** kernel enforcement. Do not describe overlays
+as kernel-enforced.
+
+| Goal | What macOS allows | FreshLock today (Phase 0) |
+|------|-------------------|---------------------------|
+| Detect a launch | `NSWorkspace` *after* launch begins | Cover immediately on notification |
+| Detect windows | Accessibility (`AXObserver`) | Event-driven re-cover; CGWindowList fallback |
+| Prevent a launch | Endpoint Security `AUTH_EXEC` (managed entitlement + sysext/root) | **Not shipping** — scaffolded in `FreshLockEnforce*`; overlays instead |
+| Freeze another app's UI | Not permitted | Non-activating overlay intercepts interaction |
+| Read another app's password | Never | LocalAuthentication only |
+| Mission Control / Spaces / Exposé scrubbing | No public API to exclude another app's window | Overlay while covering; previews remain a limitation |
+| Guarantee no frame is drawn | Overlay races OS draw | Cover within a frame or two via AX + overlay |
+| "Admins cannot bypass" | Impossible for third-party on personally owned Macs | **Not claimed** — see THREAT_MODEL |
 
 ### Preview privacy (Mission Control, Spaces, Exposé, Stage Manager)
 
@@ -162,11 +170,11 @@ is slower / less reliable. Grant it in System Settings → Privacy & Security �
 Accessibility (also prompted during onboarding; status is shown in Preferences →
 Advanced).
 
-A sufficiently determined local user with admin rights can bypass any userland
-app-locker (kill the process, boot to recovery, etc.). FreshLock defends against
-**casual/opportunistic access** to a logged-in Mac — the same practical threat
-model as iOS app-lock features. This is stated plainly so users can make an
-informed choice.
+A local **admin** can bypass any third-party app locker (uninstall, revoke TCC,
+Recovery, SIP off). FreshLock defends against **casual/opportunistic access** to
+a logged-in Mac. Phase 1 ES scaffolding raises the bar to kernel-held exec deny
+**if** Apple grants the entitlement; it still does not make admins unable to
+remove the product.
 
 ## Concurrency
 

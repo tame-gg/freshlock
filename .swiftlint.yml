@@ -19,7 +19,6 @@ opt_in_rules:
   - redundant_nil_coalescing
   - sorted_imports
   - vertical_whitespace_closing_braces
-  - unused_import
 
 analyzer_rules:
   - unused_import
@@ -38,8 +37,12 @@ type_body_length:
   error: 500
 
 file_length:
-  warning: 500
+  warning: 600
   error: 800
+
+function_body_length:
+  warning: 60
+  error: 100
 
 identifier_name:
   min_length: 2

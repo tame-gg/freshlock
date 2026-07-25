@@ -15,22 +15,33 @@ within 72 hours and to ship a fix or mitigation as quickly as is responsible.
 - **Keychain is used only if strictly necessary.** The current release stores no
   secrets; configuration contains no credentials.
 - **Local-only by default.** No telemetry, no network calls, no analytics.
+- **No private APIs / no malware techniques.** Any future stronger enforcement
+  uses Apple's public Endpoint Security APIs only (defensive AUTH allow/deny).
 
 ## Honest limitations (please read)
 
-FreshLock is a **userland deterrent**, not an OS-enforced security boundary:
+FreshLock **today** is a **userland deterrent** (Phase 0), not an OS ownership
+boundary:
 
-- macOS provides **no public API to prevent or veto an app launch**. FreshLock
-  reacts to the post-launch notification and overlays the app; it cannot
-  guarantee zero frames were rendered first.
-- A local user with administrator privileges can bypass any third-party
-  app-locker (force-quitting FreshLock, booting to recovery, etc.).
-- FreshLock protects against **casual, opportunistic access** to an unlocked,
-  logged-in Mac — comparable to iOS's app-lock feature — and nothing stronger.
+- Shipping builds react to post-launch `NSWorkspace` notifications and overlay
+  the app. They do **not** claim kernel enforcement.
+- A local **administrator** can bypass any third-party app locker (force-quit /
+  uninstall, revoke TCC permissions, Recovery Mode, disable SIP, etc.).
+- There is **no** public-API path for "admins cannot bypass" on a personally
+  owned Mac. That requires org-owned supervised MDM / ADE, not a consumer app.
+- Endpoint Security `AUTH_EXEC` *can* provide kernel-held launch denial for
+  entitled system extensions (Phase 1 scaffolding in-tree). Even then, an admin
+  can uninstall or disable the product. See
+  [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and
+  [docs/ENFORCEMENT.md](docs/ENFORCEMENT.md).
 
-If you need OS-enforced protection, use FileVault, separate macOS user accounts,
-or a per-app password where the app itself supports one. See
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full threat model.
+FreshLock protects against **casual, opportunistic access** to an unlocked,
+logged-in Mac — comparable in *intent* to iOS app-lock features, not in
+OS-enforcement strength.
+
+If you need stronger separation: FileVault, separate macOS user accounts, or
+(for fleets) supervised MDM. Architecture notes:
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Supported versions
 

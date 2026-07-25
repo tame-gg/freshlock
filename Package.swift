@@ -3,20 +3,14 @@
 //  Package.swift
 //  FreshLock
 //
-//  The package is intentionally split into two targets:
+//  The package is intentionally split into targets:
 //
-//  • `FreshLockCore` — a platform-agnostic-ish library that holds the models,
-//    services and business logic. It contains no `@main` entry point, which
-//    keeps it fully unit-testable with `swift test` (and importable by the
-//    background helper without dragging in the UI layer).
-//
-//  • `FreshLock` — the executable app target. It owns the SwiftUI/AppKit entry
-//    point, the menu-bar scene, the overlay windows and all the views. It
-//    depends on `FreshLockCore` for everything that isn't presentation.
-//
-//  This separation is what makes the "GUI only manages configuration, the
-//  helper does the protecting" requirement expressible in code: both the app
-//  and (future) helper link `FreshLockCore`.
+//  • `FreshLockCore` — models, services, unlock state (unit-testable).
+//  • `FreshLockEngine` — AppKit lock pipeline (overlay + LA), shared by GUI/helper.
+//  • `FreshLockEnforce` — pure exec-gate policy for Phase 1 (no ES link).
+//  • `FreshLockEnforceExtension` — Endpoint Security AUTH_EXEC scaffolding.
+//    Not embedded in the .app yet; requires Apple's managed ES entitlement.
+//  • `FreshLock` / `FreshLockHelper` — GUI and background helper executables.
 //
 import PackageDescription
 
@@ -28,8 +22,10 @@ let package = Package(
     products: [
         .library(name: "FreshLockCore", targets: ["FreshLockCore"]),
         .library(name: "FreshLockEngine", targets: ["FreshLockEngine"]),
+        .library(name: "FreshLockEnforce", targets: ["FreshLockEnforce"]),
         .executable(name: "FreshLock", targets: ["FreshLock"]),
-        .executable(name: "FreshLockHelper", targets: ["FreshLockHelper"])
+        .executable(name: "FreshLockHelper", targets: ["FreshLockHelper"]),
+        .executable(name: "FreshLockEnforceExtension", targets: ["FreshLockEnforceExtension"])
     ],
     targets: [
         .target(
@@ -45,6 +41,15 @@ let package = Package(
             name: "FreshLockEngine",
             dependencies: ["FreshLockCore"],
             path: "Sources/FreshLockEngine",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ]
+        ),
+        // Pure policy for kernel-held AUTH_EXEC (Phase 1). No EndpointSecurity
+        // link — keeps `swift test` free of entitlement/privilege requirements.
+        .target(
+            name: "FreshLockEnforce",
+            path: "Sources/FreshLockEnforce",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
@@ -67,9 +72,22 @@ let package = Package(
                 .swiftLanguageMode(.v6)
             ]
         ),
+        // ES AUTH_EXEC client scaffolding. Links EndpointSecurity; does not ship
+        // inside FreshLock.app until packaging + Apple entitlement are ready.
+        .executableTarget(
+            name: "FreshLockEnforceExtension",
+            dependencies: ["FreshLockEnforce"],
+            path: "Sources/FreshLockEnforceExtension",
+            swiftSettings: [
+                .swiftLanguageMode(.v6)
+            ],
+            linkerSettings: [
+                .linkedFramework("EndpointSecurity")
+            ]
+        ),
         .testTarget(
             name: "FreshLockCoreTests",
-            dependencies: ["FreshLockCore"],
+            dependencies: ["FreshLockCore", "FreshLockEnforce"],
             path: "Tests/FreshLockCoreTests"
         )
     ]
