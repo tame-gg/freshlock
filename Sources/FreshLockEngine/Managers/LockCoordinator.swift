@@ -212,9 +212,14 @@ final class LockCoordinator {
             auth.cancel()
         }
         authInFlight.remove(bundleID)
+        if presentingAuthFor == bundleID {
+            presentingAuthFor = nil
+            authPresentedAt = nil
+        }
         securing.remove(bundleID)
         closing.remove(bundleID)
         awaitingManualUnlock.remove(bundleID)
+        recentPrompts[bundleID] = nil
         stopKeepingVisible(bundleID)
         overlay.dismissOverlay(for: bundleID)
     }
@@ -459,12 +464,13 @@ extension LockCoordinator {
                 method: auth.availableMethod(),
                 style: config.settings.overlayStyle,
                 onUnlock: { [weak self] in
-                    // Unlock always presents LA, even when auto-prompt is off.
+                    // Unlock always presents LA, even when auto-prompt is off or
+                    // the automatic budget is spent - this is explicit intent.
                     guard let self, let pid = livePID(for: bundleID) else { return }
                     awaitingManualUnlock.remove(bundleID)
                     let cfg = configProvider()
                     Task { [weak self] in
-                        await self?.authenticate(app: app, config: cfg, pid: pid)
+                        await self?.authenticate(app: app, config: cfg, pid: pid, userInitiated: true)
                     }
                 },
                 onQuit: { [weak self] in self?.quitProtectedApp(app: app) }
@@ -763,6 +769,7 @@ extension LockCoordinator {
     private func handleSuccess(app: ProtectedApp, config: Configuration, pid: pid_t) {
         let bundleID = app.bundleIdentifier
         failureCounts[bundleID] = nil
+        recentPrompts[bundleID] = nil
         let policy = app.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
         let scope: UnlockScope = switch policy {
         case let .afterMinutes(m): .forDuration(TimeInterval(m * 60))
@@ -799,9 +806,13 @@ extension LockCoordinator {
             securing.remove(bundleID)
             awaitingManualUnlock.remove(bundleID)
             failureCounts[bundleID] = nil
+            recentPrompts[bundleID] = nil
         } else {
             keepVisible(bundleID)
             overlay.pinCover(for: bundleID)
+            if !allowAutomaticPrompt(for: bundleID) {
+                fallBackToManualUnlock(bundleID, reason: "authentication kept failing")
+            }
         }
     }
 
