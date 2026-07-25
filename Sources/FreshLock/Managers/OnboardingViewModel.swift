@@ -21,7 +21,14 @@ final class OnboardingViewModel: ObservableObject {
         case done
     }
 
+    /// Drives page slide direction: Continue inserts from trailing, Back from leading.
+    enum NavigationDirection {
+        case forward
+        case backward
+    }
+
     @Published var step: Step = .welcome
+    @Published private(set) var navigationDirection: NavigationDirection = .forward
     @Published var launchAtLoginEnabled: Bool
     @Published var accessibilityTrusted: Bool = AccessibilityPermission.isTrusted
 
@@ -66,6 +73,7 @@ final class OnboardingViewModel: ObservableObject {
             stopAccessibilityPoll()
         }
         if let nextStep = Step(rawValue: step.rawValue + 1) {
+            navigationDirection = .forward
             step = nextStep
             if nextStep == .accessibility {
                 startAccessibilityPoll()
@@ -78,6 +86,7 @@ final class OnboardingViewModel: ObservableObject {
             stopAccessibilityPoll()
         }
         if let prev = Step(rawValue: step.rawValue - 1) {
+            navigationDirection = .backward
             step = prev
             if prev == .accessibility {
                 startAccessibilityPoll()
@@ -112,6 +121,7 @@ final class OnboardingViewModel: ObservableObject {
         // Defense in depth: never mark onboarding complete without Accessibility.
         refreshAccessibilityStatus()
         guard accessibilityTrusted else {
+            navigationDirection = .backward
             step = .accessibility
             startAccessibilityPoll()
             return
