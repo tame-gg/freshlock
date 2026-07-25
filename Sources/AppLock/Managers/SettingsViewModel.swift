@@ -33,9 +33,14 @@ final class SettingsViewModel: ObservableObject {
     init(store: ConfigurationStore, loginItem: LoginItemServiceProtocol) {
         self.store = store
         self.loginItem = loginItem
-        self.settings = store.configuration.settings
-        // Reconcile the persisted preference with the real system state.
-        self.settings.launchAtLogin = loginItem.isEnabled
+        // Reconcile the persisted launch-at-login flag with the real system
+        // state and assign `settings` EXACTLY ONCE. A second assignment would
+        // fire `didSet` → `commit` → `store.update` *during* view construction,
+        // which mutates observed state mid-update and crashes SwiftUI with a
+        // re-entrant graph loop (stack overflow).
+        var reconciled = store.configuration.settings
+        reconciled.launchAtLogin = loginItem.isEnabled
+        self.settings = reconciled
 
         // Keep the working copy in sync if the store changes elsewhere (import).
         store.objectWillChange
