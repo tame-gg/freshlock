@@ -85,6 +85,26 @@ final class LockCoordinator {
         Log.lifecycle.info("Lock coordinator started")
     }
 
+    /// Tear down every recurring source this coordinator owns.
+    ///
+    /// Without this the liveness poll outlived `LockEngine.stop()`, so a helper
+    /// that had stood down for the GUI kept polling for the rest of the session.
+    func stop() {
+        cancellables.removeAll()
+        stopProcessPolling()
+        visibilityKeepers.removeAll()
+        visibilityTimer?.invalidate()
+        visibilityTimer = nil
+        if let hideObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(hideObserver)
+            self.hideObserver = nil
+        }
+        securing.removeAll()
+        authInFlight.removeAll()
+        awaitingManualUnlock.removeAll()
+        Log.lifecycle.info("Lock coordinator stopped")
+    }
+
     // MARK: - Dead-session reconciliation (root of quit→reauth)
 
     private func startProcessPolling() {
