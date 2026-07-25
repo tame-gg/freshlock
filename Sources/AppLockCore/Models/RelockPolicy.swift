@@ -37,9 +37,9 @@ public enum RelockPolicy: Codable, Hashable, Sendable {
     /// Never relock automatically; only a manual "Lock" action relocks.
     case manualOnly
 
-    /// A sensible default that balances security and convenience: authenticate
-    /// once per app launch rather than on every switch-away (far fewer prompts).
-    public static let `default`: RelockPolicy = .everyLaunch
+    /// The default, matching iOS app-lock: the app relocks the moment you switch
+    /// away, so returning to it always re-authenticates.
+    public static let `default`: RelockPolicy = .afterSwitchingAway
 }
 
 public extension RelockPolicy {

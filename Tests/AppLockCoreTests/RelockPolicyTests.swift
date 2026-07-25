@@ -23,8 +23,8 @@ struct RelockPolicyTests {
         }
     }
 
-    @Test func defaultIsOncePerLaunch() {
-        #expect(RelockPolicy.default == .everyLaunch)
+    @Test func defaultMatchesiOSSwitchAway() {
+        #expect(RelockPolicy.default == .afterSwitchingAway)
     }
 
     @Test func roundTripsThroughCodable() throws {

@@ -88,10 +88,20 @@ final class LockCoordinator {
 
     // MARK: - Event handling
 
+    /// Apps whose activation is a *transient* side effect of locking, not a real
+    /// user app-switch: Apple's Touch ID sheet and AppLock itself. Treating them
+    /// as switches would forget which app was protected and break switch-away
+    /// relocking.
+    private static let transientBundleIDs: Set<String> = [
+        "com.apple.LocalAuthentication.UIAgent",
+        "gg.tame.applock"
+    ]
+
     private func handle(_ event: AppLifecycleEvent) {
         let config = configProvider()
         switch event {
         case .launched(let bundleID, _), .activated(let bundleID, _):
+            guard !Self.transientBundleIDs.contains(bundleID) else { return }
             enforceSwitchAway(newFrontmost: bundleID, config: config)
             guard let app = config.protectedApp(for: bundleID), app.isEnabled else { return }
             lockIfNeeded(app, config: config)
