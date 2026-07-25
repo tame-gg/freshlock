@@ -1,49 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Info.plist for FreshLockEnforce.systemextension (Endpoint Security).
-
-  Assemble with Scripts/build-systemextension.sh. Optional embed into the host
-  app via EMBED_SYSTEM_EXTENSION=1 on Scripts/build-app.sh (off by default).
-
-  Requires:
-  • Apple-granted com.apple.developer.endpoint-security.client
-  • Host com.apple.developer.system-extension.install
-  • User or MDM approval + Full Disk Access
-  • Developer ID signing (not typical Mac App Store)
-
-  See docs/ENFORCEMENT.md.
--->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
-    <key>CFBundleDisplayName</key>
-    <string>FreshLock Enforce</string>
-    <key>CFBundleExecutable</key>
-    <string>FreshLockEnforceExtension</string>
-    <key>CFBundleIdentifier</key>
-    <string>gg.tame.freshlock.enforce</string>
-    <key>CFBundleName</key>
-    <string>FreshLockEnforce</string>
-    <key>CFBundlePackageType</key>
-    <string>SYSX</string>
-    <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
-    <key>CFBundleVersion</key>
-    <string>1</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>15.0</string>
-    <key>NSSystemExtensionUsageDescription</key>
-    <string>FreshLock Enforce can deny launches of apps you marked as protected until you authenticate. This uses Apple's Endpoint Security system extension APIs. A local administrator can still uninstall FreshLock. Classic kernel extensions (kexts) are not used.</string>
-    <key>NSEndpointSecurityEarlyBoot</key>
-    <false/>
-    <key>NSEndpointSecurityMachServiceName</key>
-    <string>gg.tame.freshlock.enforce.xpc</string>
-    <key>NSExtension</key>
-    <dict>
-        <key>NSExtensionPointIdentifier</key>
-        <string>com.apple.system_extension.endpoint_security</string>
-    </dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>FreshLock Enforce</string>
+	<key>CFBundleExecutable</key>
+	<string>FreshLockEnforceExtension</string>
+	<key>CFBundleIdentifier</key>
+	<string>gg.tame.freshlock.enforce</string>
+	<key>CFBundleName</key>
+	<string>FreshLockEnforce</string>
+	<key>CFBundlePackageType</key>
+	<string>SYSX</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.67</string>
+	<key>CFBundleVersion</key>
+	<string>167</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>NSEndpointSecurityEarlyBoot</key>
+	<false/>
+	<key>NSEndpointSecurityMachServiceName</key>
+	<string>gg.tame.freshlock.enforce.xpc</string>
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.system_extension.endpoint_security</string>
+	</dict>
+	<key>NSSystemExtensionUsageDescription</key>
+	<string>FreshLock Enforce can deny launches of apps you marked as protected until you authenticate. This uses Apple's Endpoint Security system extension APIs. A local administrator can still uninstall FreshLock. Classic kernel extensions (kexts) are not used.</string>
 </dict>
 </plist>

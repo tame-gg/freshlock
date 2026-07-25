@@ -1,5 +1,5 @@
 cask "freshlock" do
-  version "0.1.0"
+  version "1.67"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
 
   url "https://github.com/tame-gg/freshlock/releases/download/v#{version}/FreshLock.zip"
