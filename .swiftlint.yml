@@ -24,6 +24,8 @@ analyzer_rules:
 
 disabled_rules:
   - todo # tracked via issues instead
+  # Conflicts with SwiftFormat wrapMultilineStatementBraces
+  - opening_brace
 
 line_length:
   warning: 120
@@ -45,7 +47,7 @@ function_body_length:
 
 identifier_name:
   min_length: 2
-  excluded: [id, x, y, e, m, i]
+  excluded: [id, x, y, e, m, i, c]
 
 force_cast: error
 force_try: error

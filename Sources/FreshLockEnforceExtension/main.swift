@@ -17,16 +17,16 @@ import Foundation
 import FreshLockEnforce
 import os.log
 
-private let log = Logger(subsystem: "gg.tame.freshlock.enforce", category: "main")
-
 @main
 enum FreshLockEnforceExtensionMain {
+    private static let log = Logger(subsystem: "gg.tame.freshlock.enforce", category: "main")
+
     static func main() {
-        log.notice("FreshLockEnforceExtension starting (Phase 1 scaffolding — not shipping enforcement)")
+        log.notice("FreshLockEnforceExtension starting (Phase 1 scaffolding - not shipping enforcement)")
 
         let store = EnforceAllowlistStore.defaultURL()
         // Locked set starts empty until the host pushes policy / we read config.
-        // An empty locked set means ALLOW-all — safe default for an unfinished wire-up.
+        // An empty locked set means ALLOW-all - safe default for an unfinished wire-up.
         let policy = ExecGatePolicy(lockedSigningIDs: [])
         let client = EndpointSecurityClient(policy: policy, allowlistStore: store)
 
@@ -50,7 +50,7 @@ enum FreshLockEnforceExtensionMain {
         }
         timer.resume()
 
-        log.notice("ES AUTH_EXEC gate running — Ctrl+C to stop")
+        log.notice("ES AUTH_EXEC gate running - Ctrl+C to stop")
         dispatchMain()
     }
 }

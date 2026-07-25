@@ -21,3 +21,6 @@
 --wrapcollections before-first
 
 --exclude .build,dist
+
+# Prefer classic EnvironmentKey so CLT builds (no SwiftUIMacros) work.
+--disable environmentEntry
