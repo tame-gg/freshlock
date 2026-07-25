@@ -1,0 +1,25 @@
+## Build
+.build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+## SwiftPM
+Package.resolved
+
+## macOS
+.DS_Store
+*.swp
+
+## Xcode
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Release artifacts
+*.app.zip
+*.zip
+dist/
