@@ -15,9 +15,9 @@
 	<key>CFBundlePackageType</key>
 	<string>SYSX</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.67</string>
+	<string>1.68</string>
 	<key>CFBundleVersion</key>
-	<string>171</string>
+	<string>168</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>NSEndpointSecurityEarlyBoot</key>
