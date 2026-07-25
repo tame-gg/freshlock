@@ -43,11 +43,7 @@ struct MainView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
                 HStack(spacing: 8) {
-                    Image(systemName: "lock.shield.fill")
-                        .font(.title2)
-                        .foregroundStyle(Theme.accent)
-                        .symbolRenderingMode(.hierarchical)
-                        .accessibilityHidden(true)
+                    AppBrandIcon(size: 28)
                     Text("FreshLock")
                         .font(.title2.weight(.semibold))
                 }

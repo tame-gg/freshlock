@@ -12,10 +12,7 @@ struct AboutView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(.tint)
-                .accessibilityHidden(true)
+            AppBrandIcon(size: 72)
             Text("FreshLock")
                 .font(.title.bold())
                 .multilineTextAlignment(.center)

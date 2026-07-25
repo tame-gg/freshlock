@@ -33,6 +33,12 @@ variables:
 | `ARCH` | `arm64`, `x86_64`, `universal` | `universal` |
 | `EMBED_SYSTEM_EXTENSION` | `0`, `1` | `0` |
 
+By default it builds only `FreshLock` + `FreshLockHelper` (Phase 0), assembles
+`dist/FreshLock.app`, and applies an **ad-hoc** code signature so Accessibility
+and LocalAuthentication see a stable `gg.tame.freshlock` identity. It does **not**
+build or embed the Endpoint Security system extension unless
+`EMBED_SYSTEM_EXTENSION=1`.
+
 ```bash
 CONFIGURATION=debug ARCH=arm64 Scripts/build-app.sh build/
 ```

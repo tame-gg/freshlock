@@ -53,7 +53,11 @@ final class OnboardingPresenter {
             loginItem: loginItem,
             onFinish: { [weak self] in self?.complete() }
         )
-        let hosting = NSHostingController(rootView: OnboardingView(viewModel: viewModel))
+        let preferGlass = AppEnvironment.shared.configurationStore.configuration.settings.preferLiquidGlass
+        let root = OnboardingView(viewModel: viewModel)
+            .environment(\.preferLiquidGlass, preferGlass)
+            .tint(Theme.accent)
+        let hosting = NSHostingController(rootView: root)
         let window = NSWindow(contentViewController: hosting)
         window.title = "Welcome to FreshLock"
         // First-run: no close button so the Accessibility gate cannot be skipped by
@@ -66,8 +70,8 @@ final class OnboardingPresenter {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
-        window.setContentSize(NSSize(width: 560, height: 580))
-        window.minSize = NSSize(width: 520, height: 480)
+        window.setContentSize(NSSize(width: 580, height: 600))
+        window.minSize = NSSize(width: 540, height: 500)
         window.isReleasedWhenClosed = false
         window.center()
 
