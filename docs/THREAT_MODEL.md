@@ -108,12 +108,13 @@ apps, network traffic, or data at rest when the disk is unlocked.
 
 ### Phase 1 — Endpoint Security `AUTH_EXEC` (**scaffolded; not shipping**)
 
-Public API path toward **kernel-held** launch denial:
+Public API path toward **kernel-held** launch denial. This uses a **System
+Extension** (Endpoint Security), **not** a deprecated kernel extension (kext):
 
 | Requirement | Notes |
 |-------------|--------|
 | Managed entitlement `com.apple.developer.endpoint-security.client` | Apple approval; may be declined for consumer "app locker" use |
-| System extension (preferred) or root daemon | SIP protects sysexts better than a plain LaunchDaemon |
+| System extension (Endpoint Security) | SIP protects sysexts better than a plain LaunchDaemon; **not** a kext |
 | Full Disk Access (TCC) | Required to create an ES client |
 | Developer ID + notarization | Not Mac App Store compatible for this model |
 | Match on `signing_id` / `team_id` / `cdhash` | Bundle ID is not a first-class ES field; signing ID usually aligns |
@@ -136,6 +137,7 @@ the kernel.
   revoke FDA, deactivate the extension, or use Recovery.
 - "Root cannot touch this" - SIP-on makes casual `kill`/`unload` hard for a
   proper sysext; SIP-off / Recovery / supported uninstall paths remain.
+- "We need a kext for this" - Apple replaced that model with System Extensions.
 
 Apple may reject the ES entitlement for a consumer locker. Phase 1 ships only
 if approved; scaffolding lives in-tree so the design is reviewable now.
@@ -160,8 +162,9 @@ and by anyone who can erase / reassign the device outside org policy.
 | "As strong as iOS Screen Time against the device owner" | Screen Time is Apple's first-party stack; not available as a general third-party locker API |
 | "Mac App Store + ES AUTH_EXEC" | Distribution / entitlement model conflict |
 | "Works without Apple's ES entitlement" | Production ES clients require the managed entitlement (SIP-on) |
-| "Third-party code in the kernel" | DriverKit / ES replace kexts; app lock does not get a custom kext |
+| "Third-party code in the kernel" / ship a classic kext | DriverKit / **System Extensions** replace kexts; third-party kexts are deprecated. App lock uses **Endpoint Security** (userland policy, kernel-held AUTH), not a kext |
 | "NetworkExtension / DriverKit locks apps" | Wrong enforcement plane (network / device I/O only) |
+| "System Extensions don't help; only kexts would" | **False** — ES system extensions exist for AUTH_EXEC-style gates; that is the supported path |
 
 ---
 
