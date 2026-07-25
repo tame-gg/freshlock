@@ -128,8 +128,10 @@ Not a cloud/SaaS auth stack. Device-owner proof via **LocalAuthentication** (`de
 - `Sources/FreshLockEngine/Managers/LockCoordinator.swift` — overlay → auth → grant
 - `Sources/FreshLockHelper/main.swift` — helper lifecycle
 - `Sources/FreshLockEnforce/` — pure AUTH_EXEC policy (Phase 1)
-- `Sources/FreshLockEnforceExtension/` — ES client scaffolding (not in .app yet)
+- `Sources/FreshLockEnforceExtension/` — ES client (`.systemextension` via
+  `Scripts/build-systemextension.sh`; optional embed, not default)
 - `Sources/FreshLockCore/Models/Configuration.swift` — persistence contract
 - `Sources/FreshLockCore/Services/SettingsService.swift` — atomic JSON I/O
-- `Scripts/build-app.sh` — SPM → runnable `.app`
+- `Scripts/build-app.sh` — SPM → runnable `.app` (`EMBED_SYSTEM_EXTENSION=1` optional)
+- `Scripts/build-systemextension.sh` — assemble Endpoint Security sysext
 - `docs/BUILDING.md` / `docs/RELEASING.md` — build and release runbooks

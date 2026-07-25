@@ -17,7 +17,7 @@ Sources/
     Managers/             # LockCoordinator, RelockManager
     Views/                # LockOverlayView + NSVisualEffect bridge
   FreshLockEnforce/         # Pure AUTH_EXEC policy (Phase 1; no ES link)
-  FreshLockEnforceExtension/# ES client scaffolding (not embedded in .app yet)
+  FreshLockEnforceExtension/# ES client (package as .systemextension; not in default .app)
   FreshLock/                # GUI executable (SwiftUI settings + menu bar)
     App/                  # @main, DI container, AppDelegate
     Managers/             # View models

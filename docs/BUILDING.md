@@ -30,7 +30,7 @@ variables:
 | Variable        | Values                     | Default     |
 |-----------------|----------------------------|-------------|
 | `CONFIGURATION` | `debug`, `release`         | `release`   |
-| `ARCH`          | `arm64`, `x86_64`, `universal` | `universal` |
+| `EMBED_SYSTEM_EXTENSION` | `0`, `1` | `0` |
 
 ```bash
 CONFIGURATION=debug ARCH=arm64 Scripts/build-app.sh build/

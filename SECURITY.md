@@ -29,10 +29,10 @@ boundary:
   uninstall, revoke TCC permissions, Recovery Mode, disable SIP, etc.).
 - There is **no** public-API path for "admins cannot bypass" on a personally
   owned Mac. That requires org-owned supervised MDM / ADE, not a consumer app.
-- Endpoint Security `AUTH_EXEC` *can* provide kernel-held launch denial for
-  entitled system extensions (Phase 1 scaffolding in-tree). Even then, an admin
-  can uninstall or disable the product. See
-  [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and
+- Endpoint Security `AUTH_EXEC` *can* provide kernel-held launch denial via a
+  **System Extension** (Phase 1 scaffolding in-tree). Classic **kexts are not
+  used** (deprecated). Even with ES, an admin can uninstall or disable the
+  product. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) and
   [docs/ENFORCEMENT.md](docs/ENFORCEMENT.md).
 
 FreshLock protects against **casual, opportunistic access** to an unlocked,
