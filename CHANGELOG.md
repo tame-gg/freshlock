@@ -9,7 +9,7 @@ to [Semantic Versioning](https://semver.org/).
 ### Fixed
 - **The lock overlay no longer floats over unrelated apps.** A cover is a
   `.floating` panel sized to the protected app's windows, and being "pinned"
-  used to force it on screen no matter who was frontmost — so a locked Discord
+  used to force it on screen no matter who was frontmost - so a locked Discord
   left a Discord-shaped blur sitting on top of whatever you switched to. Pinning
   now only decides what to do when there is no frontmost app to consult; a cover
   is raised when the protected app owns the screen, or when FreshLock's own
@@ -19,8 +19,8 @@ to [Semantic Versioning](https://semver.org/).
   watches `didActivateApplicationNotification` instead of waiting up to a second
   for its backstop timer.
 - **Touch ID prompt storms.** Any outcome that was neither success nor an
-  explicit user cancel left the app frontmost, locked, and covered — exactly the
-  condition the 1.5s liveness poll re-secures — so FreshLock raised a new sheet
+  explicit user cancel left the app frontmost, locked, and covered - exactly the
+  condition the 1.5s liveness poll re-secures - so FreshLock raised a new sheet
   every poll and stole focus each time, which is what made the protected app,
   FreshLock, and the sheet itself all unclickable. Automatic prompts now run on
   a budget (`AuthPromptBudget`): at most three per app in a 12s window, after

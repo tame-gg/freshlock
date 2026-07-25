@@ -59,7 +59,7 @@ extension LockCoordinator {
         }
     }
 
-    /// User explicitly chose Quit on the lock overlay — terminate the protected app.
+    /// User explicitly chose Quit on the lock overlay - terminate the protected app.
     func quitProtectedApp(app: ProtectedApp) {
         let bundleID = app.bundleIdentifier
         guard !closing.contains(bundleID) else { return }
