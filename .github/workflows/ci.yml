@@ -54,7 +54,7 @@ jobs:
         run: CONFIGURATION=release ARCH=universal Scripts/build-app.sh
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FreshLock-app
           path: dist/FreshLock.app
