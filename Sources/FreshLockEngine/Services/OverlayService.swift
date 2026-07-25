@@ -151,6 +151,7 @@ final class OverlayService: OverlayServiceProtocol {
         )
         pidByBundleID[bundleID] = request.pid
         pinnedBundleIDs.insert(bundleID)
+        installActivationObserverIfNeeded()
 
         placeOrUpdate(bundleID)
         startTracking(bundleID)
@@ -214,6 +215,7 @@ final class OverlayService: OverlayServiceProtocol {
         pidByBundleID[bundleID] = nil
         lastFramesByBundleID[bundleID] = nil
         pinnedBundleIDs.remove(bundleID)
+        removeActivationObserverIfIdle()
         Log.overlay.info("Overlay dismissed for \(bundleID, privacy: .public)")
     }
 
@@ -414,7 +416,10 @@ final class OverlayService: OverlayServiceProtocol {
         window.hasShadow = false
         // Mouse is fine on the cover; never take keyboard / key status from LA.
         window.ignoresMouseEvents = false
-        window.collectionBehavior = [.fullScreenAuxiliary, .canJoinAllSpaces]
+        // Deliberately not `.canJoinAllSpaces`: the cover belongs to one app's
+        // windows on one Space, and following the user to every Space put the
+        // blur on top of unrelated desktops.
+        window.collectionBehavior = [.fullScreenAuxiliary]
         window.isReleasedWhenClosed = false
         window.hidesOnDeactivate = false
         window.animationBehavior = .none
