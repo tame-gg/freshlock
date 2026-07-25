@@ -68,7 +68,12 @@ struct PreferencesView: View {
         } header: {
             Text("Appearance")
         } footer: {
-            Text("Controls FreshLock surfaces only. System chrome still follows macOS; on macOS 27 use System Settings > Appearance to adjust glass tint.")
+            Text(
+                """
+                Controls FreshLock surfaces only. System chrome still follows macOS; \
+                on macOS 27 use System Settings > Appearance to adjust glass tint.
+                """
+            )
         }
     }
 
@@ -84,7 +89,12 @@ struct PreferencesView: View {
                 Stepper("Minutes: \(defaultRelockMinutes.wrappedValue)", value: defaultRelockMinutes, in: 1...240)
             }
             Toggle("Require authentication on every launch", isOn: viewModel.binding(\.requireEveryLaunch))
-            Text("Prompt on every activation, even if this process was already unlocked. Quitting always clears unlock regardless of this setting.")
+            Text(
+                """
+                Prompt on every activation, even if this process was already unlocked. \
+                Quitting always clears unlock regardless of this setting.
+                """
+            )
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Stepper(
