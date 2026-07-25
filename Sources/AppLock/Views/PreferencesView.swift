@@ -7,30 +7,27 @@
 //  which persists on change.
 //
 
+import AppKit
 import AppLockCore
 import AppLockEngine
 import ApplicationServices
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct PreferencesView: View {
     @StateObject private var viewModel: SettingsViewModel
+    @State private var backupStatus: String?
+    @State private var backupIsError = false
 
-    init(
-        settingsService: SettingsServiceProtocol,
-        loginItem: LoginItemServiceProtocol,
-        initialConfiguration: Configuration
-    ) {
-        _viewModel = StateObject(wrappedValue: SettingsViewModel(
-            settingsService: settingsService,
-            loginItem: loginItem,
-            initialConfiguration: initialConfiguration
-        ))
+    init(store: ConfigurationStore, loginItem: LoginItemServiceProtocol) {
+        _viewModel = StateObject(wrappedValue: SettingsViewModel(store: store, loginItem: loginItem))
     }
 
     var body: some View {
         TabView {
             generalTab.tabItem { Label("General", systemImage: "gearshape") }
             lockingTab.tabItem { Label("Locking", systemImage: "lock") }
+            backupTab.tabItem { Label("Backup", systemImage: "arrow.up.arrow.down.circle") }
             advancedTab.tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }
         }
         .frame(width: 460)
@@ -72,6 +69,63 @@ struct PreferencesView: View {
                 in: 1...120
             )
         }
+    }
+
+    // MARK: Backup
+
+    private var backupTab: some View {
+        Form {
+            Section {
+                LabeledContent("Export configuration") {
+                    Button("Export…", action: exportConfiguration)
+                }
+                LabeledContent("Import configuration") {
+                    Button("Import…", action: importConfiguration)
+                }
+            } footer: {
+                Text("Configuration is a single JSON document containing your protected apps and preferences — safe to back up or move between Macs. It never contains passwords.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let backupStatus {
+                Text(backupStatus)
+                    .font(.caption)
+                    .foregroundStyle(backupIsError ? .red : .green)
+            }
+        }
+    }
+
+    private func exportConfiguration() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "AppLock-configuration.json"
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try viewModel.exportConfiguration(to: url)
+            setStatus("Exported to \(url.lastPathComponent).", isError: false)
+        } catch {
+            setStatus("Export failed: \(error.localizedDescription)", isError: true)
+        }
+    }
+
+    private func importConfiguration() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try viewModel.importConfiguration(from: url)
+            setStatus("Imported from \(url.lastPathComponent).", isError: false)
+        } catch {
+            setStatus("Import failed: \(error.localizedDescription)", isError: true)
+        }
+    }
+
+    private func setStatus(_ message: String, isError: Bool) {
+        backupStatus = message
+        backupIsError = isError
     }
 
     // MARK: Advanced

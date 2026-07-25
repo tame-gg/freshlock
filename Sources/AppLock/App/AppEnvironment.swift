@@ -22,6 +22,8 @@ final class AppEnvironment {
     let unlockStore: UnlockStateStore
     let accessibility: AccessibilityServiceProtocol
     let helperLoginItem: LoginItemServiceProtocol
+    /// The single source of truth for the configuration in this GUI process.
+    let configurationStore: ConfigurationStore
 
     /// Present only when the GUI runs the engine itself (dev / no-helper mode).
     private(set) var engine: LockEngine?
@@ -48,6 +50,7 @@ final class AppEnvironment {
         self.accessibility = accessibility
         self.helperLoginItem = helperLoginItem
         self.runEngineInProcess = runEngineInProcess
+        self.configurationStore = ConfigurationStore(settingsService: settingsService)
     }
 
     /// Boot whatever this process is responsible for.

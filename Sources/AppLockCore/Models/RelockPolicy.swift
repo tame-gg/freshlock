@@ -55,6 +55,15 @@ public extension RelockPolicy {
         }
     }
 
+    /// The minutes parameter for the parameterised cases (`.afterMinutes`,
+    /// `.afterInactivity`); `nil` for the event- and launch-based cases.
+    var minutes: Int? {
+        switch self {
+        case .afterMinutes(let m), .afterInactivity(let m): m
+        default: nil
+        }
+    }
+
     /// Whether this policy can ever produce a lasting (cached) unlock. When
     /// `false`, the app must authenticate every single time it is activated.
     var grantsLastingUnlock: Bool {

@@ -17,7 +17,12 @@ to [Semantic Versioning](https://semver.org/).
 - Shared `AppLockEngine` library and a dedicated background helper
   (`AppLockHelper`) registered via `SMAppService`, so protection runs
   independently of the settings GUI.
-- Preferences window (General, Locking, Advanced) with import/export.
+- Preferences window (General, Locking, Backup, Advanced).
+- Shared `ConfigurationStore` as the single source of truth, fixing settings/
+  protection-list save races.
+- Per-app inspector: protection, favourite, category, per-app relock-policy
+  override (with minutes), and terminate-after-failures.
+- Configuration import/export as JSON via native save/open panels.
 - Launch-at-login via `SMAppService`.
 - Documentation suite, CI, SwiftLint/SwiftFormat, and Homebrew cask.
 

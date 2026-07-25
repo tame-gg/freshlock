@@ -15,8 +15,10 @@ struct MainView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
+        } content: {
+            appList
         } detail: {
-            detail
+            detailPane
         }
         .task {
             await viewModel.refreshInstalledApps()
@@ -46,9 +48,9 @@ struct MainView: View {
         Label(title, systemImage: systemImage).tag(tag)
     }
 
-    // MARK: Detail
+    // MARK: App list (content column)
 
-    private var detail: some View {
+    private var appList: some View {
         Group {
             if viewModel.visibleApps.isEmpty {
                 ContentUnavailableView(
@@ -57,7 +59,7 @@ struct MainView: View {
                     description: Text("No applications match your selection.")
                 )
             } else {
-                List {
+                List(selection: $viewModel.selectedAppID) {
                     ForEach(viewModel.visibleApps) { app in
                         AppRowView(
                             app: app,
@@ -66,10 +68,26 @@ struct MainView: View {
                             onToggleProtection: { viewModel.toggleProtection(for: app) },
                             onToggleFavorite: { viewModel.toggleFavorite(for: app) }
                         )
+                        .tag(app.bundleIdentifier)
                     }
                 }
             }
         }
         .searchable(text: $viewModel.searchText, prompt: "Search apps")
+        .navigationTitle("Apps")
+    }
+
+    // MARK: Detail (inspector column)
+
+    @ViewBuilder private var detailPane: some View {
+        if let app = viewModel.selectedApp {
+            AppDetailView(viewModel: viewModel, app: app)
+        } else {
+            ContentUnavailableView(
+                "Select an App",
+                systemImage: "lock.square.dashed",
+                description: Text("Choose an app to configure its protection and auto-relock.")
+            )
+        }
     }
 }

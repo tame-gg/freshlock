@@ -29,7 +29,7 @@ struct AppLockApp: App {
     init() {
         let env = AppEnvironment.shared
         _protectionViewModel = StateObject(wrappedValue: ProtectionViewModel(
-            settingsService: env.settingsService,
+            store: env.configurationStore,
             discoveryService: env.discoveryService
         ))
     }
@@ -57,9 +57,8 @@ struct AppLockApp: App {
         // Preferences via the standard ⌘, menu item.
         Settings {
             PreferencesView(
-                settingsService: environment.settingsService,
-                loginItem: environment.helperLoginItem,
-                initialConfiguration: protectionViewModel.configuration
+                store: environment.configurationStore,
+                loginItem: environment.helperLoginItem
             )
         }
     }

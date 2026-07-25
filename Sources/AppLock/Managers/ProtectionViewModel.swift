@@ -2,10 +2,11 @@
 //  ProtectionViewModel.swift
 //  AppLock
 //
-//  The primary view model backing the main window. It merges the on-disk
-//  `Configuration` with freshly-discovered installed apps and exposes the
+//  The primary view model backing the main window. It merges the shared
+//  `ConfigurationStore` with freshly-discovered installed apps and exposes the
 //  filtered/sorted list the UI renders, plus the mutating actions (toggle
-//  protection, favourite, categorise). All persistence flows through here.
+//  protection, favourite, categorise, relock policy). All persistence flows
+//  through the store, so preferences and the list never fight over the document.
 //
 
 import AppLockCore
@@ -26,23 +27,28 @@ final class ProtectionViewModel: ObservableObject {
     // MARK: Published state
 
     @Published private(set) var installedApps: [InstalledApp] = []
-    @Published private(set) var configuration: Configuration
     @Published var searchText: String = ""
     @Published var sidebarSelection: SidebarItem = .all
+    /// Bundle id of the app shown in the detail inspector, if any.
+    @Published var selectedAppID: String?
 
     // MARK: Dependencies
 
-    private let settingsService: SettingsServiceProtocol
+    let store: ConfigurationStore
     private let discoveryService: AppDiscoveryServiceProtocol
+    private var cancellables = Set<AnyCancellable>()
 
-    init(
-        settingsService: SettingsServiceProtocol,
-        discoveryService: AppDiscoveryServiceProtocol
-    ) {
-        self.settingsService = settingsService
+    init(store: ConfigurationStore, discoveryService: AppDiscoveryServiceProtocol) {
+        self.store = store
         self.discoveryService = discoveryService
-        self.configuration = (try? settingsService.load()) ?? .empty
+        // Re-render whenever the shared configuration changes underneath us
+        // (e.g. an import performed from Preferences).
+        store.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
+
+    var configuration: Configuration { store.configuration }
 
     // MARK: Lifecycle
 
@@ -83,6 +89,12 @@ final class ProtectionViewModel: ObservableObject {
         }
     }
 
+    /// The installed app currently selected for detailed editing.
+    var selectedApp: InstalledApp? {
+        guard let id = selectedAppID else { return nil }
+        return installedApps.first { $0.bundleIdentifier == id }
+    }
+
     // MARK: Lookups
 
     func protectedApp(for bundleID: String) -> ProtectedApp? {
@@ -97,45 +109,42 @@ final class ProtectionViewModel: ObservableObject {
         protectedApp(for: bundleID)?.isFavorite ?? false
     }
 
+    /// The global default, surfaced so the editor can label the "Default" option.
+    var defaultRelockPolicy: RelockPolicy { configuration.settings.defaultRelockPolicy }
+
     // MARK: Mutations
 
-    /// Enable/disable protection for an app, creating a config entry on demand.
     func toggleProtection(for app: InstalledApp) {
-        mutate(app) { entry in entry.isEnabled.toggle() }
+        mutate(app) { $0.isEnabled.toggle() }
     }
 
     func toggleFavorite(for app: InstalledApp) {
-        mutate(app) { entry in entry.isFavorite.toggle() }
+        mutate(app) { $0.isFavorite.toggle() }
     }
 
     func setCategory(_ category: AppCategory, for app: InstalledApp) {
-        mutate(app) { entry in entry.category = category }
+        mutate(app) { $0.category = category }
     }
 
     func setRelockPolicy(_ policy: RelockPolicy?, for app: InstalledApp) {
-        mutate(app) { entry in entry.relockPolicy = policy }
+        mutate(app) { $0.relockPolicy = policy }
+    }
+
+    func setTerminateAfterFailures(_ limit: Int?, for app: InstalledApp) {
+        mutate(app) { $0.terminateAfterFailures = limit }
     }
 
     /// Upsert-and-persist helper. Finds (or creates) the config entry for an
-    /// app, applies `change`, prunes entries that carry no protection, saves.
+    /// app, applies `change`, prunes entries that carry no preference, saves.
     private func mutate(_ app: InstalledApp, _ change: (inout ProtectedApp) -> Void) {
-        var entry = configuration.protectedApp(for: app.bundleIdentifier)
-            ?? ProtectedApp(from: app)
-        change(&entry)
-
-        configuration.protectedApps.removeAll { $0.bundleIdentifier == app.bundleIdentifier }
-        // Keep the entry only if it still expresses a preference worth storing.
-        if entry.isEnabled || entry.isFavorite || entry.category != .other || entry.relockPolicy != nil {
-            configuration.protectedApps.append(entry)
-        }
-        persist()
-    }
-
-    private func persist() {
-        do {
-            try settingsService.save(configuration)
-        } catch {
-            Log.settings.error("Failed to persist configuration: \(error.localizedDescription)")
+        store.update { config in
+            var entry = config.protectedApp(for: app.bundleIdentifier) ?? ProtectedApp(from: app)
+            change(&entry)
+            config.protectedApps.removeAll { $0.bundleIdentifier == app.bundleIdentifier }
+            if entry.isEnabled || entry.isFavorite || entry.category != .other
+                || entry.relockPolicy != nil || entry.terminateAfterFailures != nil {
+                config.protectedApps.append(entry)
+            }
         }
     }
 }

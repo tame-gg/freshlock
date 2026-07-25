@@ -2,52 +2,61 @@
 //  SettingsViewModel.swift
 //  AppLock
 //
-//  Backs the Preferences window. Wraps the global `AppSettings` slice of the
-//  configuration and persists on every change, so preferences feel instant and
-//  survive relaunch.
+//  Backs the Preferences window. It edits the global `AppSettings` slice of the
+//  shared `ConfigurationStore` and manages the launch-at-login login item and
+//  configuration import/export. Because it shares the store with the main
+//  window, changes made here are reflected everywhere immediately.
 //
 
 import AppLockCore
 import AppLockEngine
+import Combine
 import Foundation
 
 @MainActor
 final class SettingsViewModel: ObservableObject {
+    /// A working copy of the settings, bound to the UI. Committed to the store
+    /// on each change via `didSet`.
     @Published var settings: AppSettings {
-        didSet { persist(previous: oldValue) }
+        didSet { commit(previous: oldValue) }
     }
 
-    /// Surfaced to the UI when registering the login item fails (e.g. the app
-    /// isn't in /Applications yet).
+    /// Surfaced to the UI when registering the login item fails.
     @Published var loginItemError: String?
 
-    private let settingsService: SettingsServiceProtocol
+    private let store: ConfigurationStore
     private let loginItem: LoginItemServiceProtocol
-    private var configuration: Configuration
+    private var cancellables = Set<AnyCancellable>()
+    /// Guards against feedback loops when we adopt store-driven changes.
+    private var isSyncingFromStore = false
 
-    init(
-        settingsService: SettingsServiceProtocol,
-        loginItem: LoginItemServiceProtocol,
-        initialConfiguration: Configuration
-    ) {
-        self.settingsService = settingsService
+    init(store: ConfigurationStore, loginItem: LoginItemServiceProtocol) {
+        self.store = store
         self.loginItem = loginItem
-        self.configuration = initialConfiguration
-        self.settings = initialConfiguration.settings
+        self.settings = store.configuration.settings
         // Reconcile the persisted preference with the real system state.
         self.settings.launchAtLogin = loginItem.isEnabled
+
+        // Keep the working copy in sync if the store changes elsewhere (import).
+        store.objectWillChange
+            .sink { [weak self] _ in self?.adoptStoreSettings() }
+            .store(in: &cancellables)
     }
 
-    private func persist(previous: AppSettings) {
+    private func adoptStoreSettings() {
+        let incoming = store.configuration.settings
+        guard incoming != settings else { return }
+        isSyncingFromStore = true
+        settings = incoming
+        isSyncingFromStore = false
+    }
+
+    private func commit(previous: AppSettings) {
+        guard !isSyncingFromStore else { return }
         if settings.launchAtLogin != previous.launchAtLogin {
             applyLaunchAtLogin(settings.launchAtLogin)
         }
-        configuration.settings = settings
-        do {
-            try settingsService.save(configuration)
-        } catch {
-            Log.settings.error("Failed to save settings: \(error.localizedDescription)")
-        }
+        store.update { $0.settings = settings }
     }
 
     /// Register/unregister the background helper as a login item. On failure we
@@ -64,18 +73,14 @@ final class SettingsViewModel: ObservableObject {
         }
     }
 
-    /// Export the entire configuration to a JSON file.
+    // MARK: - Import / export (delegated to the shared store)
+
     func exportConfiguration(to url: URL) throws {
-        configuration.settings = settings
-        try configuration.encoded().write(to: url, options: [.atomic])
+        try store.export(to: url)
     }
 
-    /// Import a configuration document, replacing the current one.
     func importConfiguration(from url: URL) throws {
-        let data = try Data(contentsOf: url)
-        let imported = try Configuration.decoded(from: data)
-        configuration = imported
-        settings = imported.settings
-        try settingsService.save(configuration)
+        try store.importConfiguration(from: url)
+        adoptStoreSettings()
     }
 }
