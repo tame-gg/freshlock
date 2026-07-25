@@ -42,28 +42,26 @@ struct MainView: View {
     // MARK: Sidebar
 
     private var sidebar: some View {
-        List(selection: $viewModel.sidebarSelection) {
+        // Rows draw their own selection rather than using `List(selection:)`.
+        // AppKit's sidebar highlight is a saturated accent pill, which fights
+        // the tinted wells; a quiet neutral one lets the wells carry the colour.
+        List {
             Section {
                 ForEach(SidebarItem.primaryCases, id: \.self) { item in
-                    sidebarRow(symbol: item.symbolName, title: item.title)
-                        .tag(item)
+                    sidebarRow(item, symbol: item.symbolName, title: item.title)
                 }
             } header: {
                 sidebarSectionHeader("Library")
             }
             Section {
                 ForEach(SettingsPane.allCases) { pane in
-                    sidebarRow(symbol: pane.symbolName, title: pane.title)
-                        .tag(SidebarItem.settings(pane))
+                    sidebarRow(.settings(pane), symbol: pane.symbolName, title: pane.title)
                 }
             } header: {
                 sidebarSectionHeader("Settings")
             }
         }
         .listStyle(.sidebar)
-        // Neutral selection keeps the tinted wells as the only colour in the
-        // column; an accent-filled pill fights them for attention.
-        .tint(Theme.sidebarSelection)
         .navigationSplitViewColumnWidth(
             min: 168,
             ideal: Theme.sidebarWidth,
@@ -74,14 +72,30 @@ struct MainView: View {
         }
     }
 
-    private func sidebarRow(symbol: String, title: String) -> some View {
-        Label {
-            Text(title)
-                .font(.system(size: 13))
-        } icon: {
-            IconWell(symbol: symbol)
+    private func sidebarRow(_ item: SidebarItem, symbol: String, title: String) -> some View {
+        let isSelected = viewModel.sidebarSelection == item
+        return Button {
+            viewModel.sidebarSelection = item
+        } label: {
+            HStack(spacing: 10) {
+                IconWell(symbol: symbol)
+                Text(title)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isSelected ? Theme.sidebarSelection : Color.clear)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
-        .padding(.vertical, 3)
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 1, leading: 6, bottom: 1, trailing: 6))
+        .listRowSeparator(.hidden)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private func sidebarSectionHeader(_ title: String) -> some View {
@@ -89,7 +103,8 @@ struct MainView: View {
             .font(.system(size: 12, weight: .bold))
             .foregroundStyle(.primary)
             .textCase(nil)
-            .padding(.top, 6)
+            .padding(.top, 8)
+            .padding(.bottom, 2)
     }
 
     private var sidebarFooter: some View {
