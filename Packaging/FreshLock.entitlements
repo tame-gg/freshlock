@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Entitlements for FreshLock.
+  Entitlements for FreshLock (Phase 0 shipping host).
 
   FreshLock is intentionally *not* sandboxed: monitoring other applications'
   launches (NSWorkspace notifications) and drawing overlays above them requires
   running outside the App Sandbox. The Hardened Runtime is enabled so the app
   can still be notarized for distribution.
+
+  Phase 1 system-extension host entitlements live in
+  FreshLock-SystemExtension-Host.entitlements and must NOT be merged here until
+  Apple grants the ES entitlement and the .systemextension is packaged.
+  See docs/ENFORCEMENT.md and docs/THREAT_MODEL.md.
 -->
 <plist version="1.0">
 <dict>

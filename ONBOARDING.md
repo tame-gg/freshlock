@@ -57,7 +57,9 @@ While the GUI runs it hosts the engine; the helper stands down so only one engin
 
 `NSWorkspace` launch/activate → `AppMonitorService` → `LockCoordinator` → overlay + Accessibility → `LocalAuthentication` → `UnlockStateStore` grant (bundle ID + session PID).
 
-Threat model: userland deterrent on public APIs — not kernel enforcement. Intentionally unsandboxed.
+Threat model: Phase 0 userland deterrent (overlays + LA) on public APIs - **not**
+kernel enforcement; admins can bypass. Phase 1 ES scaffolding is in-tree but not
+shipping. See `docs/THREAT_MODEL.md`. Intentionally unsandboxed.
 
 ## Data Models
 
@@ -115,14 +117,18 @@ Not a cloud/SaaS auth stack. Device-owner proof via **LocalAuthentication** (`de
 
 ## Key Files to Know
 
-- `docs/ARCHITECTURE.md` — module layout, two-process model, lock flow, threat model
-- `Package.swift` — target graph (Core → Engine → GUI / Helper)
+- `docs/ARCHITECTURE.md` — module layout, two-process model, lock flow
+- `docs/THREAT_MODEL.md` — what can / cannot be guaranteed (authoritative)
+- `docs/ENFORCEMENT.md` — Phase 1 Endpoint Security plan + entitlement notes
+- `Package.swift` — target graph (Core → Engine → GUI / Helper; Enforce*)
 - `Sources/FreshLock/App/FreshLockApp.swift` — `@main` SwiftUI entry
 - `Sources/FreshLock/App/AppDelegate.swift` — bootstrap, single-instance, menu bar
 - `Sources/FreshLock/App/AppEnvironment.swift` — DI + in-process vs helper engine hosting
 - `Sources/FreshLockEngine/LockEngine.swift` — engine composition root
 - `Sources/FreshLockEngine/Managers/LockCoordinator.swift` — overlay → auth → grant
 - `Sources/FreshLockHelper/main.swift` — helper lifecycle
+- `Sources/FreshLockEnforce/` — pure AUTH_EXEC policy (Phase 1)
+- `Sources/FreshLockEnforceExtension/` — ES client scaffolding (not in .app yet)
 - `Sources/FreshLockCore/Models/Configuration.swift` — persistence contract
 - `Sources/FreshLockCore/Services/SettingsService.swift` — atomic JSON I/O
 - `Scripts/build-app.sh` — SPM → runnable `.app`

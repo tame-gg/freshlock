@@ -32,4 +32,18 @@ This is a living document; priorities may shift with community feedback.
 - [ ] Optional per-app grace-window customisation
 - [ ] Accessibility audit pass + VoiceOver rotor support
 
+## Enforcement (threat-model driven)
+
+See [THREAT_MODEL.md](THREAT_MODEL.md) and [ENFORCEMENT.md](ENFORCEMENT.md).
+
+- [x] Document accurate threat model (Phase 0 overlays ≠ kernel enforcement;
+      "admins cannot bypass" impossible for third-party on personal Macs)
+- [x] Scaffold `FreshLockEnforce` policy + `FreshLockEnforceExtension` ES client
+      (not embedded in shipping `.app`; requires Apple ES entitlement)
+- [ ] Request / obtain `com.apple.developer.endpoint-security.client` (contingent
+      on Apple approval; may be declined for consumer locker)
+- [ ] Package `.systemextension`, wire allowlist from `LockCoordinator`, FDA +
+      sysext onboarding UI
+- [ ] Optional enterprise docs for MDM PPPC / Allowed System Extensions
+
 Have an idea? Open a [discussion](https://github.com/tame-gg/freshlock/discussions).
