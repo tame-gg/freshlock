@@ -1,10 +1,13 @@
 #!/usr/bin/env swift
 //
 //  generate-icon.swift
-//  Draws the FreshLock app icon (a dark squircle with a cyan→green padlock, in the
-//  koels.net palette) at every required size and writes Packaging/AppIcon.icns.
+//  Draws the FreshLock app icon: a quiet, system-like mark (flat charcoal
+//  canvas + solid systemTeal-adjacent lock). No navy marketing gradient,
+//  no cyan→green fill, no radial glow.
 //
 //  Usage: swift Scripts/generate-icon.swift
+//  Writes Packaging/AppIcon.iconset/*.png and Packaging/AppIcon.icns
+//  (build-app.sh copies AppIcon.icns into the app bundle).
 //
 
 import AppKit
@@ -13,7 +16,8 @@ import Foundation
 let root = URL(fileURLWithPath: CommandLine.arguments.first.map {
     URL(fileURLWithPath: $0).deletingLastPathComponent().deletingLastPathComponent().path
 } ?? ".")
-let iconset = root.appendingPathComponent("Packaging/AppIcon.iconset")
+let packaging = root.appendingPathComponent("Packaging")
+let iconset = packaging.appendingPathComponent("AppIcon.iconset")
 try? FileManager.default.createDirectory(at: iconset, withIntermediateDirectories: true)
 
 func hex(_ v: UInt32) -> NSColor {
@@ -25,41 +29,20 @@ func hex(_ v: UInt32) -> NSColor {
     )
 }
 
+/// Neutral charcoal (system gray family), not cool navy.
+let canvas = hex(0x2C2C2E)
+/// Quiet systemTeal-adjacent fill; single tone, no gradient.
+let lockFill = hex(0x5AC8D8)
+
 func drawIcon(size: CGFloat) -> NSImage {
     let image = NSImage(size: NSSize(width: size, height: size))
     image.lockFocus()
-    let ctx = NSGraphicsContext.current!.cgContext
 
-    // Squircle tile with a small transparent margin.
-    let margin = size * 0.06
-    let tile = CGRect(x: margin, y: margin, width: size - margin * 2, height: size - margin * 2)
-    let radius = tile.width * 0.2237
-    let tilePath = NSBezierPath(roundedRect: tile, xRadius: radius, yRadius: radius)
+    // Full-bleed flat canvas. System applies the dock squircle mask.
+    canvas.setFill()
+    NSBezierPath(rect: NSRect(x: 0, y: 0, width: size, height: size)).fill()
 
-    // Navy vertical gradient background.
-    tilePath.addClip()
-    let bg = NSGradient(colors: [hex(0x131A28), hex(0x0A0E16)])!
-    bg.draw(in: tile, angle: -90)
-
-    // Soft teal glow bottom-left.
-    let glow = NSGradient(colors: [hex(0x6EE7B7).withAlphaComponent(0.22), .clear])!
-    glow.draw(
-        fromCenter: CGPoint(x: tile.minX + tile.width * 0.3, y: tile.minY + tile.height * 0.2),
-        radius: 0,
-        toCenter: CGPoint(x: tile.minX + tile.width * 0.3, y: tile.minY + tile.height * 0.2),
-        radius: tile.width * 0.7,
-        options: []
-    )
-
-    // Subtle inner hairline.
-    hex(0xFFFFFF).withAlphaComponent(0.06).setStroke()
-    let inner = NSBezierPath(roundedRect: tile.insetBy(dx: 1, dy: 1), xRadius: radius, yRadius: radius)
-    inner.lineWidth = max(1, size / 512)
-    inner.stroke()
-
-    NSGraphicsContext.current!.cgContext.resetClip()
-
-    // Padlock, centred.
+    // Padlock, centred. Solid tonal fill only.
     let bodyW = size * 0.42
     let bodyH = size * 0.30
     let bodyX = (size - bodyW) / 2
@@ -70,9 +53,9 @@ func drawIcon(size: CGFloat) -> NSImage {
         yRadius: size * 0.06
     )
 
-    // Shackle: a clean, tall U arching above the body.
-    let archR = bodyW * 0.30 // arch radius = half the leg span
-    let legBottom = bodyY + bodyH * 0.45 // starts inside the body (hidden by it)
+    // Shackle: tall U arching above the body.
+    let archR = bodyW * 0.30
+    let legBottom = bodyY + bodyH * 0.45
     let archCenterY = bodyY + bodyH + size * 0.055
     let legX1 = size / 2 - archR
     let legX2 = size / 2 + archR
@@ -90,15 +73,14 @@ func drawIcon(size: CGFloat) -> NSImage {
     )
     shackle.line(to: CGPoint(x: legX2, y: legBottom))
 
-    hex(0x7DE3FF).setStroke()
+    lockFill.setStroke()
     shackle.stroke()
 
-    // Body filled with cyan→green gradient (drawn over the shackle legs).
-    let lock = NSGradient(colors: [hex(0x7DE3FF), hex(0x6EE7B7)])!
-    lock.draw(in: body, angle: -60)
+    lockFill.setFill()
+    body.fill()
 
-    // Keyhole.
-    hex(0x0A0E16).setFill()
+    // Keyhole punched in canvas tone so the lock reads as one solid mark.
+    canvas.setFill()
     let holeR = size * 0.035
     let holeC = CGPoint(x: size / 2, y: bodyY + bodyH * 0.58)
     NSBezierPath(ovalIn: CGRect(x: holeC.x - holeR, y: holeC.y - holeR, width: holeR * 2, height: holeR * 2)).fill()
@@ -118,7 +100,7 @@ func drawIcon(size: CGFloat) -> NSImage {
     return image
 }
 
-func writePNG(_: NSImage, pixels: Int, name: String) throws {
+func writePNG(pixels: Int, name: String) throws {
     let rep = NSBitmapImageRep(
         bitmapDataPlanes: nil,
         pixelsWide: pixels,
@@ -148,7 +130,19 @@ let variants: [(Int, String)] = [
     (512, "icon_512x512.png"), (1024, "icon_512x512@2x.png")
 ]
 for (px, name) in variants {
-    try writePNG(NSImage(), pixels: px, name: name)
+    try writePNG(pixels: px, name: name)
 }
 
 print("Wrote \(variants.count) PNGs to \(iconset.path)")
+
+let icns = packaging.appendingPathComponent("AppIcon.icns")
+let iconutil = Process()
+iconutil.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
+iconutil.arguments = ["-c", "icns", iconset.path, "-o", icns.path]
+try iconutil.run()
+iconutil.waitUntilExit()
+guard iconutil.terminationStatus == 0 else {
+    fputs("iconutil failed with status \(iconutil.terminationStatus)\n", stderr)
+    exit(1)
+}
+print("Wrote \(icns.path)")
