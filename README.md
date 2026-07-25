@@ -61,17 +61,18 @@ See [docs/BUILDING.md](docs/BUILDING.md) for details.
 
 ## Honest macOS limitations
 
-FreshLock is deliberate about what macOS **does and does not allow** a third-party
-app to do with public APIs. In short:
+FreshLock is deliberate about what macOS **does and does not allow**. In short:
 
-> macOS provides **no public API to veto or freeze another app's launch**.
-> FreshLock reacts to the launch/activation notification as fast as the OS
-> delivers it and immediately covers the app with a top-most overlay, then
-> requires authentication. This is a strong deterrent, **not** a kernel-level
-> guarantee.
+> **Today:** FreshLock is a **userland deterrent** (overlay + Touch ID after
+> launch). That is **not** kernel enforcement.
+>
+> **Ceiling:** Endpoint Security can deny launches before exec (`AUTH_EXEC`) with
+> Apple's managed entitlement and a system extension. Even then, a local
+> **admin can still uninstall or disable** the product. "Admins cannot bypass"
+> is **not** achievable for a third-party app on a personally owned Mac.
 
-The full threat model and every limitation are documented in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [SECURITY.md](SECURITY.md).
+Full write-up: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md),
+[docs/ENFORCEMENT.md](docs/ENFORCEMENT.md), [SECURITY.md](SECURITY.md).
 We will never pretend a limitation doesn't exist.
 
 ## Permissions

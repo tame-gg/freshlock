@@ -8,17 +8,24 @@ never sees, handles, or stores your password.
 
 ### Can FreshLock stop an app from *launching*?
 
-No — and no third-party app can, using public APIs. macOS has no pre-launch veto.
-FreshLock detects the launch the instant macOS notifies it, immediately covers the
-app with a top-most overlay, and requires authentication. See
-[ARCHITECTURE.md](ARCHITECTURE.md) for the honest details.
+**Today (Phase 0): no.** Shipping FreshLock detects the launch after macOS
+notifies it, covers the app with an overlay, and requires authentication. That
+is a deterrent, not a pre-exec veto.
+
+**Possible later (Phase 1):** Apple's Endpoint Security framework can deny
+`AUTH_EXEC` before userland code runs, but only with a **managed entitlement**,
+a system extension (or root daemon), Full Disk Access, and Developer ID
+distribution - not as a typical Mac App Store feature. Scaffolding lives in
+`FreshLockEnforce*`; it is **not shipping**. Even with ES, a local **admin**
+can uninstall or disable the product. There is no public API for "admins cannot
+bypass" on a personally owned Mac. See [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ### Is this as secure as iPhone app lock?
 
-It's the same *practical* protection — a deterrent against someone casually
-opening an app on your unlocked Mac — but it is a userland app, not an OS
-feature. A determined admin user can bypass it. Use FileVault / separate accounts
-for stronger guarantees.
+Same *practical* goal - deter casual access on an unlocked device - but FreshLock
+is a third-party userland app (Phase 0), not Apple's first-party OS feature. A
+determined admin can bypass it. Use FileVault / separate accounts for stronger
+guarantees; see [THREAT_MODEL.md](THREAT_MODEL.md).
 
 ### Does it need Accessibility permission?
 
