@@ -29,13 +29,12 @@ struct MenuBarContent: View {
         }
         .disabled(unlockStore.grants.isEmpty)
 
-        Button("Unlock Until Sleep…") {
-            // Unlocking requires authentication; the actual prompt is driven by
-            // the lock coordinator when the app is next activated. Here we only
-            // surface the standing grant intent for already-running apps.
-            for app in viewModel.configuration.enabledProtectedApps {
-                unlockStore.grantUnlock(app.bundleIdentifier, scope: .untilSleep)
-            }
+        Button("Unlock Until Sleep") {
+            grantAll(.untilSleep)
+        }
+
+        Button("Unlock Until Logout") {
+            grantAll(.untilLogout)
         }
 
         Divider()
@@ -55,5 +54,15 @@ struct MenuBarContent: View {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q", modifiers: .command)
+    }
+
+    /// Grant a temporary unlock to every enabled protected app. Note: these
+    /// grants apply to apps already unlocked/running; a *locked* app will still
+    /// require authentication when next activated, because unlocking must be
+    /// user-authenticated — the menu can only extend, not bypass, protection.
+    private func grantAll(_ scope: UnlockScope) {
+        for app in viewModel.configuration.enabledProtectedApps {
+            unlockStore.grantUnlock(app.bundleIdentifier, scope: scope)
+        }
     }
 }
