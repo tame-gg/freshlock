@@ -42,6 +42,17 @@ final class LockCoordinator {
     /// Bundle IDs where the user cancelled the LA sheet; keep the overlay up
     /// without auto-reprompting until they tap Unlock or Quit.
     private var awaitingManualUnlock: Set<String> = []
+    /// When each recent Touch ID sheet was raised, per bundle. The backstop that
+    /// makes a prompt storm impossible: presenting the sheet activates
+    /// FreshLock, and anything that then steals focus back resolves the sheet as
+    /// `systemCancel`, which used to leave no state behind - so the 1.5s
+    /// liveness poll re-secured the app and raised another sheet, forever.
+    private var recentPrompts: [String: [Date]] = [:]
+    /// The bundle whose LA sheet is on screen. LocalAuthentication shows one
+    /// system sheet at a time; a second request fights the first.
+    private var presentingAuthFor: String?
+    /// When that sheet went up, so a focus bounce cannot cancel it instantly.
+    private var authPresentedAt: Date?
     /// Bundles whose app must not stay hidden while we are securing it. Driven
     /// by `didHideApplicationNotification`; the timer is only a backstop.
     private var visibilityKeepers: Set<String> = []
@@ -56,6 +67,15 @@ final class LockCoordinator {
     /// Backstop for un-hiding a secured app. The hide notification handles the
     /// real case immediately.
     private static let visibilityBackstopInterval: TimeInterval = 1.0
+    /// Automatic prompts allowed per app inside `promptWindow` before FreshLock
+    /// stops asking and waits for the user to press Unlock.
+    private static let maxAutomaticPrompts = 3
+    private static let promptWindow: TimeInterval = 12
+    /// How long a freshly raised sheet is protected from switch-away teardown.
+    /// Raising it activates FreshLock, and the protected app often bounces focus
+    /// once in response; that bounce must not kill the sheet the user is
+    /// reaching for.
+    private static let authCancelGrace: TimeInterval = 1.5
 
     init(
         monitor: AppMonitorServiceProtocol,
@@ -102,6 +122,9 @@ final class LockCoordinator {
         securing.removeAll()
         authInFlight.removeAll()
         awaitingManualUnlock.removeAll()
+        recentPrompts.removeAll()
+        presentingAuthFor = nil
+        authPresentedAt = nil
         Log.lifecycle.info("Lock coordinator stopped")
     }
 
@@ -320,7 +343,11 @@ extension LockCoordinator {
             if relockOnSwitchAway, !isWithinGracePeriod(previous, config: config) {
                 store.lock(previous)
             }
-            if securing.contains(previous) || overlay.isShowingOverlay(for: previous) {
+            // A sheet raised moments ago is almost certainly being torn down by
+            // the focus bounce that raising it caused, not by the user switching
+            // apps. Leave it alone; they are reaching for it.
+            let sheetIsProtected = authInFlight.contains(previous) && isAuthWithinCancelGrace(previous)
+            if !sheetIsProtected, securing.contains(previous) || overlay.isShowingOverlay(for: previous) {
                 if authInFlight.contains(previous) {
                     ignoreNextAuthCancel.insert(previous)
                     auth.cancel()
@@ -569,11 +596,78 @@ extension LockCoordinator {
         }
     }
 
-    private func authenticate(app: ProtectedApp, config: Configuration, pid: pid_t) async {
+    /// True while `bundleID`'s Touch ID sheet is too young to be torn down by a
+    /// focus change.
+    private func isAuthWithinCancelGrace(_ bundleID: String) -> Bool {
+        guard presentingAuthFor == bundleID, let raised = authPresentedAt else { return false }
+        return Date().timeIntervalSince(raised) < Self.authCancelGrace
+    }
+
+    /// Record an automatic prompt and report whether it is still within budget.
+    ///
+    /// Without a budget, any outcome that is neither success nor an explicit
+    /// user cancel leaves the app frontmost, locked, and covered - exactly the
+    /// condition the liveness poll re-secures - so FreshLock raises a new sheet
+    /// every 1.5s and steals focus each time, which is what made the window,
+    /// the protected app, and the sheet itself unclickable.
+    private func allowAutomaticPrompt(for bundleID: String) -> Bool {
+        let now = Date()
+        var stamps = (recentPrompts[bundleID] ?? [])
+            .filter { now.timeIntervalSince($0) < Self.promptWindow }
+        guard stamps.count < Self.maxAutomaticPrompts else {
+            recentPrompts[bundleID] = stamps
+            return false
+        }
+        stamps.append(now)
+        recentPrompts[bundleID] = stamps
+        return true
+    }
+
+    /// Stop asking and leave the overlay up with its Unlock button.
+    private func fallBackToManualUnlock(_ bundleID: String, reason: String) {
+        awaitingManualUnlock.insert(bundleID)
+        overlay.pinCover(for: bundleID)
+        startKeepingVisible(bundleID)
+        Log.lifecycle.notice(
+            "Auto-auth paused for \(bundleID, privacy: .public) - \(reason, privacy: .public)"
+        )
+    }
+
+    private func authenticate(
+        app: ProtectedApp,
+        config: Configuration,
+        pid: pid_t,
+        userInitiated: Bool = false
+    ) async {
         let bundleID = app.bundleIdentifier
         guard !authInFlight.contains(bundleID) else { return }
+
+        if userInitiated {
+            // The user pressed Unlock: honour it, and forget the earlier storm.
+            recentPrompts[bundleID] = nil
+        } else {
+            // One system sheet at a time. A second request while another app's
+            // sheet is up would cancel it out from under the user.
+            if let presenting = presentingAuthFor, presenting != bundleID {
+                overlay.pinCover(for: bundleID)
+                return
+            }
+            guard allowAutomaticPrompt(for: bundleID) else {
+                fallBackToManualUnlock(bundleID, reason: "too many prompts, waiting for Unlock")
+                return
+            }
+        }
+
         authInFlight.insert(bundleID)
-        defer { authInFlight.remove(bundleID) }
+        presentingAuthFor = bundleID
+        authPresentedAt = Date()
+        defer {
+            authInFlight.remove(bundleID)
+            if presentingAuthFor == bundleID {
+                presentingAuthFor = nil
+                authPresentedAt = nil
+            }
+        }
 
         overlay.pinCover(for: bundleID)
         startKeepingVisible(bundleID)
@@ -622,8 +716,14 @@ extension LockCoordinator {
             Log.lifecycle.info("Auth cancelled for \(bundleID, privacy: .public) - overlay remains")
         case let .failure(error):
             if case .systemCancel = error {
+                // The system pulled the sheet, usually because focus moved.
+                // Keep the app covered; the budget decides whether the next
+                // poll may try again or whether we wait for Unlock.
                 keepVisible(bundleID)
                 overlay.pinCover(for: bundleID)
+                if !allowAutomaticPrompt(for: bundleID) {
+                    fallBackToManualUnlock(bundleID, reason: "system cancelled repeatedly")
+                }
                 return
             }
             handleFailure(app: app, config: config)

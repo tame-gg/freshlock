@@ -28,14 +28,28 @@ enum FreshLockIdentity {
     static let mainBundleID = "gg.tame.freshlock"
     static let helperBundleID = "gg.tame.freshlock.helper"
     static let localAuthUIAgent = "com.apple.LocalAuthentication.UIAgent"
+    static let securityAgent = "com.apple.SecurityAgent"
 
     /// Bundle IDs whose activation is a transient side effect of locking /
     /// authenticating, not a real user app switch.
-    static let transientFrontmostBundleIDs: Set<String> = [
-        mainBundleID,
-        helperBundleID,
-        localAuthUIAgent
-    ]
+    ///
+    /// The running bundle is included explicitly rather than assumed to equal
+    /// `mainBundleID`. A build with any other identifier - a dev copy, a renamed
+    /// preview - would otherwise see its own `NSApp.activate` for the Touch ID
+    /// sheet as the user switching apps, cancel the sheet it just raised, and
+    /// re-prompt the moment focus fell back to the protected app.
+    static let transientFrontmostBundleIDs: Set<String> = {
+        var ids: Set<String> = [
+            mainBundleID,
+            helperBundleID,
+            localAuthUIAgent,
+            securityAgent
+        ]
+        if let own = Bundle.main.bundleIdentifier {
+            ids.insert(own)
+        }
+        return ids
+    }()
 }
 
 /// Public Accessibility permission helpers for the GUI (onboarding / Preferences).
