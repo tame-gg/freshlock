@@ -1,6 +1,6 @@
 # Releasing
 
-AppLock releases are fully automated from an annotated git tag.
+FreshLock releases are fully automated from an annotated git tag.
 
 ## Cut a release
 
@@ -16,7 +16,7 @@ AppLock releases are fully automated from an annotated git tag.
 ## Build a release locally
 
 ```bash
-Scripts/package-release.sh          # → dist/AppLock.app, AppLock.zip, .sha256
+Scripts/package-release.sh          # → dist/FreshLock.app, FreshLock.zip, .sha256
 ```
 
 Without `SIGNING_IDENTITY` this applies an **ad-hoc** signature: the app runs on

@@ -1,18 +1,18 @@
-/* AppLock — English (development region, canonical keys).
+/* FreshLock — English (development region, canonical keys).
    Keys are the base English strings, which is how SwiftUI's LocalizedStringKey
    resolves literals. Interpolations map to printf placeholders: Int → %lld,
    String → %@. Other languages need only override the keys they translate;
    anything missing falls back to this file. */
 
 // MARK: Menu bar
-"AppLock — %lld protected" = "AppLock — %lld protected";
+"FreshLock — %lld protected" = "FreshLock — %lld protected";
 "Lock All" = "Lock All";
 "Unlock Until Sleep" = "Unlock Until Sleep";
 "Unlock Until Logout" = "Unlock Until Logout";
 "Unlock All" = "Unlock All";
 "Open Preferences…" = "Open Preferences…";
-"About AppLock" = "About AppLock";
-"Quit AppLock" = "Quit AppLock";
+"About FreshLock" = "About FreshLock";
+"Quit FreshLock" = "Quit FreshLock";
 
 // MARK: Sidebar & app list
 "All Apps" = "All Apps";
@@ -41,7 +41,7 @@
 "After %lld min" = "After %lld min";
 "Quit after repeated failures" = "Quit after repeated failures";
 "After %lld failed attempts" = "After %lld failed attempts";
-"If authentication fails this many times in a row, AppLock will quit the app." = "If authentication fails this many times in a row, AppLock will quit the app.";
+"If authentication fails this many times in a row, FreshLock will quit the app." = "If authentication fails this many times in a row, FreshLock will quit the app.";
 
 // MARK: Lock overlay
 "Unlock" = "Unlock";
@@ -77,24 +77,24 @@
 "Import…" = "Import…";
 
 // MARK: Onboarding
-"Welcome to AppLock" = "Welcome to AppLock";
+"Welcome to FreshLock" = "Welcome to FreshLock";
 "Protect any app behind Touch ID, Apple Watch, or your Mac password." = "Protect any app behind Touch ID, Apple Watch, or your Mac password.";
 "Lock apps like Safari, Finder or System Settings." = "Lock apps like Safari, Finder or System Settings.";
-"Unlock with Apple's own authentication — AppLock never sees your password." = "Unlock with Apple's own authentication — AppLock never sees your password.";
+"Unlock with Apple's own authentication — FreshLock never sees your password." = "Unlock with Apple's own authentication — FreshLock never sees your password.";
 "Lightweight and notification-driven; near-zero idle CPU." = "Lightweight and notification-driven; near-zero idle CPU.";
 "Grant Accessibility" = "Grant Accessibility";
-"AppLock needs Accessibility permission to place its lock overlay above other apps." = "AppLock needs Accessibility permission to place its lock overlay above other apps.";
+"FreshLock needs Accessibility permission to place its lock overlay above other apps." = "FreshLock needs Accessibility permission to place its lock overlay above other apps.";
 "Accessibility granted" = "Accessibility granted";
 "Accessibility not granted yet" = "Accessibility not granted yet";
 "Open Accessibility Settings" = "Open Accessibility Settings";
 "Grant Accessibility…" = "Grant Accessibility…";
 "You can change this any time in System Settings → Privacy & Security → Accessibility." = "You can change this any time in System Settings → Privacy & Security → Accessibility.";
 "Keep Protecting" = "Keep Protecting";
-"Launch AppLock at login so your apps stay protected after every restart." = "Launch AppLock at login so your apps stay protected after every restart.";
-"Launch AppLock at login" = "Launch AppLock at login";
+"Launch FreshLock at login so your apps stay protected after every restart." = "Launch FreshLock at login so your apps stay protected after every restart.";
+"Launch FreshLock at login" = "Launch FreshLock at login";
 "You're all set" = "You're all set";
-"Open AppLock from the menu bar to choose which apps to protect." = "Open AppLock from the menu bar to choose which apps to protect.";
-"Find AppLock in your menu bar for quick actions." = "Find AppLock in your menu bar for quick actions.";
+"Open FreshLock from the menu bar to choose which apps to protect." = "Open FreshLock from the menu bar to choose which apps to protect.";
+"Find FreshLock in your menu bar for quick actions." = "Find FreshLock in your menu bar for quick actions.";
 "Back" = "Back";
 "Continue" = "Continue";
 "Done" = "Done";

@@ -1,32 +1,32 @@
 # Architecture
 
-AppLock follows **MVVM** with strict dependency injection and a testable core.
+FreshLock follows **MVVM** with strict dependency injection and a testable core.
 
 ## Module layout
 
 ```
 Sources/
-  AppLockCore/            # Pure, UI-free, fully unit-tested library
+  FreshLockCore/            # Pure, UI-free, fully unit-tested library
     Models/               # Value types: Configuration, ProtectedApp, …
     Services/             # AppDiscovery, Authentication, Settings persistence
     Managers/             # UnlockStateStore (pure lock-state machine)
     Utilities/            # os.Logger wrapper
-  AppLockEngine/          # Shared AppKit locking engine (GUI + helper link it)
+  FreshLockEngine/          # Shared AppKit locking engine (GUI + helper link it)
     LockEngine.swift      # Public composition root
-    Services/             # AppMonitor, Overlay, LoginItem, Notifications, …
+    Services/             # AppMonitor, Accessibility, Overlay, LoginItem, …
     Managers/             # LockCoordinator, RelockManager
     Views/                # LockOverlayView + NSVisualEffect bridge
-  AppLock/                # GUI executable (SwiftUI settings + menu bar)
+  FreshLock/                # GUI executable (SwiftUI settings + menu bar)
     App/                  # @main, DI container, AppDelegate
     Managers/             # View models
     Views/                # Catalogue, preferences, about
-  AppLockHelper/          # Headless background helper executable
+  FreshLockHelper/          # Headless background helper executable
     main.swift            # Boots a LockEngine and runs the loop
-Tests/AppLockCoreTests/   # swift-testing unit tests
+Tests/FreshLockCoreTests/   # swift-testing unit tests
 ```
 
-`AppLockCore` never imports AppKit/SwiftUI, which keeps the business logic
-portable and trivially testable (`swift test`). `AppLockEngine` holds the
+`FreshLockCore` never imports AppKit/SwiftUI, which keeps the business logic
+portable and trivially testable (`swift test`). `FreshLockEngine` holds the
 AppKit-dependent locking machinery and is linked by **both** the GUI and the
 helper — that shared library is what makes "the helper does the protecting"
 real rather than aspirational.
@@ -35,7 +35,7 @@ real rather than aspirational.
 
 ```
 ┌────────────────────┐         configuration.json          ┌────────────────────┐
-│   AppLock.app      │  writes  (App Support, atomic)  reads │  AppLockHelper.app │
+│   FreshLock.app      │  writes  (App Support, atomic)  reads │  FreshLockHelper.app │
 │  (GUI / settings)  │ ───────────────────────────────────► │  (background)      │
 │                    │                                       │   runs LockEngine  │
 │  edits protected   │                                       │   monitors launches│
@@ -54,9 +54,9 @@ polling) that re-registers the hot keys when the configuration file changes on
 disk. This keeps cross-process edits live without any IPC.
 
 **Registration & lifecycle.** The GUI registers the helper via
-`SMAppService.agent(plistName: "gg.tame.applock.helper.plist")` when the user
+`SMAppService.agent(plistName: "gg.tame.freshlock.helper.plist")` when the user
 enables *Launch at Login*. The helper is embedded at
-`Contents/Library/LoginItems/AppLockHelper.app` with its launchd plist at
+`Contents/Library/LoginItems/FreshLockHelper.app` with its launchd plist at
 `Contents/Library/LaunchAgents/`, using `RunAtLoad` + `KeepAlive` so it starts
 at login and is relaunched if it ever exits. When run from a bare SwiftPM binary
 (no `.app`, hence no helper), the GUI detects the helper's absence and hosts the
@@ -65,64 +65,100 @@ at login and is relaunched if it ever exits. When run from a bare SwiftPM binary
 ## The lock/unlock flow
 
 ```
-NSWorkspace launch/activate notification
+NSWorkspace didLaunch / didActivate
         │
         ▼
   AppMonitorService  ──(Combine)──►  LockCoordinator
                                         │
-                    protected & locked? │
-                                        ▼
-                              OverlayService  (top-most blur window per screen)
+                         beginSecuring (no frontmost gate)
                                         │
-                                        ▼
-                     AuthenticationService  (Apple's native LA sheet)
+                         OverlayService  pin cover + wait for window
+                         AccessibilityService (AX window events)
+                                        │
+                         (locked UI visible — do not activate FreshLock)
+                                        │
+                         AuthenticationService  (UIAgent focused LA sheet)
                               success │ failure
                                 ┌─────┴─────┐
                                 ▼           ▼
                         UnlockStateStore   keep overlay /
-                        grants unlock      terminate after N
-                                ▼
-                        OverlayService.dismiss
+                        grant + dismiss    terminate after N
+                        activate protected
 ```
 
 `RelockManager` observes sleep / screen-lock / session events and revokes the
 matching grants in `UnlockStateStore`, driving auto-relock without any polling.
 
+### Why the host must not activate before Touch ID
+
+FreshLock (and the helper) run as `.accessory` menu-bar processes. Calling
+`NSApp.activate(ignoringOtherApps:)` on an accessory/LSUIElement host causes
+macOS to **hide** the previously frontmost app — the protected app appears to
+open and then vanish. LocalAuthentication presents its sheet through
+`LocalAuthentication.UIAgent`, which takes focus for Touch ID without FreshLock
+stealing activation. The pipeline is: reveal protected app → show lock overlay →
+`evaluatePolicy` (focused system sheet on top).
+
+### Application identity
+
+Protected membership, overlays, unlock grants, and configuration are keyed by
+**bundle identifier** — the only persistent identity that survives quit and
+relaunch. Process IDs are session tokens only: an unlock grant records the
+`sessionPID` that authenticated, and is valid solely for that live process.
+
+Resolving "which process is this protected app?" never uses
+`runningApplications(…).first` (undefined order). `ProtectedAppProcess` prefers
+the frontmost instance of the bundle, otherwise the most recently launched.
+
+### Unlock grants are process-scoped
+
+A successful authentication creates an `UnlockGrant` keyed by bundle ID and
+bound to that launch's **process ID**. `UnlockStateStore.revokeDeadSessions`
+compares the grant's `sessionPID` against the set of live PIDs for that bundle
+(poll + lifecycle events). Quit → relaunch therefore always requires a new
+authentication. Queries (`isUnlocked`) never destroy grants on a PID mismatch —
+only explicit lock / dead-session revocation / time expiry remove them.
+
+Only one FreshLock process may own this state. A second copy of the app races
+the first and produces intermittent unlock behaviour; launch activates the
+existing instance and exits.
+
+The Preferences option **Require authentication on every launch** additionally
+forces a new prompt on every activation of a still-running process.
+
 ## Threat model & macOS limitations (honest)
 
-AppLock is a **deterrent built on public APIs**, not a sandbox escape or a
+FreshLock is a **deterrent built on public APIs**, not a sandbox escape or a
 kernel enforcement layer. Concretely:
 
-| Goal | What macOS allows publicly | AppLock's approach |
+| Goal | What macOS allows publicly | FreshLock's approach |
 |------|----------------------------|--------------------|
-| Detect a launch | `NSWorkspace` notifications *after* launch begins | React on the notification, immediately cover/hide |
+| Detect a launch | `NSWorkspace` notifications *after* launch begins | React on the notification, immediately cover |
+| Detect windows | Accessibility (`AXObserver`) window notifications | Event-driven re-cover; CGWindowList fallback |
 | Prevent a launch | ❌ No public pre-launch veto | Not possible; we cover + require auth instead |
-| Freeze another app's UI | ❌ Not permitted | Top-most overlay intercepts interaction |
+| Freeze another app's UI | ❌ Not permitted | Non-activating overlay intercepts interaction |
 | Read another app's password | ❌ Never; nor do we want to | Use LocalAuthentication only |
-| Hide content from Mission Control / Spaces / Exposé | ❌ No public API to exclude another app's window from previews | **Hide the app** (`NSRunningApplication.hide`) while it's locked and backgrounded |
-| Guarantee no frame is drawn | ❌ Race between OS draw and our overlay | Cover/hide within a frame or two |
+| Hide content from Mission Control / Spaces / Exposé | ❌ No public API to exclude another app's window from previews | Overlay while frontmost; no hide during auth (see above) |
+| Guarantee no frame is drawn | ❌ Race between OS draw and our overlay | Cover within a frame or two via AX + overlay |
 
 ### Preview privacy (Mission Control, Spaces, Exposé, Stage Manager)
 
 A covering overlay is a *separate* window, so system previews that snapshot the
-protected app's own window would still show its contents. macOS exposes no public
-way to mark another app's window as non-capturable. AppLock's strongest available
-mitigation is therefore to **hide the app's windows entirely while it is locked
-and in the background** — a hidden app does not appear in Mission Control, the
-Spaces switcher, App Exposé or the Stage Manager strip. It is revealed the instant
-you authenticate. The only residual gap is a possible sub-second flash while the
-app is being *actively* unlocked (frontmost, overlay covering) if you open Mission
-Control at that exact moment.
+protected app's own window can still show its contents when the app is locked
+but not frontmost. Hiding the app would mitigate that, but it also cancels
+LocalAuthentication when done around the Touch ID sheet. FreshLock prioritises a
+stable authentication session (iOS-like) over Mission Control scrubbing.
 
-### No Accessibility permission
+### Accessibility permission
 
-AppLock does not use the Accessibility (AX) API — the top-most overlay relies on
-window *levels*, launch detection on `NSWorkspace`, and hide/reveal on
-`NSRunningApplication`, none of which need it. Earlier builds requested it
-speculatively; it has been removed.
+FreshLock **requires Accessibility** so it can observe window creation and geometry
+for protected apps. Without it, covering falls back to `CGWindowList` polling and
+is slower / less reliable. Grant it in System Settings → Privacy & Security →
+Accessibility (also prompted during onboarding; status is shown in Preferences →
+Advanced).
 
 A sufficiently determined local user with admin rights can bypass any userland
-app-locker (kill the process, boot to recovery, etc.). AppLock defends against
+app-locker (kill the process, boot to recovery, etc.). FreshLock defends against
 **casual/opportunistic access** to a logged-in Mac — the same practical threat
 model as iOS app-lock features. This is stated plainly so users can make an
 informed choice.
@@ -137,10 +173,10 @@ the main actor to avoid data races.
 ## Persistence
 
 The entire configuration is a single `Codable` `Configuration` document written
-atomically to `~/Library/Application Support/AppLock/configuration.json`. This
+atomically to `~/Library/Application Support/FreshLock/configuration.json`. This
 one-document design makes export, backup, and future iCloud sync straightforward.
 
 ## Localization
 
-AppLock ships English, Spanish and French. Add a language by translating
+FreshLock ships English, Spanish and French. Add a language by translating
 `Localization/en.lproj/Localizable.strings` — see [CONTRIBUTING.md](../CONTRIBUTING.md#localization).

@@ -1,5 +1,5 @@
 name: 🐛 Bug Report
-description: Report a problem with AppLock
+description: Report a problem with FreshLock
 labels: [bug, needs-triage]
 body:
   - type: markdown
@@ -36,9 +36,9 @@ body:
     validations:
       required: true
   - type: input
-    id: applock
+    id: freshlock
     attributes:
-      label: AppLock version
+      label: FreshLock version
       placeholder: "0.1.0"
     validations:
       required: true
@@ -48,5 +48,5 @@ body:
       label: Relevant logs
       description: |
         Output of:
-        `log stream --predicate 'subsystem == "gg.tame.applock"' --level debug`
+        `log stream --predicate 'subsystem == "gg.tame.freshlock"' --level debug`
       render: shell

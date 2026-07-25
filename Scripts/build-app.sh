@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# build-app.sh — assemble AppLock.app from the SwiftPM release build.
+# build-app.sh — assemble FreshLock.app from the SwiftPM release build.
 #
 # SwiftPM produces a bare executable; macOS needs a bundle. This script builds
 # in release configuration and lays out a proper .app directory with Info.plist
@@ -21,7 +21,7 @@ OUTPUT_DIR="${1:-$ROOT/dist}"
 CONFIGURATION="${CONFIGURATION:-release}"
 ARCH="${ARCH:-universal}"
 
-APP_NAME="AppLock"
+APP_NAME="FreshLock"
 BUNDLE="$OUTPUT_DIR/$APP_NAME.app"
 
 echo "▶ Building $APP_NAME ($CONFIGURATION, $ARCH)…"
@@ -57,17 +57,17 @@ copy_localizations() {
 copy_localizations "$BUNDLE/Contents/Resources"
 
 # --- Embed the background helper as a nested LoginItems app bundle ---
-HELPER="$BUNDLE/Contents/Library/LoginItems/AppLockHelper.app"
+HELPER="$BUNDLE/Contents/Library/LoginItems/FreshLockHelper.app"
 mkdir -p "$HELPER/Contents/MacOS"
-cp "$BIN_PATH/AppLockHelper" "$HELPER/Contents/MacOS/AppLockHelper"
+cp "$BIN_PATH/FreshLockHelper" "$HELPER/Contents/MacOS/FreshLockHelper"
 cp "$ROOT/Packaging/Helper-Info.plist" "$HELPER/Contents/Info.plist"
 # The helper renders the lock overlay in production, so it needs the strings too.
 mkdir -p "$HELPER/Contents/Resources"
 copy_localizations "$HELPER/Contents/Resources"
 
 # launchd agent plist that SMAppService registers to keep the helper alive.
-cp "$ROOT/Packaging/gg.tame.applock.helper.plist" \
-   "$BUNDLE/Contents/Library/LaunchAgents/gg.tame.applock.helper.plist"
+cp "$ROOT/Packaging/gg.tame.freshlock.helper.plist" \
+   "$BUNDLE/Contents/Library/LaunchAgents/gg.tame.freshlock.helper.plist"
 
 # Copy an app icon if present (Scripts/generate-icon.sh produces AppIcon.icns).
 if [[ -f "$ROOT/Packaging/AppIcon.icns" ]]; then

@@ -1,15 +1,15 @@
 <div align="center">
 
-# 🔒 AppLock
+# 🔒 FreshLock
 
 **Protect any macOS app behind Touch ID, Apple Watch, or your Mac password.**
 
 iOS and iPadOS let you lock individual apps behind Face ID / Touch ID. macOS has
-no native equivalent. **AppLock** is the closest, honest implementation built
+no native equivalent. **FreshLock** is the closest, honest implementation built
 entirely on **public Apple APIs** — no private frameworks, no kernel extensions,
 no Electron.
 
-[![CI](https://github.com/tame-gg/applock/actions/workflows/ci.yml/badge.svg)](https://github.com/tame-gg/applock/actions/workflows/ci.yml)
+[![CI](https://github.com/tame-gg/freshlock/actions/workflows/ci.yml/badge.svg)](https://github.com/tame-gg/freshlock/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-6-orange?logo=swift)
@@ -21,7 +21,7 @@ no Electron.
 ## Features
 
 - 🔐 **Native authentication** — Apple's own LocalAuthentication sheet (Touch ID,
-  Apple Watch, or macOS password). AppLock never draws a password field and never
+  Apple Watch, or macOS password). FreshLock never draws a password field and never
   sees your password.
 - 🖥️ **Lock any app** — Finder, Terminal, Safari, System Settings, or anything in
   `/Applications`.
@@ -36,7 +36,8 @@ no Electron.
 - 📤 **Import / export / backup** your configuration as JSON (iCloud-sync ready).
 - ♿ **Accessible** — VoiceOver labels, keyboard navigation, reduced motion.
 - 🌍 **Localized** — English, Spanish and French (easy to add more).
-- 🪶 **Featherweight** — zero polling; everything is notification-driven.
+- 🪶 **Featherweight** — Accessibility-driven window covering; no hide/activate
+  churn during Touch ID.
 
 ## Installation
 
@@ -44,27 +45,27 @@ no Electron.
 
 ```bash
 brew tap tame-gg/tap
-brew install --cask applock
+brew install --cask freshlock
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/tame-gg/applock.git
-cd applock
+git clone https://github.com/tame-gg/freshlock.git
+cd freshlock
 Scripts/build-app.sh
-open dist/AppLock.app
+open dist/FreshLock.app
 ```
 
 See [docs/BUILDING.md](docs/BUILDING.md) for details.
 
 ## Honest macOS limitations
 
-AppLock is deliberate about what macOS **does and does not allow** a third-party
+FreshLock is deliberate about what macOS **does and does not allow** a third-party
 app to do with public APIs. In short:
 
 > macOS provides **no public API to veto or freeze another app's launch**.
-> AppLock reacts to the launch/activation notification as fast as the OS
+> FreshLock reacts to the launch/activation notification as fast as the OS
 > delivers it and immediately covers the app with a top-most overlay, then
 > requires authentication. This is a strong deterrent, **not** a kernel-level
 > guarantee.
@@ -75,13 +76,11 @@ We will never pretend a limitation doesn't exist.
 
 ## Permissions
 
-On first launch AppLock will ask for:
+On first launch FreshLock will ask for:
 
+- **Accessibility** *(required)* — to detect protected windows and cover them
+  without hiding or reactivating apps (which would interrupt Touch ID).
 - **Notifications** *(optional)* — to alert you when a protected app launches.
-
-AppLock does **not** require Accessibility permission — it uses only public APIs
-(window levels, `NSWorkspace`, `NSRunningApplication`, LocalAuthentication) that
-don't need it.
 
 ## Contributing
 

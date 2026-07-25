@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# package-release.sh — produce a distributable AppLock.zip + SHA256.
+# package-release.sh — produce a distributable FreshLock.zip + SHA256.
 #
 # Wraps build-app.sh, signs (Developer ID if SIGNING_IDENTITY is set, otherwise
 # an ad-hoc signature so the app runs locally), zips and checksums. It assembles
@@ -19,8 +19,8 @@ trap 'rm -rf "$STAGE"' EXIT
 echo "▶ Building into staging: $STAGE"
 CONFIGURATION=release ARCH="${ARCH:-universal}" "$ROOT/Scripts/build-app.sh" "$STAGE" >/dev/null
 
-APP="$STAGE/AppLock.app"
-HELPER="$APP/Contents/Library/LoginItems/AppLockHelper.app"
+APP="$STAGE/FreshLock.app"
+HELPER="$APP/Contents/Library/LoginItems/FreshLockHelper.app"
 
 # Strip inherited extended attributes so codesign won't refuse.
 xattr -cr "$APP"
@@ -39,13 +39,13 @@ codesign --verify --deep --strict "$APP"
 
 echo "▶ Zipping + checksum"
 mkdir -p "$OUTPUT_DIR"
-ditto -c -k --keepParent "$APP" "$STAGE/AppLock.zip"
-( cd "$STAGE" && shasum -a 256 AppLock.zip > AppLock.zip.sha256 )
+ditto -c -k --keepParent "$APP" "$STAGE/FreshLock.zip"
+( cd "$STAGE" && shasum -a 256 FreshLock.zip > FreshLock.zip.sha256 )
 
-ditto "$APP" "$OUTPUT_DIR/AppLock.app"
-cp "$STAGE/AppLock.zip" "$OUTPUT_DIR/AppLock.zip"
-cp "$STAGE/AppLock.zip.sha256" "$OUTPUT_DIR/AppLock.zip.sha256"
+ditto "$APP" "$OUTPUT_DIR/FreshLock.app"
+cp "$STAGE/FreshLock.zip" "$OUTPUT_DIR/FreshLock.zip"
+cp "$STAGE/FreshLock.zip.sha256" "$OUTPUT_DIR/FreshLock.zip.sha256"
 
 echo "✅ Release artifacts in $OUTPUT_DIR:"
-ls -lh "$OUTPUT_DIR"/AppLock.zip*
-cat "$OUTPUT_DIR/AppLock.zip.sha256"
+ls -lh "$OUTPUT_DIR"/FreshLock.zip*
+cat "$OUTPUT_DIR/FreshLock.zip.sha256"

@@ -1,0 +1,100 @@
+//
+//  UnlockStateStoreTests.swift
+//  FreshLockCoreTests
+//
+
+import Testing
+import Foundation
+@testable import FreshLockCore
+
+@MainActor
+struct UnlockStateStoreTests {
+    @Test func startsLocked() {
+        let store = UnlockStateStore()
+        #expect(store.isUnlocked("com.example.app", pid: 1) == false)
+    }
+
+    @Test func grantThenUnlockedOnlyForThatPID() {
+        let store = UnlockStateStore()
+        store.grantUnlock("com.example.app", scope: .untilSleep, sessionPID: 42)
+        #expect(store.isUnlocked("com.example.app", pid: 42))
+        #expect(store.isUnlocked("com.example.app", pid: 99) == false)
+        // Mismatch must not destroy the grant for the authenticating process.
+        #expect(store.hasGrant("com.example.app"))
+        #expect(store.isUnlocked("com.example.app", pid: 42))
+    }
+
+    @Test func quitAndRelaunchRequiresAuth() {
+        let store = UnlockStateStore()
+        store.grantUnlock("com.apple.MobileSMS", scope: .untilSleep, sessionPID: 100)
+        #expect(store.isUnlocked("com.apple.MobileSMS", pid: 100))
+
+        // Process 100 exited; nothing live for this bundle.
+        let revoked = store.revokeDeadSessions(livePIDsByBundle: [:])
+        #expect(revoked == ["com.apple.MobileSMS"])
+        #expect(store.hasGrant("com.apple.MobileSMS") == false)
+
+        // Relaunch under a new PID — must authenticate again.
+        #expect(store.isUnlocked("com.apple.MobileSMS", pid: 200) == false)
+    }
+
+    @Test func pidReplaceWithoutNilGapRevokes() {
+        let store = UnlockStateStore()
+        store.grantUnlock("com.apple.MobileSMS", scope: .untilLogout, sessionPID: 100)
+        // Quit notification missed; poll sees only the new PID.
+        let revoked = store.revokeDeadSessions(
+            livePIDsByBundle: ["com.apple.MobileSMS": [200]]
+        )
+        #expect(revoked == ["com.apple.MobileSMS"])
+        #expect(store.isUnlocked("com.apple.MobileSMS", pid: 200) == false)
+    }
+
+    @Test func overlappingPIDsKeepGrantForLiveSession() {
+        let store = UnlockStateStore()
+        store.grantUnlock("com.apple.MobileSMS", scope: .untilSleep, sessionPID: 100)
+        // Old and new briefly coexist; grant for 100 stays while 100 is live.
+        let revoked = store.revokeDeadSessions(
+            livePIDsByBundle: ["com.apple.MobileSMS": [100, 200]]
+        )
+        #expect(revoked.isEmpty)
+        #expect(store.isUnlocked("com.apple.MobileSMS", pid: 100))
+        #expect(store.isUnlocked("com.apple.MobileSMS", pid: 200) == false)
+    }
+
+    @Test func lockAllClearsEverything() {
+        let store = UnlockStateStore()
+        store.grantUnlock("a", scope: .untilSleep, sessionPID: 1)
+        store.grantUnlock("b", scope: .untilLogout, sessionPID: 2)
+        store.lockAll()
+        #expect(store.unlockedBundleIDs.isEmpty)
+    }
+
+    @Test func durationGrantExpiresByTime() {
+        var now = Date(timeIntervalSince1970: 0)
+        let store = UnlockStateStore { now }
+        store.grantUnlock("a", scope: .forDuration(60), sessionPID: 1)
+        #expect(store.isUnlocked("a", pid: 1))
+        now = Date(timeIntervalSince1970: 61)
+        #expect(store.isUnlocked("a", pid: 1) == false)
+    }
+
+    @Test func revokeMatchingScope() {
+        let store = UnlockStateStore()
+        store.grantUnlock("sleepy", scope: .untilSleep, sessionPID: 1)
+        store.grantUnlock("loggy", scope: .untilLogout, sessionPID: 2)
+        store.revokeGrants { scope in
+            if case .untilSleep = scope { return true }
+            return false
+        }
+        #expect(store.isUnlocked("sleepy", pid: 1) == false)
+        #expect(store.isUnlocked("loggy", pid: 2))
+    }
+
+    @Test func terminateThenLaunchIsNewSession() {
+        let store = UnlockStateStore()
+        store.grantUnlock("com.apple.MobileSMS", scope: .untilSleep, sessionPID: 50)
+        store.lock("com.apple.MobileSMS") // didTerminate
+        #expect(store.isUnlocked("com.apple.MobileSMS", pid: 50) == false)
+        #expect(store.isUnlocked("com.apple.MobileSMS", pid: 51) == false)
+    }
+}

@@ -1,6 +1,6 @@
-# Contributing to AppLock
+# Contributing to FreshLock
 
-Thanks for your interest in improving AppLock! 🎉
+Thanks for your interest in improving FreshLock! 🎉
 
 ## Getting started
 
@@ -13,14 +13,14 @@ Thanks for your interest in improving AppLock! 🎉
    ```
 4. Package a runnable app:
    ```bash
-   Scripts/build-app.sh && open dist/AppLock.app
+   Scripts/build-app.sh && open dist/FreshLock.app
    ```
 
 ## Development workflow
 
 - Create a feature branch: `git checkout -b feat/my-feature`.
 - Keep the project **compiling and green at every commit**.
-- Add or update tests in `Tests/AppLockCoreTests` for any core-logic change.
+- Add or update tests in `Tests/FreshLockCoreTests` for any core-logic change.
 - Run the linters before pushing:
   ```bash
   swiftlint
@@ -43,7 +43,7 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`, `perf`.
 
 - Idiomatic Swift 6, `async/await`, dependency injection — no singletons except
   the single `AppEnvironment.shared` container.
-- Keep `AppLockCore` free of AppKit/SwiftUI.
+- Keep `FreshLockCore` free of AppKit/SwiftUI.
 - Small, focused files. Comment the *why*, not the *what*.
 - No new third-party dependencies without discussion.
 

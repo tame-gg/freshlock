@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
 //
 //  generate-icon.swift
-//  Draws the AppLock app icon (a dark squircle with a cyan→green padlock, in the
+//  Draws the FreshLock app icon (a dark squircle with a cyan→green padlock, in the
 //  koels.net palette) at every required size and writes Packaging/AppIcon.icns.
 //
 //  Usage: swift Scripts/generate-icon.swift

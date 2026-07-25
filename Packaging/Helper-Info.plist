@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Info.plist for the embedded AppLockHelper.app.
+  Info.plist for the embedded FreshLockHelper.app.
 
   The helper is a headless accessory (LSUIElement) with no UI of its own beyond
   the lock overlays and system authentication sheet. Its bundle identifier is a
@@ -17,13 +17,13 @@
         <string>fr</string>
     </array>
     <key>CFBundleName</key>
-    <string>AppLockHelper</string>
+    <string>FreshLockHelper</string>
     <key>CFBundleDisplayName</key>
-    <string>AppLock Helper</string>
+    <string>FreshLock Helper</string>
     <key>CFBundleIdentifier</key>
-    <string>gg.tame.applock.helper</string>
+    <string>gg.tame.freshlock.helper</string>
     <key>CFBundleExecutable</key>
-    <string>AppLockHelper</string>
+    <string>FreshLockHelper</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

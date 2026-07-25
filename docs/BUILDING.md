@@ -1,4 +1,4 @@
-# Building AppLock
+# Building FreshLock
 
 ## Requirements
 
@@ -15,13 +15,13 @@ swift build
 # Run the unit tests
 swift test
 
-# Assemble a runnable AppLock.app (release, universal by default)
+# Assemble a runnable FreshLock.app (release, universal by default)
 Scripts/build-app.sh
-open dist/AppLock.app
+open dist/FreshLock.app
 
 # Or produce a full release artifact (signed .app + zip + SHA256)
 Scripts/package-release.sh
-open dist/AppLock.app
+open dist/FreshLock.app
 ```
 
 `Scripts/build-app.sh` accepts an output directory and honours two environment
@@ -47,7 +47,7 @@ export APPLE_TEAM_ID="TEAMID"
 export APPLE_APP_PASSWORD="app-specific-password"
 
 Scripts/build-app.sh
-Scripts/sign-and-notarize.sh dist/AppLock.app
+Scripts/sign-and-notarize.sh dist/FreshLock.app
 ```
 
 If the signing variables are unset, the script prints a notice and exits
@@ -62,7 +62,7 @@ Swift Package Manager packages open directly:
 xed .
 ```
 
-Xcode will resolve the package and let you build/run the `AppLock` scheme.
+Xcode will resolve the package and let you build/run the `FreshLock` scheme.
 
 ## Why a script instead of an `.xcodeproj`?
 

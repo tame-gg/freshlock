@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# sign-and-notarize.sh — code-sign, notarize and staple AppLock.app.
+# sign-and-notarize.sh — code-sign, notarize and staple FreshLock.app.
 #
 # Designed to degrade gracefully in CI: if the signing secrets are absent the
 # script prints a notice and exits 0, so unsigned builds still publish.
@@ -14,7 +14,7 @@
 set -euo pipefail
 
 APP="${1:?Usage: sign-and-notarize.sh <path-to.app>}"
-ENTITLEMENTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/Packaging/AppLock.entitlements"
+ENTITLEMENTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/Packaging/FreshLock.entitlements"
 
 if [[ -z "${SIGNING_IDENTITY:-}" ]]; then
   echo "ℹ️  SIGNING_IDENTITY not set — skipping code signing and notarization."
@@ -35,7 +35,7 @@ if [[ -z "${APPLE_ID:-}" || -z "${APPLE_TEAM_ID:-}" || -z "${APPLE_APP_PASSWORD:
   exit 0
 fi
 
-ZIP="$(dirname "$APP")/AppLock-notarize.zip"
+ZIP="$(dirname "$APP")/FreshLock-notarize.zip"
 echo "▶ Notarizing…"
 ditto -c -k --keepParent "$APP" "$ZIP"
 xcrun notarytool submit "$ZIP" \

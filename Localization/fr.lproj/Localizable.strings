@@ -1,14 +1,14 @@
-/* AppLock — Français. Les clés manquantes reviennent à en.lproj. */
+/* FreshLock — Français. Les clés manquantes reviennent à en.lproj. */
 
 // MARK: Barre de menus
-"AppLock — %lld protected" = "AppLock — %lld protégées";
+"FreshLock — %lld protected" = "FreshLock — %lld protégées";
 "Lock All" = "Tout verrouiller";
 "Unlock Until Sleep" = "Déverrouiller jusqu'à la veille";
 "Unlock Until Logout" = "Déverrouiller jusqu'à la déconnexion";
 "Unlock All" = "Tout déverrouiller";
 "Open Preferences…" = "Ouvrir les Réglages…";
-"About AppLock" = "À propos d'AppLock";
-"Quit AppLock" = "Quitter AppLock";
+"About FreshLock" = "À propos d'FreshLock";
+"Quit FreshLock" = "Quitter FreshLock";
 
 // MARK: Barre latérale et liste
 "All Apps" = "Toutes les apps";
@@ -37,7 +37,7 @@
 "After %lld min" = "Après %lld min";
 "Quit after repeated failures" = "Quitter après plusieurs échecs";
 "After %lld failed attempts" = "Après %lld tentatives échouées";
-"If authentication fails this many times in a row, AppLock will quit the app." = "Si l'authentification échoue autant de fois d'affilée, AppLock quittera l'app.";
+"If authentication fails this many times in a row, FreshLock will quit the app." = "Si l'authentification échoue autant de fois d'affilée, FreshLock quittera l'app.";
 
 // MARK: Superposition de verrouillage
 "Unlock" = "Déverrouiller";
@@ -73,24 +73,24 @@
 "Import…" = "Importer…";
 
 // MARK: Bienvenue
-"Welcome to AppLock" = "Bienvenue dans AppLock";
+"Welcome to FreshLock" = "Bienvenue dans FreshLock";
 "Protect any app behind Touch ID, Apple Watch, or your Mac password." = "Protégez n'importe quelle app avec Touch ID, l'Apple Watch ou le mot de passe de votre Mac.";
 "Lock apps like Safari, Finder or System Settings." = "Verrouillez des apps comme Safari, le Finder ou Réglages Système.";
-"Unlock with Apple's own authentication — AppLock never sees your password." = "Déverrouillez avec l'authentification d'Apple — AppLock ne voit jamais votre mot de passe.";
+"Unlock with Apple's own authentication — FreshLock never sees your password." = "Déverrouillez avec l'authentification d'Apple — FreshLock ne voit jamais votre mot de passe.";
 "Lightweight and notification-driven; near-zero idle CPU." = "Léger et piloté par notifications ; CPU quasi nul au repos.";
 "Grant Accessibility" = "Accorder l'accessibilité";
-"AppLock needs Accessibility permission to place its lock overlay above other apps." = "AppLock a besoin de l'autorisation d'accessibilité pour afficher son verrou au-dessus des autres apps.";
+"FreshLock needs Accessibility permission to place its lock overlay above other apps." = "FreshLock a besoin de l'autorisation d'accessibilité pour afficher son verrou au-dessus des autres apps.";
 "Accessibility granted" = "Accessibilité accordée";
 "Accessibility not granted yet" = "Accessibilité pas encore accordée";
 "Open Accessibility Settings" = "Ouvrir les réglages d'accessibilité";
 "Grant Accessibility…" = "Accorder l'accessibilité…";
 "You can change this any time in System Settings → Privacy & Security → Accessibility." = "Vous pouvez le modifier à tout moment dans Réglages Système → Confidentialité et sécurité → Accessibilité.";
 "Keep Protecting" = "Continuez à protéger";
-"Launch AppLock at login so your apps stay protected after every restart." = "Ouvrez AppLock à la connexion pour que vos apps restent protégées après chaque redémarrage.";
-"Launch AppLock at login" = "Ouvrir AppLock à la connexion";
+"Launch FreshLock at login so your apps stay protected after every restart." = "Ouvrez FreshLock à la connexion pour que vos apps restent protégées après chaque redémarrage.";
+"Launch FreshLock at login" = "Ouvrir FreshLock à la connexion";
 "You're all set" = "Tout est prêt";
-"Open AppLock from the menu bar to choose which apps to protect." = "Ouvrez AppLock depuis la barre de menus pour choisir les apps à protéger.";
-"Find AppLock in your menu bar for quick actions." = "Retrouvez AppLock dans la barre de menus pour des actions rapides.";
+"Open FreshLock from the menu bar to choose which apps to protect." = "Ouvrez FreshLock depuis la barre de menus pour choisir les apps à protéger.";
+"Find FreshLock in your menu bar for quick actions." = "Retrouvez FreshLock dans la barre de menus pour des actions rapides.";
 "Back" = "Retour";
 "Continue" = "Continuer";
 "Done" = "Terminé";

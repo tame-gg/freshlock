@@ -8,7 +8,7 @@ within 72 hours and to ship a fix or mitigation as quickly as is responsible.
 
 ## Security design principles
 
-- **AppLock never stores or sees your password.** All authentication is
+- **FreshLock never stores or sees your password.** All authentication is
   delegated to Apple's `LocalAuthentication` framework, which presents its own
   system UI and returns only a success/failure result.
 - **No custom password dialogs, ever.** We only use the native system sheet.
@@ -18,14 +18,14 @@ within 72 hours and to ship a fix or mitigation as quickly as is responsible.
 
 ## Honest limitations (please read)
 
-AppLock is a **userland deterrent**, not an OS-enforced security boundary:
+FreshLock is a **userland deterrent**, not an OS-enforced security boundary:
 
-- macOS provides **no public API to prevent or veto an app launch**. AppLock
+- macOS provides **no public API to prevent or veto an app launch**. FreshLock
   reacts to the post-launch notification and overlays the app; it cannot
   guarantee zero frames were rendered first.
 - A local user with administrator privileges can bypass any third-party
-  app-locker (force-quitting AppLock, booting to recovery, etc.).
-- AppLock protects against **casual, opportunistic access** to an unlocked,
+  app-locker (force-quitting FreshLock, booting to recovery, etc.).
+- FreshLock protects against **casual, opportunistic access** to an unlocked,
   logged-in Mac — comparable to iOS's app-lock feature — and nothing stronger.
 
 If you need OS-enforced protection, use FileVault, separate macOS user accounts,

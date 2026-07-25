@@ -1,40 +1,40 @@
 // swift-tools-version: 6.0
 //
 //  Package.swift
-//  AppLock
+//  FreshLock
 //
 //  The package is intentionally split into two targets:
 //
-//  • `AppLockCore` — a platform-agnostic-ish library that holds the models,
+//  • `FreshLockCore` — a platform-agnostic-ish library that holds the models,
 //    services and business logic. It contains no `@main` entry point, which
 //    keeps it fully unit-testable with `swift test` (and importable by the
 //    background helper without dragging in the UI layer).
 //
-//  • `AppLock` — the executable app target. It owns the SwiftUI/AppKit entry
+//  • `FreshLock` — the executable app target. It owns the SwiftUI/AppKit entry
 //    point, the menu-bar scene, the overlay windows and all the views. It
-//    depends on `AppLockCore` for everything that isn't presentation.
+//    depends on `FreshLockCore` for everything that isn't presentation.
 //
 //  This separation is what makes the "GUI only manages configuration, the
 //  helper does the protecting" requirement expressible in code: both the app
-//  and (future) helper link `AppLockCore`.
+//  and (future) helper link `FreshLockCore`.
 //
 import PackageDescription
 
 let package = Package(
-    name: "AppLock",
+    name: "FreshLock",
     platforms: [
         .macOS(.v15)
     ],
     products: [
-        .library(name: "AppLockCore", targets: ["AppLockCore"]),
-        .library(name: "AppLockEngine", targets: ["AppLockEngine"]),
-        .executable(name: "AppLock", targets: ["AppLock"]),
-        .executable(name: "AppLockHelper", targets: ["AppLockHelper"])
+        .library(name: "FreshLockCore", targets: ["FreshLockCore"]),
+        .library(name: "FreshLockEngine", targets: ["FreshLockEngine"]),
+        .executable(name: "FreshLock", targets: ["FreshLock"]),
+        .executable(name: "FreshLockHelper", targets: ["FreshLockHelper"])
     ],
     targets: [
         .target(
-            name: "AppLockCore",
-            path: "Sources/AppLockCore",
+            name: "FreshLockCore",
+            path: "Sources/FreshLockCore",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
@@ -42,17 +42,17 @@ let package = Package(
         // The AppKit-based locking engine, shared by the GUI and the helper so
         // "the helper does the protecting" is a real, buildable arrangement.
         .target(
-            name: "AppLockEngine",
-            dependencies: ["AppLockCore"],
-            path: "Sources/AppLockEngine",
+            name: "FreshLockEngine",
+            dependencies: ["FreshLockCore"],
+            path: "Sources/FreshLockEngine",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
         ),
         .executableTarget(
-            name: "AppLock",
-            dependencies: ["AppLockCore", "AppLockEngine"],
-            path: "Sources/AppLock",
+            name: "FreshLock",
+            dependencies: ["FreshLockCore", "FreshLockEngine"],
+            path: "Sources/FreshLock",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
@@ -60,17 +60,17 @@ let package = Package(
         // The background helper: a headless accessory process that runs the
         // engine independently of the settings UI.
         .executableTarget(
-            name: "AppLockHelper",
-            dependencies: ["AppLockCore", "AppLockEngine"],
-            path: "Sources/AppLockHelper",
+            name: "FreshLockHelper",
+            dependencies: ["FreshLockCore", "FreshLockEngine"],
+            path: "Sources/FreshLockHelper",
             swiftSettings: [
                 .swiftLanguageMode(.v6)
             ]
         ),
         .testTarget(
-            name: "AppLockCoreTests",
-            dependencies: ["AppLockCore"],
-            path: "Tests/AppLockCoreTests"
+            name: "FreshLockCoreTests",
+            dependencies: ["FreshLockCore"],
+            path: "Tests/FreshLockCoreTests"
         )
     ]
 )

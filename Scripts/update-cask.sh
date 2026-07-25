@@ -6,7 +6,7 @@
 #   Scripts/update-cask.sh <version> <path-to-sha256-file>
 #
 # Behaviour:
-#   • Updates version + sha256 in homebrew-tap/Casks/applock.rb in this repo.
+#   • Updates version + sha256 in homebrew-tap/Casks/freshlock.rb in this repo.
 #   • If GH_TOKEN and HOMEBREW_TAP_REPO are set, clones the real tap repo,
 #     applies the same edit, commits and pushes. Otherwise it edits locally only
 #     (useful for testing) and exits 0.
@@ -28,17 +28,17 @@ bump() {
 }
 
 # Always update the in-repo mirror.
-bump "$ROOT/homebrew-tap/Casks/applock.rb"
+bump "$ROOT/homebrew-tap/Casks/freshlock.rb"
 
 # Push to the real tap repo if credentials are available.
 if [[ -n "${GH_TOKEN:-}" ]]; then
   TAP_REPO="${HOMEBREW_TAP_REPO:-tame-gg/homebrew-tap}"
   TMP="$(mktemp -d)"
   git clone "https://x-access-token:${GH_TOKEN}@github.com/${TAP_REPO}.git" "$TMP"
-  bump "$TMP/Casks/applock.rb"
-  git -C "$TMP" add Casks/applock.rb
+  bump "$TMP/Casks/freshlock.rb"
+  git -C "$TMP" add Casks/freshlock.rb
   git -C "$TMP" -c user.name="tame-bot" -c user.email="bot@tame.gg" \
-    commit -m "chore: update applock to $VERSION"
+    commit -m "chore: update freshlock to $VERSION"
   git -C "$TMP" push
   echo "✅ Pushed cask update to $TAP_REPO"
 else

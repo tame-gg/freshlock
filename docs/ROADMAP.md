@@ -32,4 +32,4 @@ This is a living document; priorities may shift with community feedback.
 - [ ] Optional per-app grace-window customisation
 - [ ] Accessibility audit pass + VoiceOver rotor support
 
-Have an idea? Open a [discussion](https://github.com/tame-gg/applock/discussions).
+Have an idea? Open a [discussion](https://github.com/tame-gg/freshlock/discussions).

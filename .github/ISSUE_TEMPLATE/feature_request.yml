@@ -1,5 +1,5 @@
 name: ✨ Feature Request
-description: Suggest an idea for AppLock
+description: Suggest an idea for FreshLock
 labels: [enhancement, needs-triage]
 body:
   - type: textarea

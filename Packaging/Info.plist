@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Info.plist for the packaged AppLock.app bundle.
+  Info.plist for the packaged FreshLock.app bundle.
 
   Key choices:
   • LSUIElement = true  → menu-bar accessory, no Dock icon.
@@ -20,17 +20,17 @@
         <string>fr</string>
     </array>
     <key>CFBundleName</key>
-    <string>AppLock</string>
+    <string>FreshLock</string>
     <key>CFBundleDisplayName</key>
-    <string>AppLock</string>
+    <string>FreshLock</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>gg.tame.applock</string>
+    <string>gg.tame.freshlock</string>
     <key>CFBundleExecutable</key>
-    <string>AppLock</string>
+    <string>FreshLock</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

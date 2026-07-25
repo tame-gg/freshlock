@@ -26,4 +26,4 @@
 ## macOS limitation honesty
 
 - [ ] If this touches locking behaviour, I have described any relevant macOS
-      limitation rather than implying a guarantee AppLock cannot provide.
+      limitation rather than implying a guarantee FreshLock cannot provide.
