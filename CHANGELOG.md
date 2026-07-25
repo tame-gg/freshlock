@@ -4,7 +4,45 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.69]
+
+### Fixed
+- **The lock overlay no longer floats over unrelated apps.** A cover is a
+  `.floating` panel sized to the protected app's windows, and being "pinned"
+  used to force it on screen no matter who was frontmost — so a locked Discord
+  left a Discord-shaped blur sitting on top of whatever you switched to. Pinning
+  now only decides what to do when there is no frontmost app to consult; a cover
+  is raised when the protected app owns the screen, or when FreshLock's own
+  Touch ID sheet is up for it, and is ordered out otherwise. Covers also no
+  longer join every Space.
+- Covers appear and disappear with the app switch itself. `OverlayService` now
+  watches `didActivateApplicationNotification` instead of waiting up to a second
+  for its backstop timer.
+- **Touch ID prompt storms.** Any outcome that was neither success nor an
+  explicit user cancel left the app frontmost, locked, and covered — exactly the
+  condition the 1.5s liveness poll re-secures — so FreshLock raised a new sheet
+  every poll and stole focus each time, which is what made the protected app,
+  FreshLock, and the sheet itself all unclickable. Automatic prompts now run on
+  a budget (`AuthPromptBudget`): at most three per app in a 12s window, after
+  which the overlay simply waits for its Unlock button. `systemCancel` is
+  handled explicitly rather than falling through to a retry.
+- A freshly raised sheet is protected from switch-away teardown for a moment.
+  Raising it activates FreshLock, and the protected app often bounces focus once
+  in response; that bounce used to cancel the sheet the user was reaching for.
+- The login-item helper now stands down for *any* running FreshLock-family GUI,
+  not just the exact release bundle id. Two engines enforcing at once cancelled
+  each other's prompts in a loop.
+
+### Changed
+- Settings adopt the main window's card language: soft tonal icon wells, bold
+  section titles, grouped rounded islands, and switches instead of checkboxes.
+  Settings pages now carry the same header treatment as the Library pages.
+- Overlay style is chosen from preview tiles that render the effect rather than
+  from a pop-up menu of the words "Blurred" and "Solid".
+- `LockCoordinator` split into `AppVisibilityKeeper`, `AuthPromptBudget`, and
+  command/outcome extensions.
+
+## [1.68]
 
 ### Changed
 - **Lock pipeline redesign.** Protected apps are secured with Accessibility-driven

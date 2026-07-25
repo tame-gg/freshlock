@@ -121,7 +121,8 @@ public struct AppSettings: Codable, Hashable, Sendable {
         // Older configs omit this key; default on so macOS 26+ picks up glass.
         preferLiquidGlass = try c.decodeIfPresent(Bool.self, forKey: .preferLiquidGlass) ?? true
         // Older configs omit this key; default on preserves current auto-LA behavior.
-        automaticallyPromptAuthentication = try c.decodeIfPresent(Bool.self, forKey: .automaticallyPromptAuthentication) ?? true
+        automaticallyPromptAuthentication = try c
+            .decodeIfPresent(Bool.self, forKey: .automaticallyPromptAuthentication) ?? true
     }
 
     public func encode(to encoder: Encoder) throws {

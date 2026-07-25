@@ -109,7 +109,8 @@ public final class SystemExtensionRegistrar: NSObject, ObservableObject {
         request.delegate = self
         pendingRequest = request
         OSSystemExtensionManager.shared.submitRequest(request)
-        log.notice("Submitted activation request for \(self.extensionIdentifier, privacy: .public)")
+        let identifier = extensionIdentifier
+        log.notice("Submitted activation request for \(identifier, privacy: .public)")
     }
 
     public func deactivate() {
@@ -126,7 +127,8 @@ public final class SystemExtensionRegistrar: NSObject, ObservableObject {
         request.delegate = self
         pendingRequest = request
         OSSystemExtensionManager.shared.submitRequest(request)
-        log.notice("Submitted deactivation request for \(self.extensionIdentifier, privacy: .public)")
+        let identifier = extensionIdentifier
+        log.notice("Submitted deactivation request for \(identifier, privacy: .public)")
     }
 
     public func refreshEmbeddedProbe() {
@@ -137,7 +139,7 @@ public final class SystemExtensionRegistrar: NSObject, ObservableObject {
 }
 
 extension SystemExtensionRegistrar: OSSystemExtensionRequestDelegate {
-    nonisolated public func request(
+    public nonisolated func request(
         _: OSSystemExtensionRequest,
         didFinishWithResult result: OSSystemExtensionRequest.Result
     ) {
@@ -155,7 +157,7 @@ extension SystemExtensionRegistrar: OSSystemExtensionRequestDelegate {
         }
     }
 
-    nonisolated public func request(_: OSSystemExtensionRequest, didFailWithError error: Error) {
+    public nonisolated func request(_: OSSystemExtensionRequest, didFailWithError error: Error) {
         Task { @MainActor in
             pendingRequest = nil
             let message = error.localizedDescription
@@ -164,20 +166,22 @@ extension SystemExtensionRegistrar: OSSystemExtensionRequestDelegate {
         }
     }
 
-    nonisolated public func requestNeedsUserApproval(_: OSSystemExtensionRequest) {
+    public nonisolated func requestNeedsUserApproval(_: OSSystemExtensionRequest) {
         Task { @MainActor in
             status = .needsUserApproval
             log.notice("System extension needs user approval in System Settings")
         }
     }
 
-    nonisolated public func request(
+    public nonisolated func request(
         _: OSSystemExtensionRequest,
         actionForReplacingExtension existing: OSSystemExtensionProperties,
         withExtension ext: OSSystemExtensionProperties
     ) -> OSSystemExtensionRequest.ReplacementAction {
+        let from = existing.bundleIdentifier
+        let to = ext.bundleIdentifier
         log.notice(
-            "Replacing system extension \(existing.bundleIdentifier, privacy: .public) → \(ext.bundleIdentifier, privacy: .public)"
+            "Replacing system extension \(from, privacy: .public) with \(to, privacy: .public)"
         )
         return .replace
     }

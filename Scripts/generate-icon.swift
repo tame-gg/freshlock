@@ -215,4 +215,5 @@ guard iconutil.terminationStatus == 0 else {
     fputs("iconutil failed with status \(iconutil.terminationStatus)\n", stderr)
     exit(1)
 }
+
 print("Wrote \(icns.path)")

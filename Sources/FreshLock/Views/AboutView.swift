@@ -6,6 +6,9 @@
 import SwiftUI
 
 struct AboutView: View {
+    private static let projectURL = URL(string: "https://tame.gg/projects/freshlock")
+    private static let repositoryURL = URL(string: "https://github.com/tame-gg/freshlock")
+
     private var version: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
     }
@@ -31,14 +34,18 @@ struct AboutView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
-            Link("FreshLock Project", destination: URL(string: "https://tame.gg/projects/freshlock")!)
-                .font(.callout)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            Link("FreshLock Github", destination: URL(string: "https://github.com/tame-gg/freshlock")!)
-                .font(.callout)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            if let url = Self.projectURL {
+                Link("FreshLock Project", destination: url)
+                    .font(.callout)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let url = Self.repositoryURL {
+                Link("FreshLock Github", destination: url)
+                    .font(.callout)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.horizontal, 28)
         .padding(.top, 36)

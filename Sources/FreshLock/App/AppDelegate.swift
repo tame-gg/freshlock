@@ -81,8 +81,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// missing grant is a broken app, not a nice-to-have.
     private static func requestAccessibilityIfNeeded() {
         guard !AccessibilityPermission.isTrusted else { return }
+        let path = AccessibilityPermission.runningBundlePath
         Log.accessibility.notice(
-            "Accessibility not granted for \(AccessibilityPermission.runningBundlePath, privacy: .public) — protection overlay cannot cover windows"
+            "Accessibility not granted for \(path, privacy: .public) - overlay cannot cover windows"
         )
         AccessibilityPermission.requestTrust()
     }

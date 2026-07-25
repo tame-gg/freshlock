@@ -1,8 +1,11 @@
 //
-//  main.swift
+//  EnforceExtensionMain.swift
 //  FreshLockEnforceExtension
 //
 //  Entry point for the Endpoint Security enforce client.
+//
+//  Deliberately not named main.swift: a file with that name is treated as
+//  top-level code, which makes `@main` illegal in the module.
 //
 //  In production this binary lives inside a `.systemextension` bundle under
 //  FreshLock.app/Contents/Library/SystemExtensions/. Build it with

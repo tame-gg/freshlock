@@ -26,12 +26,12 @@ struct GracePeriodPresetTests {
     @Test func unitConvertsToAndFromSeconds() {
         #expect(GracePeriodUnit.seconds.toSeconds(45) == 45)
         #expect(GracePeriodUnit.minutes.toSeconds(5) == 300)
-        #expect(GracePeriodUnit.hours.toSeconds(1) == 3_600)
+        #expect(GracePeriodUnit.hours.toSeconds(1) == 3600)
         #expect(GracePeriodUnit.minutes.toSeconds(-2) == 0)
     }
 
     @Test func preferredDisplayPicksLargestCleanUnit() {
-        let hours = GracePeriodUnit.preferredDisplay(forSeconds: 7_200)
+        let hours = GracePeriodUnit.preferredDisplay(forSeconds: 7200)
         #expect(hours.value == 2)
         #expect(hours.unit == .hours)
 

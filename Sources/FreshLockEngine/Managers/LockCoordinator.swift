@@ -25,57 +25,38 @@ import FreshLockCore
 
 @MainActor
 final class LockCoordinator {
-    private let monitor: AppMonitorServiceProtocol
-    private let auth: AuthenticationServiceProtocol
-    private let overlay: OverlayServiceProtocol
-    private let accessibility: AccessibilityServiceProtocol
-    private let store: UnlockStateStore
-    private let configProvider: () -> Configuration
+    let monitor: AppMonitorServiceProtocol
+    let auth: AuthenticationServiceProtocol
+    let overlay: OverlayServiceProtocol
+    let accessibility: AccessibilityServiceProtocol
+    let store: UnlockStateStore
+    let configProvider: () -> Configuration
 
     private var cancellables = Set<AnyCancellable>()
-    private var failureCounts: [String: Int] = [:]
+    var failureCounts: [String: Int] = [:]
     private var lastFrontmostProtected: String?
-    private var authInFlight: Set<String> = []
-    private var closing: Set<String> = []
-    private var ignoreNextAuthCancel: Set<String> = []
-    private var securing: Set<String> = []
+    var authInFlight: Set<String> = []
+    var closing: Set<String> = []
+    var ignoreNextAuthCancel: Set<String> = []
+    var securing: Set<String> = []
     /// Bundle IDs where the user cancelled the LA sheet; keep the overlay up
     /// without auto-reprompting until they tap Unlock or Quit.
-    private var awaitingManualUnlock: Set<String> = []
-    /// When each recent Touch ID sheet was raised, per bundle. The backstop that
-    /// makes a prompt storm impossible: presenting the sheet activates
-    /// FreshLock, and anything that then steals focus back resolves the sheet as
-    /// `systemCancel`, which used to leave no state behind - so the 1.5s
-    /// liveness poll re-secured the app and raised another sheet, forever.
-    private var recentPrompts: [String: [Date]] = [:]
-    /// The bundle whose LA sheet is on screen. LocalAuthentication shows one
-    /// system sheet at a time; a second request fights the first.
-    private var presentingAuthFor: String?
-    /// When that sheet went up, so a focus bounce cannot cancel it instantly.
-    private var authPresentedAt: Date?
-    /// Bundles whose app must not stay hidden while we are securing it. Driven
-    /// by `didHideApplicationNotification`; the timer is only a backstop.
-    private var visibilityKeepers: Set<String> = []
-    private var visibilityTimer: Timer?
-    private var hideObserver: NSObjectProtocol?
+    var awaitingManualUnlock: Set<String> = []
+    /// Which Touch ID sheet is up, and how many automatic ones this app has had
+    /// recently. The backstop that makes a prompt storm impossible.
+    var promptBudget = AuthPromptBudget()
+    /// Keeps secured apps out of the hidden state - a hidden app has no windows
+    /// to cover.
+    lazy var visibility = AppVisibilityKeeper { [weak self] bundleID in
+        self?.runningApp(for: bundleID)
+    }
+
     private var processPollTimer: Timer?
 
     /// Liveness poll cadence. Workspace launch/activate/terminate notifications
     /// are the fast path; this only has to catch what they miss, so it runs at a
     /// power-friendly interval and stops entirely when nothing is at stake.
     private static let processPollInterval: TimeInterval = 1.5
-    /// Backstop for un-hiding a secured app. The hide notification handles the
-    /// real case immediately.
-    private static let visibilityBackstopInterval: TimeInterval = 1.0
-    /// Automatic prompts allowed per app inside `promptWindow` before FreshLock
-    /// stops asking and waits for the user to press Unlock.
-    private static let maxAutomaticPrompts = 3
-    private static let promptWindow: TimeInterval = 12
-    /// How long a freshly raised sheet is protected from switch-away teardown.
-    /// Raising it activates FreshLock, and the protected app often bounces focus
-    /// once in response; that bounce must not kill the sheet the user is
-    /// reaching for.
-    private static let authCancelGrace: TimeInterval = 1.5
 
     init(
         monitor: AppMonitorServiceProtocol,
@@ -112,25 +93,17 @@ final class LockCoordinator {
     func stop() {
         cancellables.removeAll()
         stopProcessPolling()
-        visibilityKeepers.removeAll()
-        visibilityTimer?.invalidate()
-        visibilityTimer = nil
-        if let hideObserver {
-            NSWorkspace.shared.notificationCenter.removeObserver(hideObserver)
-            self.hideObserver = nil
-        }
+        visibility.stopAll()
         securing.removeAll()
         authInFlight.removeAll()
         awaitingManualUnlock.removeAll()
-        recentPrompts.removeAll()
-        presentingAuthFor = nil
-        authPresentedAt = nil
+        promptBudget.reset()
         Log.lifecycle.info("Lock coordinator stopped")
     }
 
     // MARK: - Dead-session reconciliation (root of quit→reauth)
 
-    private func startProcessPolling() {
+    func startProcessPolling() {
         guard processPollTimer == nil else { return }
         let timer = Timer.scheduledTimer(
             withTimeInterval: Self.processPollInterval, repeats: true
@@ -198,11 +171,11 @@ final class LockCoordinator {
         }
     }
 
-    private func livePID(for bundleID: String) -> pid_t? {
+    func livePID(for bundleID: String) -> pid_t? {
         ProtectedAppProcess.pid(forBundleID: bundleID)
     }
 
-    private func runningApp(for bundleID: String) -> NSRunningApplication? {
+    func runningApp(for bundleID: String) -> NSRunningApplication? {
         ProtectedAppProcess.running(bundleID: bundleID)
     }
 
@@ -212,65 +185,13 @@ final class LockCoordinator {
             auth.cancel()
         }
         authInFlight.remove(bundleID)
-        if presentingAuthFor == bundleID {
-            presentingAuthFor = nil
-            authPresentedAt = nil
-        }
+        promptBudget.clearPresented(for: bundleID)
         securing.remove(bundleID)
         closing.remove(bundleID)
         awaitingManualUnlock.remove(bundleID)
-        recentPrompts[bundleID] = nil
-        stopKeepingVisible(bundleID)
+        promptBudget.clearHistory(for: bundleID)
+        visibility.stopKeeping(bundleID)
         overlay.dismissOverlay(for: bundleID)
-    }
-
-    // MARK: - Shortcuts
-
-    func lockAllNow() {
-        store.lockAll()
-        let config = configProvider()
-        if let front = NSWorkspace.shared.frontmostApplication,
-           let id = front.bundleIdentifier,
-           let app = config.protectedApp(for: id), app.isEnabled
-        {
-            beginSecuring(app, config: config, pid: front.processIdentifier)
-        }
-        Log.lifecycle.info("Lock All")
-    }
-
-    func unlockAllNow() {
-        authenticateAndGrantAll(scope: .untilSleep, reason: "unlock your protected apps")
-    }
-
-    /// Menu-bar / API path: require LocalAuthentication, then grant until sleep.
-    func unlockUntilSleepNow() {
-        authenticateAndGrantAll(scope: .untilSleep, reason: "unlock protected apps until sleep")
-    }
-
-    /// Menu-bar / API path: require LocalAuthentication, then grant until logout.
-    func unlockUntilLogoutNow() {
-        authenticateAndGrantAll(scope: .untilLogout, reason: "unlock protected apps until logout")
-    }
-
-    private func authenticateAndGrantAll(scope: UnlockScope, reason: String) {
-        let config = configProvider()
-        Task { [weak self] in
-            guard let self else { return }
-            await armHostForTouchID()
-            let result = await auth.authenticate(reason: reason)
-            guard case .success = result else { return }
-            var granted = 0
-            for app in config.enabledProtectedApps {
-                guard let pid = livePID(for: app.bundleIdentifier) else { continue }
-                store.grantUnlock(app.bundleIdentifier, scope: scope, sessionPID: pid)
-                overlay.dismissOverlay(for: app.bundleIdentifier)
-                securing.remove(app.bundleIdentifier)
-                awaitingManualUnlock.remove(app.bundleIdentifier)
-                stopKeepingVisible(app.bundleIdentifier)
-                granted += 1
-            }
-            Log.lifecycle.info("Authenticated unlock (\(scope.displayName)) granted for \(granted) apps")
-        }
     }
 
     // MARK: - Events
@@ -350,18 +271,22 @@ extension LockCoordinator {
             if relockOnSwitchAway, !isWithinGracePeriod(previous, config: config) {
                 store.lock(previous)
             }
-            // A sheet raised moments ago is almost certainly being torn down by
-            // the focus bounce that raising it caused, not by the user switching
-            // apps. Leave it alone; they are reaching for it.
-            let sheetIsProtected = authInFlight.contains(previous) && isAuthWithinCancelGrace(previous)
-            if !sheetIsProtected, securing.contains(previous) || overlay.isShowingOverlay(for: previous) {
-                if authInFlight.contains(previous) {
+            if securing.contains(previous) || overlay.isShowingOverlay(for: previous) {
+                // A sheet raised moments ago is almost certainly being torn down
+                // by the focus bounce that raising it caused, not by the user
+                // switching apps. Leave it alone; they are reaching for it.
+                let sheetIsProtected = authInFlight.contains(previous)
+                    && promptBudget.isWithinCancelGrace(previous)
+                if authInFlight.contains(previous), !sheetIsProtected {
                     ignoreNextAuthCancel.insert(previous)
                     auth.cancel()
                     authInFlight.remove(previous)
                 }
-                awaitingManualUnlock.remove(previous)
-                stopKeepingVisible(previous)
+                if !sheetIsProtected {
+                    awaitingManualUnlock.remove(previous)
+                    securing.remove(previous)
+                }
+                visibility.stopKeeping(previous)
                 // Unpin rather than dismiss. Tearing the overlay down here left
                 // a still-locked app permanently uncovered: any focus bounce
                 // during the launch→auth handoff destroyed the cover, and the
@@ -369,7 +294,6 @@ extension LockCoordinator {
                 // Unpinned panels order out on their own while another app is
                 // frontmost and come straight back when the user returns.
                 overlay.unpinCover(for: previous)
-                securing.remove(previous)
             }
         }
 
@@ -388,10 +312,10 @@ extension LockCoordinator {
         }
         awaitingManualUnlock.remove(bundleID)
         overlay.dismissOverlay(for: bundleID)
-        stopKeepingVisible(bundleID)
+        visibility.stopKeeping(bundleID)
     }
 
-    private func beginSecuring(_ app: ProtectedApp, config: Configuration, pid: pid_t) {
+    func beginSecuring(_ app: ProtectedApp, config: Configuration, pid: pid_t) {
         let bundleID = app.bundleIdentifier
         let policy = app.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
         let livePIDs = ProtectedAppProcess.allPIDs(forBundleID: bundleID)
@@ -411,13 +335,13 @@ extension LockCoordinator {
 
         if awaitingManualUnlock.contains(bundleID) {
             overlay.pinCover(for: bundleID)
-            startKeepingVisible(bundleID)
+            visibility.startKeeping(bundleID)
             return
         }
 
         if authInFlight.contains(bundleID) || securing.contains(bundleID) {
             overlay.pinCover(for: bundleID)
-            startKeepingVisible(bundleID)
+            visibility.startKeeping(bundleID)
             return
         }
 
@@ -436,8 +360,8 @@ extension LockCoordinator {
         let bundleID = app.bundleIdentifier
         defer { securing.remove(bundleID) }
 
-        startKeepingVisible(bundleID)
-        revealProtectedApp(bundleID: bundleID, activate: true)
+        visibility.startKeeping(bundleID)
+        visibility.reveal(bundleID, activate: true)
         await Task.yield()
         try? await Task.sleep(for: .milliseconds(50))
 
@@ -454,38 +378,14 @@ extension LockCoordinator {
             return
         }
 
-        let running = runningApp(for: bundleID)
-        let icon = running?.icon ?? NSWorkspace.shared.icon(forFile: app.path)
-
-        overlay.showOverlay(
-            OverlayRequest(
-                bundleID: bundleID,
-                pid: currentPID,
-                appName: app.name,
-                icon: icon,
-                method: auth.availableMethod(),
-                style: config.settings.overlayStyle,
-                onUnlock: { [weak self] in
-                    // Unlock always presents LA, even when auto-prompt is off or
-                    // the automatic budget is spent - this is explicit intent.
-                    guard let self, let pid = livePID(for: bundleID) else { return }
-                    awaitingManualUnlock.remove(bundleID)
-                    let cfg = configProvider()
-                    Task { [weak self] in
-                        await self?.authenticate(app: app, config: cfg, pid: pid, userInitiated: true)
-                    }
-                },
-                onQuit: { [weak self] in self?.quitProtectedApp(app: app) }
-            )
-        )
-        keepVisible(bundleID)
+        presentOverlay(for: app, config: config, pid: currentPID)
 
         if config.settings.notifyOnProtectedLaunch {
             NotificationPresenter.shared.notifyProtectedLaunch(appName: app.name)
         }
 
         _ = await overlay.waitUntilCovering(for: bundleID, timeout: .milliseconds(900))
-        keepVisible(bundleID)
+        visibility.unhide(bundleID)
         try? await Task.sleep(for: .milliseconds(80))
 
         guard !closing.contains(bundleID) else { return }
@@ -514,128 +414,58 @@ extension LockCoordinator {
         await authenticate(app: app, config: config, pid: currentPID)
     }
 
+    /// Raise the lock cover for `app`, wired to Unlock and Quit.
+    private func presentOverlay(for app: ProtectedApp, config: Configuration, pid: pid_t) {
+        let bundleID = app.bundleIdentifier
+        let running = runningApp(for: bundleID)
+        overlay.showOverlay(
+            OverlayRequest(
+                bundleID: bundleID,
+                pid: pid,
+                appName: app.name,
+                icon: running?.icon ?? NSWorkspace.shared.icon(forFile: app.path),
+                method: auth.availableMethod(),
+                style: config.settings.overlayStyle,
+                onUnlock: { [weak self] in
+                    // Unlock always presents LA, even when auto-prompt is off or
+                    // the automatic budget is spent - this is explicit intent.
+                    guard let self, let livePID = livePID(for: bundleID) else { return }
+                    awaitingManualUnlock.remove(bundleID)
+                    let cfg = configProvider()
+                    Task { [weak self] in
+                        await self?.authenticate(app: app, config: cfg, pid: livePID, userInitiated: true)
+                    }
+                },
+                onQuit: { [weak self] in self?.quitProtectedApp(app: app) }
+            )
+        )
+        visibility.unhide(bundleID)
+    }
+
     // MARK: - Visibility / LA
 
-    /// Ensure `bundleID` cannot sit hidden while we hold it locked.
-    ///
-    /// The hide notification does the real work the instant the app hides; the
-    /// slow timer only covers paths that never post one (this replaced a 20 Hz
-    /// per-app poll that ran for as long as an overlay was up).
-    private func startKeepingVisible(_ bundleID: String) {
-        visibilityKeepers.insert(bundleID)
-        installHideObserverIfNeeded()
-        startVisibilityBackstopIfNeeded()
-        keepVisible(bundleID)
-    }
-
-    private func stopKeepingVisible(_ bundleID: String) {
-        visibilityKeepers.remove(bundleID)
-        guard visibilityKeepers.isEmpty else { return }
-        visibilityTimer?.invalidate()
-        visibilityTimer = nil
-        if let hideObserver {
-            NSWorkspace.shared.notificationCenter.removeObserver(hideObserver)
-            self.hideObserver = nil
-        }
-    }
-
-    private func installHideObserverIfNeeded() {
-        guard hideObserver == nil else { return }
-        hideObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didHideApplicationNotification,
-            object: nil, queue: .main
-        ) { [weak self] note in
-            guard
-                let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-                let bundleID = app.bundleIdentifier
-            else { return }
-            MainActor.assumeIsolated {
-                guard let self, self.visibilityKeepers.contains(bundleID) else { return }
-                self.keepVisible(bundleID)
-            }
-        }
-    }
-
-    private func startVisibilityBackstopIfNeeded() {
-        guard visibilityTimer == nil else { return }
-        let timer = Timer.scheduledTimer(
-            withTimeInterval: Self.visibilityBackstopInterval, repeats: true
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                for bundleID in self.visibilityKeepers {
-                    self.keepVisible(bundleID)
-                }
-            }
-        }
-        timer.tolerance = Self.visibilityBackstopInterval * 0.5
-        visibilityTimer = timer
-    }
-
-    private func keepVisible(_ bundleID: String) {
-        guard let running = runningApp(for: bundleID) else { return }
-        if running.isHidden {
-            running.unhide()
-        }
-    }
-
-    private func revealProtectedApp(bundleID: String, activate: Bool) {
-        guard let running = runningApp(for: bundleID) else { return }
-        if running.isHidden {
-            running.unhide()
-        }
-        if activate {
-            running.activate()
-        }
-    }
-
-    private func armHostForTouchID(preserving bundleID: String? = nil) async {
+    /// Put FreshLock in front so LocalAuthentication's sheet has a host, while
+    /// making sure the protected app does not get hidden in the shuffle.
+    func armHostForTouchID(preserving bundleID: String? = nil) async {
         NSApp.activate(ignoringOtherApps: true)
         if let bundleID {
-            keepVisible(bundleID)
+            visibility.unhide(bundleID)
         }
         await Task.yield()
         if let bundleID {
-            keepVisible(bundleID)
+            visibility.unhide(bundleID)
         }
         try? await Task.sleep(for: .milliseconds(30))
         if let bundleID {
-            keepVisible(bundleID)
+            visibility.unhide(bundleID)
         }
-    }
-
-    /// True while `bundleID`'s Touch ID sheet is too young to be torn down by a
-    /// focus change.
-    private func isAuthWithinCancelGrace(_ bundleID: String) -> Bool {
-        guard presentingAuthFor == bundleID, let raised = authPresentedAt else { return false }
-        return Date().timeIntervalSince(raised) < Self.authCancelGrace
-    }
-
-    /// Record an automatic prompt and report whether it is still within budget.
-    ///
-    /// Without a budget, any outcome that is neither success nor an explicit
-    /// user cancel leaves the app frontmost, locked, and covered - exactly the
-    /// condition the liveness poll re-secures - so FreshLock raises a new sheet
-    /// every 1.5s and steals focus each time, which is what made the window,
-    /// the protected app, and the sheet itself unclickable.
-    private func allowAutomaticPrompt(for bundleID: String) -> Bool {
-        let now = Date()
-        var stamps = (recentPrompts[bundleID] ?? [])
-            .filter { now.timeIntervalSince($0) < Self.promptWindow }
-        guard stamps.count < Self.maxAutomaticPrompts else {
-            recentPrompts[bundleID] = stamps
-            return false
-        }
-        stamps.append(now)
-        recentPrompts[bundleID] = stamps
-        return true
     }
 
     /// Stop asking and leave the overlay up with its Unlock button.
-    private func fallBackToManualUnlock(_ bundleID: String, reason: String) {
+    func fallBackToManualUnlock(_ bundleID: String, reason: String) {
         awaitingManualUnlock.insert(bundleID)
         overlay.pinCover(for: bundleID)
-        startKeepingVisible(bundleID)
+        visibility.startKeeping(bundleID)
         Log.lifecycle.notice(
             "Auto-auth paused for \(bundleID, privacy: .public) - \(reason, privacy: .public)"
         )
@@ -652,174 +482,32 @@ extension LockCoordinator {
 
         if userInitiated {
             // The user pressed Unlock: honour it, and forget the earlier storm.
-            recentPrompts[bundleID] = nil
+            promptBudget.clearHistory(for: bundleID)
         } else {
             // One system sheet at a time. A second request while another app's
             // sheet is up would cancel it out from under the user.
-            if let presenting = presentingAuthFor, presenting != bundleID {
+            if let presenting = promptBudget.presentingBundleID, presenting != bundleID {
                 overlay.pinCover(for: bundleID)
                 return
             }
-            guard allowAutomaticPrompt(for: bundleID) else {
+            guard promptBudget.allowAutomaticPrompt(for: bundleID) else {
                 fallBackToManualUnlock(bundleID, reason: "too many prompts, waiting for Unlock")
                 return
             }
         }
 
         authInFlight.insert(bundleID)
-        presentingAuthFor = bundleID
-        authPresentedAt = Date()
+        promptBudget.recordPresented(bundleID)
         defer {
             authInFlight.remove(bundleID)
-            if presentingAuthFor == bundleID {
-                presentingAuthFor = nil
-                authPresentedAt = nil
-            }
+            promptBudget.clearPresented(for: bundleID)
         }
 
         overlay.pinCover(for: bundleID)
-        startKeepingVisible(bundleID)
+        visibility.startKeeping(bundleID)
         await armHostForTouchID(preserving: bundleID)
 
         let result = await auth.authenticate(reason: "unlock \(app.name)")
-        switch result {
-        case .success:
-            let livePIDs = ProtectedAppProcess.allPIDs(forBundleID: bundleID)
-            // Prefer the PID we authenticated against if it is still alive;
-            // otherwise fall back to any current live process for the bundle.
-            let grantPID: pid_t? = if livePIDs.contains(pid) {
-                pid
-            } else {
-                livePID(for: bundleID)
-            }
-            guard let still = grantPID else {
-                store.lock(bundleID)
-                overlay.dismissOverlay(for: bundleID)
-                stopKeepingVisible(bundleID)
-                Log.lifecycle.notice("Auth succeeded but process gone/replaced - not granting unlock")
-                return
-            }
-            stopKeepingVisible(bundleID)
-            Log.lifecycle.info("Auth success for \(bundleID, privacy: .public) granting sessionPID=\(still)")
-            handleSuccess(app: app, config: config, pid: still)
-        case .cancelled:
-            // Internal cancel (switch-away / tear-down): leave overlay pinned if the
-            // process is still alive. User Cancel on the LA sheet: dismiss LA only
-            // and keep the lock overlay so they can Unlock again or Quit explicitly.
-            if ignoreNextAuthCancel.remove(bundleID) != nil {
-                stopKeepingVisible(bundleID)
-                store.lock(bundleID)
-                if livePID(for: bundleID) == nil {
-                    overlay.dismissOverlay(for: bundleID)
-                } else {
-                    overlay.pinCover(for: bundleID)
-                }
-                return
-            }
-            keepVisible(bundleID)
-            startKeepingVisible(bundleID)
-            overlay.pinCover(for: bundleID)
-            awaitingManualUnlock.insert(bundleID)
-            Log.lifecycle.info("Auth cancelled for \(bundleID, privacy: .public) - overlay remains")
-        case let .failure(error):
-            if case .systemCancel = error {
-                // The system pulled the sheet, usually because focus moved.
-                // Keep the app covered; the budget decides whether the next
-                // poll may try again or whether we wait for Unlock.
-                keepVisible(bundleID)
-                overlay.pinCover(for: bundleID)
-                if !allowAutomaticPrompt(for: bundleID) {
-                    fallBackToManualUnlock(bundleID, reason: "system cancelled repeatedly")
-                }
-                return
-            }
-            handleFailure(app: app, config: config)
-        }
-    }
-
-    /// User explicitly chose Quit on the lock overlay — terminate the protected app.
-    private func quitProtectedApp(app: ProtectedApp) {
-        let bundleID = app.bundleIdentifier
-        guard !closing.contains(bundleID) else { return }
-        ignoreNextAuthCancel.insert(bundleID)
-        auth.cancel()
-        store.lock(bundleID)
-        stopKeepingVisible(bundleID)
-        overlay.dismissOverlay(for: bundleID)
-        authInFlight.remove(bundleID)
-        securing.remove(bundleID)
-        awaitingManualUnlock.remove(bundleID)
-        closing.insert(bundleID)
-
-        NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).forEach { $0.terminate() }
-        Log.lifecycle.info("Closing \(bundleID, privacy: .public) after quit")
-
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
-            guard let self else { return }
-            for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
-                where !app.isTerminated
-            {
-                app.forceTerminate()
-            }
-            closing.remove(bundleID)
-            store.lock(bundleID)
-        }
-    }
-
-    private func handleSuccess(app: ProtectedApp, config: Configuration, pid: pid_t) {
-        let bundleID = app.bundleIdentifier
-        failureCounts[bundleID] = nil
-        recentPrompts[bundleID] = nil
-        let policy = app.effectiveRelockPolicy(default: config.settings.defaultRelockPolicy)
-        let scope: UnlockScope = switch policy {
-        case let .afterMinutes(m): .forDuration(TimeInterval(m * 60))
-        case let .afterInactivity(m): .untilInactivity(TimeInterval(m * 60))
-        case .everyLaunch, .manualOnly: .untilLogout
-        default: .untilSleep
-        }
-
-        store.grantUnlock(bundleID, scope: scope, sessionPID: pid)
-        startProcessPolling()
-        stopKeepingVisible(bundleID)
-        overlay.dismissOverlay(for: bundleID)
-        securing.remove(bundleID)
-        awaitingManualUnlock.remove(bundleID)
-
-        if let running = runningApp(for: bundleID) {
-            if running.isHidden {
-                running.unhide()
-            }
-            running.activate()
-        }
-        Log.lifecycle.info("Granted unlock \(bundleID, privacy: .public) sessionPID=\(pid)")
-    }
-
-    private func handleFailure(app: ProtectedApp, config _: Configuration) {
-        let bundleID = app.bundleIdentifier
-        let count = (failureCounts[bundleID] ?? 0) + 1
-        failureCounts[bundleID] = count
-        if let limit = app.terminateAfterFailures, count >= limit {
-            stopKeepingVisible(bundleID)
-            NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).forEach { $0.terminate() }
-            store.lock(bundleID)
-            overlay.dismissOverlay(for: bundleID)
-            securing.remove(bundleID)
-            awaitingManualUnlock.remove(bundleID)
-            failureCounts[bundleID] = nil
-            recentPrompts[bundleID] = nil
-        } else {
-            keepVisible(bundleID)
-            overlay.pinCover(for: bundleID)
-            if !allowAutomaticPrompt(for: bundleID) {
-                fallBackToManualUnlock(bundleID, reason: "authentication kept failing")
-            }
-        }
-    }
-
-    /// True when a live grant for this bundle is still inside the settings grace window.
-    private func isWithinGracePeriod(_ bundleID: String, config: Configuration) -> Bool {
-        guard let grant = store.grants[bundleID], !grant.isTimeExpired() else { return false }
-        return grant.isWithinGracePeriod(config.settings.gracePeriodSeconds)
+        resolve(result, for: app, config: config, authenticatedPID: pid)
     }
 }

@@ -32,7 +32,9 @@ public enum UnlockScope: Codable, Hashable, Sendable {
 
     /// Idle threshold for ``untilInactivity``; `nil` for other scopes.
     public var inactivityThreshold: TimeInterval? {
-        if case let .untilInactivity(seconds) = self { return seconds }
+        if case let .untilInactivity(seconds) = self {
+            return seconds
+        }
         return nil
     }
 }

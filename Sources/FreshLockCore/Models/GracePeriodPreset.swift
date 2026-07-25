@@ -18,7 +18,9 @@ public enum GracePeriodPreset: Int, CaseIterable, Hashable, Sendable, Codable {
     case fifteenMinutes = 900
 
     /// Seconds this preset stores in `AppSettings.gracePeriodSeconds`.
-    public var seconds: Int { rawValue }
+    public var seconds: Int {
+        rawValue
+    }
 
     /// Short label for pickers ("15s", "1m", …).
     public var displayName: String {
@@ -57,21 +59,21 @@ public enum GracePeriodUnit: String, CaseIterable, Hashable, Sendable {
         switch self {
         case .seconds: return clamped
         case .minutes: return clamped * 60
-        case .hours: return clamped * 3_600
+        case .hours: return clamped * 3600
         }
     }
 
     /// Best unit + quantity for editing an arbitrary second count in Custom mode.
     /// Prefers the largest unit that divides evenly (hours, then minutes).
     public static func preferredDisplay(forSeconds seconds: Int) -> (value: Int, unit: GracePeriodUnit) {
-        let s = max(0, seconds)
-        if s > 0, s % 3_600 == 0 {
-            return (s / 3_600, .hours)
+        let total = max(0, seconds)
+        if total > 0, total % 3600 == 0 {
+            return (total / 3600, .hours)
         }
-        if s > 0, s % 60 == 0 {
-            return (s / 60, .minutes)
+        if total > 0, total % 60 == 0 {
+            return (total / 60, .minutes)
         }
-        return (s, .seconds)
+        return (total, .seconds)
     }
 }
 
@@ -79,8 +81,8 @@ public extension GracePeriodUnit {
     /// Inclusive upper bound for the Custom stepper, per unit.
     var maxValue: Int {
         switch self {
-        case .seconds: 86_400 // 24h
-        case .minutes: 1_440  // 24h
+        case .seconds: 86400 // 24h
+        case .minutes: 1440 // 24h
         case .hours: 24
         }
     }

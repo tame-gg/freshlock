@@ -34,7 +34,7 @@ struct OnboardingView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            footer
+            OnboardingFooter(viewModel: viewModel, reduceMotion: reduceMotion)
         }
         .background(Theme.windowBackground)
         .tint(Theme.accent)
@@ -107,7 +107,10 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 22) {
             pageTitle(
                 "Protect apps with Touch ID",
-                subtitle: "Safari, Finder, System Settings - unlock with Apple's authentication. FreshLock never sees your password."
+                subtitle: """
+                Safari, Finder, System Settings - unlock with Apple's authentication. \
+                FreshLock never sees your password.
+                """
             )
 
             VStack(alignment: .leading, spacing: 14) {
@@ -124,7 +127,10 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 20) {
             pageTitle(
                 "Allow Accessibility",
-                subtitle: "FreshLock uses Accessibility to detect protected windows and cover them without interrupting Touch ID."
+                subtitle: """
+                FreshLock uses Accessibility to detect protected windows and cover them \
+                without interrupting Touch ID.
+                """
             )
 
             statusPanel
@@ -144,10 +150,14 @@ struct OnboardingView: View {
                     .controlSize(.large)
                 }
 
-                Text("Continue stays disabled until Accessibility is granted for this FreshLock. After enabling it in System Settings, return here - status refreshes when the app becomes active.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text("""
+                Continue stays disabled until Accessibility is granted for this FreshLock. \
+                After enabling it in System Settings, return here - status refreshes when \
+                the app becomes active.
+                """)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
                 mismatchTip
             } else {
@@ -225,7 +235,10 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 20) {
             pageTitle(
                 "Grace period after unlock",
-                subtitle: "Time before relock when switching away. A short pause avoids re-prompts while you tab out briefly."
+                subtitle: """
+                Time before relock when switching away. A short pause avoids re-prompts \
+                while you tab out briefly.
+                """
             )
 
             VStack(alignment: .leading, spacing: 14) {
@@ -358,10 +371,16 @@ struct OnboardingView: View {
             ? "Accessibility is enabled for this FreshLock"
             : "Accessibility is required for app locking")
     }
+}
 
-    // MARK: Footer
+// MARK: - Footer
 
-    private var footer: some View {
+/// Quit / Back, the step dots, and the primary action.
+private struct OnboardingFooter: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+    var reduceMotion: Bool
+
+    var body: some View {
         HStack(spacing: 12) {
             // Far left: escape hatch for the non-closable first-run window.
             // ⌘Q stays on the app terminate path (LA-skipped while onboarding
@@ -403,7 +422,6 @@ struct OnboardingView: View {
         .padding(.vertical, 16)
         .background(.bar)
     }
-
 }
 
 // MARK: - Step indicator

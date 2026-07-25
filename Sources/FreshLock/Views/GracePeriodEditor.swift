@@ -41,7 +41,9 @@ final class GracePeriodEditorModel: ObservableObject {
     func syncFromSeconds(_ value: Int) {
         if let preset = GracePeriodPreset.matching(value) {
             // Don't yank the user out of Custom if they typed a preset-equal value.
-            if case .custom = choice { return }
+            if case .custom = choice {
+                return
+            }
             choice = .preset(preset)
             return
         }
@@ -75,11 +77,10 @@ final class GracePeriodEditorModel: ObservableObject {
     func setCustomUnit(_ newUnit: GracePeriodUnit) -> Int {
         let currentSeconds = customUnit.toSeconds(customValue)
         customUnit = newUnit
-        let converted: Int
-        switch newUnit {
-        case .seconds: converted = currentSeconds
-        case .minutes: converted = currentSeconds / 60
-        case .hours: converted = currentSeconds / 3_600
+        let converted: Int = switch newUnit {
+        case .seconds: currentSeconds
+        case .minutes: currentSeconds / 60
+        case .hours: currentSeconds / 3600
         }
         customValue = min(max(0, converted), newUnit.maxValue)
         choice = .custom
@@ -116,17 +117,16 @@ struct GracePeriodEditor: View {
 
     // MARK: Form (Preferences)
 
+    @ViewBuilder
     private var formBody: some View {
-        Group {
-            Picker("Grace period after unlock", selection: choiceBinding) {
-                ForEach(GracePeriodPreset.allCases, id: \.self) { preset in
-                    Text(preset.displayName).tag(GracePeriodChoice.preset(preset))
-                }
-                Text("Custom").tag(GracePeriodChoice.custom)
+        Picker("Grace period after unlock", selection: choiceBinding) {
+            ForEach(GracePeriodPreset.allCases, id: \.self) { preset in
+                Text(preset.displayName).tag(GracePeriodChoice.preset(preset))
             }
-            if model.choice == .custom {
-                customControls
-            }
+            Text("Custom").tag(GracePeriodChoice.custom)
+        }
+        if model.choice == .custom {
+            customControls
         }
     }
 

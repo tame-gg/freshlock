@@ -110,8 +110,8 @@ final class OverlayService: OverlayServiceProtocol {
         ) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                for bundleID in contentByBundleID.keys {
-                    placeOrUpdate(bundleID)
+                for bundleID in self.contentByBundleID.keys {
+                    self.placeOrUpdate(bundleID)
                 }
             }
         }

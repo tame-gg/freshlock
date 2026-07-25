@@ -125,7 +125,7 @@ final class RelockManager {
 /// System-wide seconds since the last keyboard or mouse event.
 enum SystemIdle {
     /// `kCGAnyInputEventType` - any input in the combined session.
-    private static let anyInput = CGEventType(rawValue: ~UInt32(0))!
+    private static let anyInput = CGEventType(rawValue: ~UInt32(0)) ?? .null
 
     static func secondsSinceLastInput() -> CFTimeInterval {
         CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)

@@ -90,6 +90,10 @@ struct SettingsPageBody<Content: View>: View {
             .frame(maxWidth: .infinity)
         }
         .scrollBounceBehavior(.basedOnSize)
+        // A checkbox is the AppKit default outside a Form, and a page of
+        // checkboxes reads as a decade-old preferences pane. Every on/off
+        // control here is a switch.
+        .toggleStyle(.switch)
     }
 }
 

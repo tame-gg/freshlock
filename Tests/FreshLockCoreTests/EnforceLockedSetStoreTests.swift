@@ -15,7 +15,7 @@ struct EnforceLockedSetStoreTests {
         defer { try? FileManager.default.removeItem(at: dir) }
 
         let store = EnforceLockedSetStore(fileURL: dir.appendingPathComponent("locked.json"))
-        let original: Set<String> = ["com.example.mail", "com.example.notes"]
+        let original: Set = ["com.example.mail", "com.example.notes"]
         try store.save(original)
         let loaded = try store.load()
         #expect(loaded == original)
