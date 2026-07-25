@@ -65,6 +65,7 @@ struct PreferencesView: View {
             Toggle(isOn: viewModel.launchAtLogin) {
                 SettingsRowLabel(
                     symbol: "power",
+                    tint: Theme.tileGreen,
                     title: "Launch at login",
                     subtitle: "Start protecting apps as soon as you sign in."
                 )
@@ -75,7 +76,8 @@ struct PreferencesView: View {
 
             Toggle(isOn: viewModel.showMenuBarIcon) {
                 SettingsRowLabel(
-                    symbol: "menubar.arrow.up.rectangle",
+                    symbol: "menubar.rectangle",
+                    tint: Theme.tileGray,
                     title: "Show icon in menu bar",
                     subtitle: "Lock state and your protected apps, one click away."
                 )
@@ -86,7 +88,8 @@ struct PreferencesView: View {
 
             Toggle(isOn: viewModel.binding(\.notifyOnProtectedLaunch)) {
                 SettingsRowLabel(
-                    symbol: "bell",
+                    symbol: "bell.fill",
+                    tint: Theme.tileOrange,
                     title: "Notify when a protected app launches",
                     subtitle: "A quiet confirmation that FreshLock stepped in."
                 )
@@ -97,6 +100,7 @@ struct PreferencesView: View {
             } label: {
                 SettingsRowLabel(
                     symbol: "rectangle.on.rectangle",
+                    tint: Theme.tileIndigo,
                     title: "Overlay style",
                     subtitle: "What covers a locked app while it waits for you."
                 )
@@ -111,6 +115,7 @@ struct PreferencesView: View {
             Toggle(isOn: viewModel.binding(\.preferLiquidGlass)) {
                 SettingsRowLabel(
                     symbol: "circle.lefthalf.filled",
+                    tint: Theme.tilePurple,
                     title: "Use Liquid Glass",
                     subtitle: "Opt FreshLock's own surfaces into the system glass material."
                 )
@@ -130,6 +135,7 @@ struct PreferencesView: View {
             } label: {
                 SettingsRowLabel(
                     symbol: "clock.arrow.circlepath",
+                    tint: Theme.tileBlue,
                     title: "Default relock",
                     subtitle: "\"When switching away\" matches iOS - it re-asks each time you return."
                 )
@@ -144,6 +150,7 @@ struct PreferencesView: View {
             Toggle(isOn: viewModel.binding(\.requireEveryLaunch)) {
                 SettingsRowLabel(
                     symbol: "arrow.uturn.backward",
+                    tint: Theme.tileOrange,
                     title: "Relock when switching away (all apps)",
                     subtitle: """
                     Paranoid mode: applies to every app regardless of its own policy. \
@@ -155,6 +162,7 @@ struct PreferencesView: View {
             Toggle(isOn: viewModel.binding(\.automaticallyPromptAuthentication)) {
                 SettingsRowLabel(
                     symbol: "touchid",
+                    tint: Theme.tilePink,
                     title: "Prompt authentication automatically",
                     subtitle: """
                     On: Touch ID appears the moment you enter a protected app. \
@@ -176,13 +184,13 @@ struct PreferencesView: View {
                 ShortcutRecorderView(shortcut: viewModel.binding(\.lockAllShortcut))
                     .frame(width: 150, height: 26)
             } label: {
-                SettingsRowLabel(symbol: "lock.fill", title: "Lock All")
+                SettingsRowLabel(symbol: "lock.fill", tint: Theme.tileGreen, title: "Lock All")
             }
             LabeledContent {
                 ShortcutRecorderView(shortcut: viewModel.binding(\.unlockAllShortcut))
                     .frame(width: 150, height: 26)
             } label: {
-                SettingsRowLabel(symbol: "lock.open.fill", title: "Unlock All")
+                SettingsRowLabel(symbol: "lock.open.fill", tint: Theme.tileTeal, title: "Unlock All")
             }
         } header: {
             Text("Global Shortcuts")
@@ -232,6 +240,7 @@ struct PreferencesView: View {
             } label: {
                 SettingsRowLabel(
                     symbol: "accessibility",
+                    tint: Theme.tileBlue,
                     title: "Accessibility",
                     subtitle: "Required for reliable locking. Enable FreshLock under Privacy & Security → Accessibility."
                 )
@@ -244,7 +253,7 @@ struct PreferencesView: View {
                     .font(.system(.caption2, design: .monospaced))
                     .textSelection(.enabled)
                     .foregroundStyle(.secondary)
-                    .padding(.leading, Theme.settingsIconColumn + 10)
+                    .padding(.leading, Theme.tileSideRow + 10)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -252,7 +261,8 @@ struct PreferencesView: View {
         Section("Developer") {
             Toggle(isOn: viewModel.binding(\.developerMode)) {
                 SettingsRowLabel(
-                    symbol: "hammer",
+                    symbol: "hammer.fill",
+                    tint: Theme.tileGray,
                     title: "Developer mode",
                     subtitle: "Show the Endpoint Security enforcement controls."
                 )

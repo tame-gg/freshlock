@@ -35,7 +35,7 @@ struct AboutView: View {
                 .font(.callout)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-            Link("Freshlock Github", destination: URL(string: "https://github.com/tame-gg/freshlock")!)
+            Link("FreshLock Github", destination: URL(string: "https://github.com/tame-gg/freshlock")!)
                 .font(.callout)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)

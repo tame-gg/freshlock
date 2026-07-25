@@ -117,6 +117,15 @@ struct MainView: View {
                 SettingsPageHeader(pane: pane)
             }
             .navigationTitle(pane.title)
+            .toolbar {
+                // A settings page has no toolbar controls of its own, but the
+                // window still needs a toolbar: without one AppKit centres the
+                // window title and drops the titlebar separator, so Settings
+                // looked unlike every library page.
+                ToolbarItem(placement: .primaryAction) {
+                    Color.clear.frame(width: 0, height: 0)
+                }
+            }
     }
 
     private var catalogueDetail: some View {
@@ -265,11 +274,23 @@ extension SidebarItem {
 
     var symbolName: String {
         switch self {
-        case .all: "square.grid.2x2"
+        case .all: "square.grid.2x2.fill"
         case .protected: "lock.fill"
         case .favorites: "star.fill"
         case let .settings(pane): pane.symbolName
         case let .category(category): category.symbolName
+        }
+    }
+
+    /// Tile colour in the sidebar, so a destination is recognisable by hue
+    /// before its label is read.
+    var tint: Color {
+        switch self {
+        case .all: Theme.tileBlue
+        case .protected: Theme.tileGreen
+        case .favorites: Theme.tileYellow
+        case let .settings(pane): pane.tint
+        case .category: Theme.tileGray
         }
     }
 }
