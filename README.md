@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔒 FreshLock, a tame.gg project
+# 🔒 FreshLock, a tame.gg project!
 
 **Protect any macOS app behind Touch ID, Apple Watch, or your Mac password.**
 
